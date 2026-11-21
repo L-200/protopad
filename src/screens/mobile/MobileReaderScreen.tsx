@@ -17,22 +17,75 @@ import {
   SpeedIcon,
 } from '../../components/shared/Icons';
 import { LanguageBadge } from '../../components/shared/LanguageBadge';
+import { useTranslation } from '../../i18n/useTranslation';
 import { usePrototype } from '../../state/PrototypeContext';
-import { MobileFrame } from './MobileFrame';
+import { SiteLanguage } from '../../types/prototype';
+import { formatLocalizedRate, MobileFrame } from './MobileFrame';
 import { useSansaoAudio } from './useSansaoAudio';
 import './MobileScreens.css';
+
+const READER_EXTRA_STRINGS: Record<
+  SiteLanguage,
+  {
+    screenLabel: string;
+    mainAria: string;
+    sepAria: (num: number) => string;
+    paragraphAria: (num: number, text: string) => string;
+    playingTag: string;
+    currentTag: string;
+    dockAria: string;
+    playNarrationAria: string;
+    pauseNarrationAria: string;
+  }
+> = {
+  'pt-BR': {
+    screenLabel: 'Tela 5 — Leitura Mobile',
+    mainAria: 'Texto do capítulo para leitura e áudio',
+    sepAria: (num) => `Parágrafo ${num}: separador de cena`,
+    paragraphAria: (num, text) => `Parágrafo ${num}: ${text}`,
+    playingTag: 'Em reprodução',
+    currentTag: 'Parágrafo atual',
+    dockAria: 'Controles fixos de leitura em áudio',
+    playNarrationAria: 'Reproduzir narração',
+    pauseNarrationAria: 'Pausar narração',
+  },
+  'en-US': {
+    screenLabel: 'Screen 5 — Mobile Reader',
+    mainAria: 'Chapter text for reading and audio',
+    sepAria: (num) => `Paragraph ${num}: scene break`,
+    paragraphAria: (num, text) => `Paragraph ${num}: ${text}`,
+    playingTag: 'Playing',
+    currentTag: 'Current paragraph',
+    dockAria: 'Fixed audio reading controls',
+    playNarrationAria: 'Play narration',
+    pauseNarrationAria: 'Pause narration',
+  },
+  'es-ES': {
+    screenLabel: 'Pantalla 5 — Lectura Móvil',
+    mainAria: 'Texto del capítulo para lectura y audio',
+    sepAria: (num) => `Párrafo ${num}: separador de escena`,
+    paragraphAria: (num, text) => `Párrafo ${num}: ${text}`,
+    playingTag: 'Reproduciendo',
+    currentTag: 'Párrafo actual',
+    dockAria: 'Controles fijos de lectura en audio',
+    playNarrationAria: 'Reproducir narración',
+    pauseNarrationAria: 'Pausar narración',
+  },
+};
 
 /**
  * Leitor mobile do Cap. 9 com destaque do parágrafo em reprodução, rolagem segura sem
  * sobreposição pela barra inferior fixa e controles dimensionados para uso com uma mão.
  */
 export const MobileReaderScreen: React.FC = () => {
+  const { t, siteLanguage } = useTranslation();
+  const extra = READER_EXTRA_STRINGS[siteLanguage];
   const { sansaoChapter, navigateTo, setSansaoPlayback } = usePrototype();
   const {
     isPlaying,
     currentParagraph,
     totalParagraphs,
-    rateLabel,
+    playbackRate,
     progressPercent,
     togglePlay,
     prevParagraph,
@@ -40,6 +93,7 @@ export const MobileReaderScreen: React.FC = () => {
     cyclePlaybackRate,
   } = useSansaoAudio();
 
+  const localizedRate = formatLocalizedRate(playbackRate, siteLanguage);
   const activeBlockRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
@@ -50,12 +104,12 @@ export const MobileReaderScreen: React.FC = () => {
   }, [currentParagraph]);
 
   return (
-    <MobileFrame screenLabel="Tela 5 — Leitura Mobile">
+    <MobileFrame screenLabel={extra.screenLabel}>
       <header className="mobile-header">
         <button
           type="button"
           className="mobile-touch-btn mobile-touch-btn--icon-only"
-          aria-label="Voltar para a tela inicial"
+          aria-label={t.mobile.backHomeAria}
           onClick={() => navigateTo('tela_1_home')}
         >
           <ChevronLeftIcon size={20} />
@@ -71,22 +125,22 @@ export const MobileReaderScreen: React.FC = () => {
         <button
           type="button"
           className="mobile-touch-btn"
-          aria-label="Editar capítulo"
+          aria-label={t.mobile.editAria}
           onClick={() => navigateTo('tela_6_editor_mobile')}
         >
           <EditIcon size={16} />
-          <span>Editar</span>
+          <span>{t.mobile.editBtn}</span>
         </button>
       </header>
 
       <main
         className="mobile-reader-scroll"
-        aria-label="Texto do capítulo para leitura e áudio"
+        aria-label={extra.mainAria}
       >
         {sansaoChapter.edited && (
           <div className="mobile-updated-banner" role="status">
             <CheckIcon size={16} />
-            <span>Capítulo atualizado — pronto para conferir no áudio</span>
+            <span>{t.mobile.updatedBadge}</span>
           </div>
         )}
 
@@ -108,8 +162,8 @@ export const MobileReaderScreen: React.FC = () => {
               aria-current={isActive ? 'true' : undefined}
               aria-label={
                 isSep
-                  ? `Parágrafo ${paragraphNumber}: separador de cena`
-                  : `Parágrafo ${paragraphNumber}: ${block.text}`
+                  ? extra.sepAria(paragraphNumber)
+                  : extra.paragraphAria(paragraphNumber, block.text)
               }
               style={{
                 textAlign: block.align,
@@ -123,7 +177,7 @@ export const MobileReaderScreen: React.FC = () => {
             >
               {isActive && (
                 <span className="mobile-paragraph-tag" aria-hidden="true">
-                  {isPlaying ? 'Em reprodução' : 'Parágrafo atual'} ·{' '}
+                  {isPlaying ? extra.playingTag : extra.currentTag} ·{' '}
                   {paragraphNumber}
                 </span>
               )}
@@ -135,7 +189,7 @@ export const MobileReaderScreen: React.FC = () => {
 
       <section
         className="mobile-audio-dock"
-        aria-label="Controles fixos de leitura em áudio"
+        aria-label={extra.dockAria}
       >
         <div
           className="mobile-progress-track"
@@ -150,10 +204,10 @@ export const MobileReaderScreen: React.FC = () => {
         <div className="mobile-audio-meta">
           <div className="mobile-audio-meta-left">
             <LanguageBadge language="pt" />
-            <span>Ouvir</span>
+            <span>{t.mobile.listenLabel}</span>
           </div>
           <span className="mobile-audio-counter">
-            Parágrafo {currentParagraph} de {totalParagraphs}
+            {t.mobile.paragraphOf(currentParagraph, totalParagraphs)}
           </span>
         </div>
 
@@ -162,41 +216,43 @@ export const MobileReaderScreen: React.FC = () => {
             type="button"
             className="mobile-audio-btn mobile-audio-btn--primary"
             aria-pressed={isPlaying}
-            aria-label={isPlaying ? 'Pausar narração' : 'Reproduzir narração'}
+            aria-label={
+              isPlaying ? extra.pauseNarrationAria : extra.playNarrationAria
+            }
             onClick={togglePlay}
           >
             {isPlaying ? <PauseIcon size={20} /> : <PlayIcon size={20} />}
-            <span>{isPlaying ? 'Pausar' : 'Reproduzir'}</span>
+            <span>{isPlaying ? t.mobile.pause : t.mobile.play}</span>
           </button>
 
           <button
             type="button"
             className="mobile-audio-btn"
-            aria-label="Voltar parágrafo"
+            aria-label={t.mobile.prevAria}
             onClick={prevParagraph}
           >
             <PrevParagraphIcon size={20} />
-            <span>Voltar</span>
+            <span>{t.mobile.prev}</span>
           </button>
 
           <button
             type="button"
             className="mobile-audio-btn"
-            aria-label="Avançar parágrafo"
+            aria-label={t.mobile.nextAria}
             onClick={nextParagraph}
           >
             <NextParagraphIcon size={20} />
-            <span>Avançar</span>
+            <span>{t.mobile.next}</span>
           </button>
 
           <button
             type="button"
             className="mobile-audio-btn mobile-audio-btn--rate"
-            aria-label={`Alterar velocidade de reprodução, atual ${rateLabel}`}
+            aria-label={t.mobile.speedAria(localizedRate)}
             onClick={cyclePlaybackRate}
           >
             <SpeedIcon size={18} />
-            <span>{rateLabel}</span>
+            <span>{localizedRate}</span>
           </button>
         </div>
       </section>

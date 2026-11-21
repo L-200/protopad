@@ -16,6 +16,7 @@ import { LanguageSettingsScreen } from './screens/language/LanguageSettingsScree
 import { MobileEditorScreen } from './screens/mobile/MobileEditorScreen';
 import { MobileReaderScreen } from './screens/mobile/MobileReaderScreen';
 import { DesktopReaderScreen } from './screens/reader-desktop/DesktopReaderScreen';
+import { TRANSLATIONS } from './i18n/translations';
 import { PrototypeProvider, usePrototype } from './state/PrototypeContext';
 
 /**
@@ -24,7 +25,8 @@ import { PrototypeProvider, usePrototype } from './state/PrototypeContext';
  * simuladores de acessibilidade sem interferir na ordem inicial de tabulação.
  */
 const PrototypeShell: React.FC = () => {
-  const { activeScreen, isLanguageModalOpen } = usePrototype();
+  const { activeScreen, isLanguageModalOpen, siteLanguage } = usePrototype();
+  const t = TRANSLATIONS[siteLanguage];
 
   const isMobileScreen =
     activeScreen === 'tela_5_leitura_mobile' ||
@@ -75,7 +77,7 @@ const PrototypeShell: React.FC = () => {
           className="skip-link"
           onClick={handleSkipToPlayer}
         >
-          Ir para o player
+          {t.skipToPlayer}
         </a>
       )}
 

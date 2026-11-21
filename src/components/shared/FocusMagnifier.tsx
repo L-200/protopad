@@ -5,8 +5,9 @@
  * aos requisitos R2 (player sempre na mesma posição), R7 (nomes acessíveis em PT-BR) e R22.
  */
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from '../../i18n/useTranslation';
 import { usePrototype } from '../../state/PrototypeContext';
-import { PlaybackRate } from '../../types/prototype';
+import { PlaybackRate, SiteLanguage } from '../../types/prototype';
 import { ZoomInIcon } from './Icons';
 
 /** Instantâneo geométrico e semântico do elemento atualmente focado na página. */
@@ -23,14 +24,88 @@ interface FocusSnapshot {
   };
 }
 
+const MAGNIFIER_LABELS: Record<
+  SiteLanguage,
+  {
+    selectorFallback: string;
+    roles: {
+      link: string;
+      button: string;
+      input: string;
+      select: string;
+      element: string;
+    };
+    landmarkPlayer: string;
+    playerRegion: string;
+    funbar: string;
+    inactive: string;
+    switchOn: string;
+    badgeText: string;
+  }
+> = {
+  'pt-BR': {
+    selectorFallback: 'Seletor',
+    roles: {
+      link: 'link',
+      button: 'botão',
+      input: 'campo',
+      select: 'lista',
+      element: 'elemento',
+    },
+    landmarkPlayer: 'Landmark · Região Ouvir',
+    playerRegion: 'Player · Região Ouvir',
+    funbar: 'Sub-header do capítulo',
+    inactive: 'Inativo',
+    switchOn: 'Ligado',
+    badgeText: 'LUPA 200% · FOCO',
+  },
+  'en-US': {
+    selectorFallback: 'Select',
+    roles: {
+      link: 'link',
+      button: 'button',
+      input: 'input',
+      select: 'select',
+      element: 'element',
+    },
+    landmarkPlayer: 'Landmark · Listen Region',
+    playerRegion: 'Player · Listen Region',
+    funbar: 'Chapter sub-header',
+    inactive: 'Inactive',
+    switchOn: 'On',
+    badgeText: '200% MAGNIFIER · FOCUS',
+  },
+  'es-ES': {
+    selectorFallback: 'Selector',
+    roles: {
+      link: 'enlace',
+      button: 'botón',
+      input: 'campo',
+      select: 'lista',
+      element: 'elemento',
+    },
+    landmarkPlayer: 'Landmark · Región Escuchar',
+    playerRegion: 'Reproductor · Región Escuchar',
+    funbar: 'Subencabezado del capítulo',
+    inactive: 'Inactivo',
+    switchOn: 'Activo',
+    badgeText: 'LUPA 200% · FOCO',
+  },
+};
+
 /**
- * Formata a velocidade de reprodução no padrão brasileiro com vírgula (ex.: `'1,75x'`, conforme R6).
+ * Formata a velocidade de reprodução conforme o idioma (`1,75x` em PT/ES, `1.75x` em EN).
  *
  * @param rate Velocidade numérica selecionada.
- * @returns Rótulo formatado com vírgula decimal.
+ * @param siteLanguage Idioma atual da interface.
+ * @returns Rótulo formatado com separador decimal localizado.
  */
-function formatPlaybackRate(rate: PlaybackRate): string {
-  return `${rate.toString().replace('.', ',')}x`;
+function formatPlaybackRate(
+  rate: PlaybackRate,
+  siteLanguage: SiteLanguage
+): string {
+  const raw = rate.toString();
+  return siteLanguage === 'en-US' ? `${raw}x` : `${raw.replace('.', ',')}x`;
 }
 
 /**
@@ -38,14 +113,15 @@ function formatPlaybackRate(rate: PlaybackRate): string {
  * (`select`, `aria-valuetext`, `aria-label`, `aria-labelledby`, `title`, texto visível, `placeholder`).
  *
  * @param el Elemento HTML atualmente focado.
+ * @param selectorFallback Texto padrão para selects sem opção visível.
  * @returns Descrição textual concisa para exibição ampliada na lupa.
  */
-function describeElement(el: HTMLElement): string {
+function describeElement(el: HTMLElement, selectorFallback: string): string {
   if (el instanceof HTMLSelectElement) {
     return (
       el.selectedOptions[0]?.textContent?.trim() ||
       el.getAttribute('aria-label') ||
-      'Seletor'
+      selectorFallback
     );
   }
 
@@ -74,20 +150,24 @@ function describeElement(el: HTMLElement): string {
 }
 
 /**
- * Traduz o papel ARIA ou tag nativa do elemento focado para exibição legível em PT-BR.
+ * Traduz o papel ARIA ou tag nativa do elemento focado para exibição legível no idioma ativo.
  *
  * @param el Elemento HTML focado.
+ * @param roles Mapa localizado de papéis nativos.
  * @returns Rótulo curto do papel do elemento.
  */
-function describeRole(el: HTMLElement): string {
+function describeRole(
+  el: HTMLElement,
+  roles: (typeof MAGNIFIER_LABELS)['pt-BR']['roles']
+): string {
   const explicitRole = el.getAttribute('role');
   if (explicitRole) return explicitRole;
   const tag = el.tagName.toLowerCase();
-  if (tag === 'a') return 'link';
-  if (tag === 'button') return 'botão';
-  if (tag === 'input') return 'campo';
-  if (tag === 'select') return 'lista';
-  return 'elemento';
+  if (tag === 'a') return roles.link;
+  if (tag === 'button') return roles.button;
+  if (tag === 'input') return roles.input;
+  if (tag === 'select') return roles.select;
+  return roles.element;
 }
 
 /**
@@ -103,6 +183,8 @@ export const FocusMagnifier: React.FC = () => {
     activeChapter,
     activeScreen,
   } = usePrototype();
+  const { t, siteLanguage } = useTranslation();
+  const labels = MAGNIFIER_LABELS[siteLanguage];
   const [snapshot, setSnapshot] = useState<FocusSnapshot | null>(null);
 
   useEffect(() => {
@@ -118,31 +200,31 @@ export const FocusMagnifier: React.FC = () => {
         Boolean(el.closest('#audio-player-region'));
       const inFunbar = Boolean(el.closest('#funbar'));
 
-      let context = describeRole(el);
+      let context = describeRole(el, labels.roles);
       if (el.id === 'audio-player-region') {
-        context = 'Landmark · Região Ouvir';
+        context = labels.landmarkPlayer;
       } else if (inPlayer) {
-        context = 'Player · Região Ouvir';
+        context = labels.playerRegion;
       } else if (inFunbar) {
-        context = 'Sub-header do capítulo';
+        context = labels.funbar;
       }
 
       const stateParts: string[] = [];
       const pressed = el.getAttribute('aria-pressed');
       const checked = el.getAttribute('aria-checked');
       if (pressed !== null) {
-        stateParts.push(pressed === 'true' ? 'Ativo' : 'Inativo');
+        stateParts.push(pressed === 'true' ? t.common.on : labels.inactive);
       } else if (checked !== null) {
-        stateParts.push(checked === 'true' ? 'Ligado' : 'Desligado');
+        stateParts.push(checked === 'true' ? labels.switchOn : t.common.off);
       }
       if (inPlayer) {
-        stateParts.push(isPlaying ? 'Reproduzindo' : 'Pausado');
-        stateParts.push(formatPlaybackRate(playbackRate));
+        stateParts.push(isPlaying ? t.reader.nvdaPlaying : t.reader.nvdaPaused);
+        stateParts.push(formatPlaybackRate(playbackRate, siteLanguage));
       }
 
       return {
         context,
-        label: describeElement(el),
+        label: describeElement(el, labels.selectorFallback),
         stateText: stateParts.join(' · '),
         rect: {
           top: rect.top,
@@ -195,6 +277,9 @@ export const FocusMagnifier: React.FC = () => {
     currentParagraph,
     activeChapter.id,
     activeScreen,
+    siteLanguage,
+    t,
+    labels,
   ]);
 
   if (!magnifierEnabled) return null;
@@ -278,7 +363,7 @@ export const FocusMagnifier: React.FC = () => {
           }}
         >
           <ZoomInIcon size={14} />
-          <span>LUPA 200% · FOCO</span>
+          <span>{labels.badgeText}</span>
         </span>
         <span
           style={{
@@ -291,8 +376,8 @@ export const FocusMagnifier: React.FC = () => {
           {snapshot
             ? snapshot.context
             : activeScreen === 'tela_3_leitura_desktop'
-              ? `Parágrafo ${currentParagraph} de ${totalParagraphs}`
-              : 'Ativa'}
+              ? t.reader.paragraphOf(currentParagraph, totalParagraphs)
+              : t.common.onFem}
         </span>
       </div>
 
@@ -304,9 +389,7 @@ export const FocusMagnifier: React.FC = () => {
           wordBreak: 'break-word',
         }}
       >
-        {snapshot
-          ? snapshot.label
-          : 'Pressione Tab para acompanhar o foco em 200%'}
+        {snapshot ? snapshot.label : t.shared.magnifierWaiting}
       </div>
 
       {snapshot?.stateText && (

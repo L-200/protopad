@@ -14,6 +14,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { TRANSLATIONS } from '../i18n/translations';
 import {
   buildCarousels,
   computeLeonardoWordCount,
@@ -288,23 +289,22 @@ export const PrototypeProvider: React.FC<{ children: React.ReactNode }> = ({
       setSiteLanguage(nextSite);
       setStoriesLanguage(nextStories);
 
+      const conf = TRANSLATIONS[nextSite].confirmations;
       let message: string;
       if (siteChanged && storiesChanged) {
-        message = `Idioma do site alterado para ${formatSiteLangLabel(
-          nextSite
-        )} e das histórias para ${formatStoryLangLabel(nextStories)}.`;
+        message = conf.bothChanged(
+          formatSiteLangLabel(nextSite),
+          formatStoryLangLabel(nextStories)
+        );
       } else if (storiesChanged) {
-        message = `Idioma das histórias alterado para ${formatStoryLangLabel(
-          nextStories
-        )}.`;
+        message = conf.storiesChanged(formatStoryLangLabel(nextStories));
       } else if (siteChanged) {
-        message = `Idioma do site alterado para ${formatSiteLangLabel(
-          nextSite
-        )}.`;
+        message = conf.siteChanged(formatSiteLangLabel(nextSite));
       } else {
-        message = `Preferências mantidas: Site ${formatSiteLangLabel(
-          nextSite
-        )} · Histórias ${formatStoryLangLabel(nextStories)}.`;
+        message = conf.unchanged(
+          formatSiteLangLabel(nextSite),
+          formatStoryLangLabel(nextStories)
+        );
       }
 
       setLanguageConfirmation({
@@ -325,16 +325,18 @@ export const PrototypeProvider: React.FC<{ children: React.ReactNode }> = ({
     const { previousSite, previousStories } = languageConfirmation;
     setSiteLanguage(previousSite);
     setStoriesLanguage(previousStories);
-    const restoredMessage = `Alteração desfeita. Site: ${formatSiteLangLabel(
-      previousSite
-    )} · Histórias: ${formatStoryLangLabel(previousStories)}.`;
+    const conf = TRANSLATIONS[previousSite].confirmations;
+    const restoredMessage = conf.undone(
+      formatSiteLangLabel(previousSite),
+      formatStoryLangLabel(previousStories)
+    );
     setLanguageConfirmation({
       message: restoredMessage,
       previousSite,
       previousStories,
       canUndo: false,
     });
-    announceNvda('Alteração de idioma desfeita.', 'system');
+    announceNvda(conf.undoneShort, 'system');
   }, [languageConfirmation, announceNvda]);
 
   /** Dispensa o banner de confirmação de idioma após leitura pelo usuário. */

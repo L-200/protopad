@@ -21,9 +21,11 @@ import {
   ImageIcon,
 } from '../../components/shared/Icons';
 import { StoryCoverSvg } from '../../components/shared/StoryCoverSvg';
+import { useTranslation } from '../../i18n/useTranslation';
 import { usePrototype } from '../../state/PrototypeContext';
 import {
   EditorBlock,
+  SiteLanguage,
   StoryItem,
   TextAlign,
 } from '../../types/prototype';
@@ -131,6 +133,151 @@ function createBlockId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
+const EDITOR_EXTRA_STRINGS: Record<
+  SiteLanguage,
+  {
+    headingAria: string;
+    paragraphAria: string;
+    headingPlaceholder: string;
+    paragraphPlaceholder: string;
+    headerAria: string;
+    alignNvda: Record<TextAlign, string>;
+    headingOnNvda: string;
+    headingOffNvda: string;
+    blockRemovedNvda: (label: string) => string;
+    draftRestoredNvda: string;
+    paperAria: string;
+    paperTitleAria: string;
+    chapterLangLine: string;
+    centeredSceneBreak: string;
+    imageBadge: string;
+    removeImage: string;
+    imageNoun: string;
+    chapterIllustrationAlt: string;
+    videoBadge: string;
+    removeVideo: string;
+    videoNoun: string;
+    videoFallbackTitle: string;
+    videoPlayingMeta: string;
+    videoIdleMeta: string;
+    pollBadge: string;
+    removePoll: string;
+    pollNoun: string;
+    pollFallbackQuestion: string;
+    pollVotedEditor: string;
+    pollHintEditor: string;
+  }
+> = {
+  'pt-BR': {
+    headingAria: 'Subtítulo do capítulo',
+    paragraphAria: 'Parágrafo do capítulo',
+    headingPlaceholder: 'Escreva o subtítulo aqui...',
+    paragraphPlaceholder: 'Escreva seu texto aqui...',
+    headerAria: 'Cabeçalho do editor',
+    alignNvda: {
+      left: 'Alinhado à esquerda',
+      center: 'Alinhado ao centro',
+      right: 'Alinhado à direita',
+    },
+    headingOnNvda: 'Formato de subtítulo ativado',
+    headingOffNvda: 'Formato de parágrafo restaurado',
+    blockRemovedNvda: (label) => `${label} removido.`,
+    draftRestoredNvda: 'Rascunho inicial restaurado.',
+    paperAria: 'Área de escrita do capítulo',
+    paperTitleAria: 'Título principal do capítulo no rascunho',
+    chapterLangLine: 'Idioma do capítulo: Português',
+    centeredSceneBreak: 'Separador de cena centralizado',
+    imageBadge: 'Imagem do capítulo',
+    removeImage: 'Remover imagem',
+    imageNoun: 'Imagem',
+    chapterIllustrationAlt: 'Ilustração do capítulo',
+    videoBadge: 'Vídeo / Trilha do capítulo',
+    removeVideo: 'Remover vídeo',
+    videoNoun: 'Vídeo',
+    videoFallbackTitle: 'Trilha sonora do capítulo',
+    videoPlayingMeta: 'Reproduzindo prévia simulada • 00:42 / 02:14',
+    videoIdleMeta: 'Mídia incorporada • 02:14',
+    pollBadge: 'Enquete para os leitores',
+    removePoll: 'Remover enquete',
+    pollNoun: 'Enquete',
+    pollFallbackQuestion: 'Enquete do capítulo',
+    pollVotedEditor: 'Prévia de votação simulada registrada.',
+    pollHintEditor: 'Clique em uma opção para testar a resposta dos leitores.',
+  },
+  'en-US': {
+    headingAria: 'Chapter subtitle',
+    paragraphAria: 'Chapter paragraph',
+    headingPlaceholder: 'Write subtitle here...',
+    paragraphPlaceholder: 'Write your text here...',
+    headerAria: 'Editor header',
+    alignNvda: {
+      left: 'Aligned left',
+      center: 'Aligned center',
+      right: 'Aligned right',
+    },
+    headingOnNvda: 'Subtitle format on',
+    headingOffNvda: 'Paragraph format restored',
+    blockRemovedNvda: (label) => `${label} removed.`,
+    draftRestoredNvda: 'Initial draft restored.',
+    paperAria: 'Chapter writing area',
+    paperTitleAria: 'Main chapter title in draft',
+    chapterLangLine: 'Chapter language: Portuguese',
+    centeredSceneBreak: 'Centered scene break',
+    imageBadge: 'Chapter image',
+    removeImage: 'Remove image',
+    imageNoun: 'Image',
+    chapterIllustrationAlt: 'Chapter illustration',
+    videoBadge: 'Chapter video / soundtrack',
+    removeVideo: 'Remove video',
+    videoNoun: 'Video',
+    videoFallbackTitle: 'Chapter soundtrack',
+    videoPlayingMeta: 'Playing simulated preview • 00:42 / 02:14',
+    videoIdleMeta: 'Embedded media • 02:14',
+    pollBadge: 'Reader poll',
+    removePoll: 'Remove poll',
+    pollNoun: 'Poll',
+    pollFallbackQuestion: 'Chapter poll',
+    pollVotedEditor: 'Simulated preview vote recorded.',
+    pollHintEditor: 'Click an option to test reader response.',
+  },
+  'es-ES': {
+    headingAria: 'Subtítulo del capítulo',
+    paragraphAria: 'Párrafo del capítulo',
+    headingPlaceholder: 'Escribe el subtítulo aquí...',
+    paragraphPlaceholder: 'Escribe tu texto aquí...',
+    headerAria: 'Encabezado del editor',
+    alignNvda: {
+      left: 'Alineado a la izquierda',
+      center: 'Alineado al centro',
+      right: 'Alineado a la derecha',
+    },
+    headingOnNvda: 'Formato de subtítulo activado',
+    headingOffNvda: 'Formato de párrafo restaurado',
+    blockRemovedNvda: (label) => `${label} eliminado.`,
+    draftRestoredNvda: 'Borrador inicial restaurado.',
+    paperAria: 'Área de escritura del capítulo',
+    paperTitleAria: 'Título principal del capítulo en el borrador',
+    chapterLangLine: 'Idioma del capítulo: Portugués',
+    centeredSceneBreak: 'Separador de escena centrado',
+    imageBadge: 'Imagen del capítulo',
+    removeImage: 'Eliminar imagen',
+    imageNoun: 'Imagen',
+    chapterIllustrationAlt: 'Ilustración del capítulo',
+    videoBadge: 'Vídeo / Banda sonora del capítulo',
+    removeVideo: 'Eliminar vídeo',
+    videoNoun: 'Vídeo',
+    videoFallbackTitle: 'Banda sonora del capítulo',
+    videoPlayingMeta: 'Reproduciendo vista previa simulada • 00:42 / 02:14',
+    videoIdleMeta: 'Multimedia incorporado • 02:14',
+    pollBadge: 'Encuesta para lectores',
+    removePoll: 'Eliminar encuesta',
+    pollNoun: 'Encuesta',
+    pollFallbackQuestion: 'Encuesta del capítulo',
+    pollVotedEditor: 'Voto simulado registrado en la vista previa.',
+    pollHintEditor: 'Haz clic en una opción para probar la respuesta de los lectores.',
+  },
+};
+
 /* --------------------------------------------------------------------------
    Subcomponente de Bloco Editável sem Salto de Cursor
    -------------------------------------------------------------------------- */
@@ -165,6 +312,8 @@ const EditableBlock: React.FC<EditableBlockProps> = ({
   onKeyDownBlock,
   onSelectionCheck,
 }) => {
+  const { siteLanguage } = useTranslation();
+  const extra = EDITOR_EXTRA_STRINGS[siteLanguage];
   const elRef = useRef<HTMLDivElement | null>(null);
   const lastCommittedHtmlRef = useRef<string>(block.html);
 
@@ -202,11 +351,9 @@ const EditableBlock: React.FC<EditableBlockProps> = ({
         suppressContentEditableWarning
         role="textbox"
         aria-multiline="true"
-        aria-label={
-          isHeading ? 'Subtítulo do capítulo' : 'Parágrafo do capítulo'
-        }
+        aria-label={isHeading ? extra.headingAria : extra.paragraphAria}
         data-placeholder={
-          isHeading ? 'Escreva o subtítulo aqui...' : 'Escreva seu texto aqui...'
+          isHeading ? extra.headingPlaceholder : extra.paragraphPlaceholder
         }
         className={`editor-editable ${
           isHeading ? 'editor-editable--heading' : ''
@@ -235,9 +382,11 @@ const EditableBlock: React.FC<EditableBlockProps> = ({
 /**
  * Tela 4 (Editor de Capítulos Desktop).
  * Coordena foco entre blocos editáveis, preservação de `Range` para acionamento via teclado
- * da barra, modos de formatação com e sem seleção (`pendingFormatsRef`) e inserções em PT-BR.
+ * da barra, modos de formatação com e sem seleção (`pendingFormatsRef`) e inserções localizadas.
  */
 export const DesktopEditorScreen: React.FC = () => {
+  const { t, siteLanguage } = useTranslation();
+  const extra = EDITOR_EXTRA_STRINGS[siteLanguage];
   const {
     leonardoDraft,
     updateLeonardoDraft,
@@ -421,16 +570,18 @@ export const DesktopEditorScreen: React.FC = () => {
   const announceInlineFormat = useCallback(
     (command: InlineFormatCommand, enabled: boolean) => {
       const labels: Record<InlineFormatCommand, string> = {
-        bold: 'Negrito',
-        italic: 'Itálico',
-        underline: 'Sublinhado',
+        bold: t.editor.bold,
+        italic: t.editor.italic,
+        underline: t.editor.underline,
       };
       announceNvda(
-        `${labels[command]} ${enabled ? 'ativado' : 'desativado'}`,
+        enabled
+          ? t.editor.nvdaActivated(labels[command])
+          : t.editor.nvdaDeactivated(labels[command]),
         'editor'
       );
     },
-    [announceNvda]
+    [announceNvda, t.editor]
   );
 
   /**
@@ -615,14 +766,9 @@ export const DesktopEditorScreen: React.FC = () => {
 
       setActiveFormats((prev) => ({ ...prev, align }));
 
-      const msgMap: Record<TextAlign, string> = {
-        left: 'Alinhado à esquerda',
-        center: 'Alinhado ao centro',
-        right: 'Alinhado à direita',
-      };
-      announceNvda(msgMap[align], 'editor');
+      announceNvda(extra.alignNvda[align], 'editor');
     },
-    [focusedBlockId, firstEditableId, updateLeonardoDraft, announceNvda]
+    [focusedBlockId, firstEditableId, updateLeonardoDraft, announceNvda, extra]
   );
 
   const handleToggleHeading = useCallback(() => {
@@ -645,12 +791,10 @@ export const DesktopEditorScreen: React.FC = () => {
 
     setActiveFormats((prev) => ({ ...prev, heading: nextIsHeading }));
     announceNvda(
-      nextIsHeading
-        ? 'Formato de subtítulo ativado'
-        : 'Formato de parágrafo restaurado',
+      nextIsHeading ? extra.headingOnNvda : extra.headingOffNvda,
       'editor'
     );
-  }, [focusedBlockId, firstEditableId, updateLeonardoDraft, announceNvda]);
+  }, [focusedBlockId, firstEditableId, updateLeonardoDraft, announceNvda, extra]);
 
   const handleKeyDownBlock = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>, block: EditorBlock) => {
@@ -807,8 +951,8 @@ export const DesktopEditorScreen: React.FC = () => {
       html: '***',
       align: 'center',
     });
-    announceNvda('Separador de cena inserido e centralizado.', 'editor');
-  }, [insertBlockAfterFocused, announceNvda]);
+    announceNvda(t.editor.nvdaSceneInserted, 'editor');
+  }, [insertBlockAfterFocused, announceNvda, t.editor]);
 
   const handleInsertImage = useCallback(
     (payload: {
@@ -829,9 +973,9 @@ export const DesktopEditorScreen: React.FC = () => {
         },
         { atTop: payload.insertAtTop }
       );
-      announceNvda('Imagem inserida no capítulo.', 'editor');
+      announceNvda(t.editor.nvdaImageInserted, 'editor');
     },
-    [insertBlockAfterFocused, announceNvda]
+    [insertBlockAfterFocused, announceNvda, t.editor]
   );
 
   const handleInsertVideo = useCallback(
@@ -846,9 +990,9 @@ export const DesktopEditorScreen: React.FC = () => {
           caption: payload.caption || undefined,
         },
       });
-      announceNvda('Vídeo inserido no capítulo.', 'editor');
+      announceNvda(t.editor.nvdaVideoInserted, 'editor');
     },
-    [insertBlockAfterFocused, announceNvda]
+    [insertBlockAfterFocused, announceNvda, t.editor]
   );
 
   const handleInsertPoll = useCallback(
@@ -866,9 +1010,9 @@ export const DesktopEditorScreen: React.FC = () => {
         },
         { atEnd: true }
       );
-      announceNvda('Enquete adicionada ao final do capítulo.', 'editor');
+      announceNvda(t.editor.nvdaPollInserted, 'editor');
     },
-    [insertBlockAfterFocused, announceNvda]
+    [insertBlockAfterFocused, announceNvda, t.editor]
   );
 
   const handleRemoveBlock = useCallback(
@@ -877,45 +1021,49 @@ export const DesktopEditorScreen: React.FC = () => {
         ...prev,
         blocks: prev.blocks.filter((b) => b.id !== blockId),
       }));
-      announceNvda(`${label} removido.`, 'editor');
+      announceNvda(extra.blockRemovedNvda(label), 'editor');
     },
-    [updateLeonardoDraft, announceNvda]
+    [updateLeonardoDraft, announceNvda, extra]
   );
 
   const handleManualSave = useCallback(() => {
     updateLeonardoDraft({ saveStatus: 'Salvo' });
     setSaveToastVisible(true);
-    announceNvda('Rascunho salvo.', 'editor');
+    announceNvda(t.editor.nvdaDraftSaved, 'editor');
     if (saveToastTimerRef.current !== null) {
       window.clearTimeout(saveToastTimerRef.current);
     }
     saveToastTimerRef.current = window.setTimeout(() => {
       setSaveToastVisible(false);
     }, 3200);
-  }, [updateLeonardoDraft, announceNvda]);
+  }, [updateLeonardoDraft, announceNvda, t.editor]);
 
   const wordCountText = getLeonardoWordCount(leonardoDraft).toLocaleString(
-    'pt-BR'
+    t.locale
   );
+  const displaySaveStatus =
+    leonardoDraft.saveStatus === 'Salvando...'
+      ? t.editor.savingStatus
+      : t.editor.savedStatus;
 
   return (
     <div className="desktop-editor-page">
       {/* Header do Editor + Barra Fixa Permanente */}
       <div className="editor-sticky-chrome">
-        <header className="editor-header" aria-label="Cabeçalho do editor">
+        <header className="editor-header" aria-label={extra.headerAria}>
           <div className="editor-header-inner">
             <div className="editor-header-left">
               <span className="tooltip-wrapper" data-tooltip-pos="bottom">
                 <button
                   type="button"
                   className="editor-back-btn"
-                  aria-label="Voltar para a página inicial"
+                  aria-label={t.editor.backToHomeAria}
                   onClick={() => navigateTo('tela_1_home')}
                 >
                   <ChevronLeftIcon size={20} />
                 </button>
                 <span role="tooltip" className="tooltip-bubble">
-                  Voltar à página inicial (preserva rascunho)
+                  {t.editor.backToHomeAria}
                 </span>
               </span>
 
@@ -932,7 +1080,7 @@ export const DesktopEditorScreen: React.FC = () => {
                   {leonardoDraft.published && (
                     <span className="editor-published-badge">
                       <CheckIcon size={13} />
-                      Publicado
+                      {t.editor.publishedBadge}
                     </span>
                   )}
                 </div>
@@ -940,12 +1088,12 @@ export const DesktopEditorScreen: React.FC = () => {
                 <input
                   type="text"
                   className="editor-chapter-input"
-                  aria-label="Título do capítulo"
+                  aria-label={t.editor.chapterTitleAria}
                   value={leonardoDraft.chapterTitle}
                   onChange={(e) =>
                     updateLeonardoDraft({ chapterTitle: e.target.value })
                   }
-                  placeholder="Título do capítulo"
+                  placeholder={t.editor.chapterTitleAria}
                 />
 
                 <div className="editor-status-line" aria-live="polite">
@@ -958,13 +1106,13 @@ export const DesktopEditorScreen: React.FC = () => {
                     aria-hidden="true"
                   />
                   <span>
-                    Rascunho • {wordCountText} palavras •{' '}
-                    {leonardoDraft.saveStatus}
+                    {t.editor.draftWord} • {t.editor.wordsCount(wordCountText)} •{' '}
+                    {displaySaveStatus}
                   </span>
                   {saveToastVisible && (
                     <span className="editor-save-toast" role="status">
                       <CheckIcon size={13} />
-                      Rascunho salvo
+                      {t.editor.savedToast}
                     </span>
                   )}
                 </div>
@@ -975,35 +1123,39 @@ export const DesktopEditorScreen: React.FC = () => {
               <button
                 type="button"
                 className="btn-pill-secondary editor-action-btn"
+                title={t.editor.checkLanguageTooltip}
                 onClick={() => navigateTo('tela_2_idioma')}
               >
                 <GlobeIcon size={16} />
-                <span>Conferir idioma</span>
+                <span>{t.editor.checkLanguageBtn}</span>
               </button>
 
               <button
                 type="button"
                 className="btn-pill-secondary editor-action-btn"
+                title={t.editor.previewTooltip}
                 onClick={() => setPreviewModalOpen(true)}
               >
                 <EyeIcon size={16} />
-                <span>Pré-visualização</span>
+                <span>{t.editor.previewBtn}</span>
               </button>
 
               <button
                 type="button"
                 className="btn-pill-secondary editor-action-btn"
+                title={t.editor.saveTooltip}
                 onClick={handleManualSave}
               >
-                <span>Gravar</span>
+                <span>{t.editor.saveBtn}</span>
               </button>
 
               <button
                 type="button"
                 className="btn-pill-primary editor-action-btn"
+                title={t.editor.publishTooltip}
                 onClick={() => setPublishModalOpen(true)}
               >
-                <span>Publicar</span>
+                <span>{t.editor.publishBtn}</span>
               </button>
             </div>
           </div>
@@ -1027,14 +1179,7 @@ export const DesktopEditorScreen: React.FC = () => {
         <div className="editor-helper-banner">
           <div className="editor-helper-text">
             <InfoIcon size={18} />
-            <span>
-              <strong>Roteiro rápido:</strong> aplique{' '}
-              <strong>Itálico (Ctrl+I)</strong> nos pensamentos de Rafael (3.º
-              parágrafo e trecho adiante), clique nos dois{' '}
-              <strong>***</strong> para centralizar com <strong>Centro</strong>{' '}
-              e use <strong>Separador de cena</strong> na troca de ponto de
-              vista.
-            </span>
+            <span>{t.editor.scenarioGuide}</span>
           </div>
           <button
             type="button"
@@ -1042,17 +1187,17 @@ export const DesktopEditorScreen: React.FC = () => {
             onClick={() => {
               resetLeonardoDraft();
               pendingFormatsRef.current = null;
-              announceNvda('Rascunho inicial restaurado.', 'editor');
+              announceNvda(extra.draftRestoredNvda, 'editor');
             }}
           >
             <UndoIcon size={15} />
-            <span>Restaurar rascunho inicial</span>
+            <span>{t.editor.restoreDraftBtn}</span>
           </button>
         </div>
 
         <article
           className="editor-paper"
-          aria-label="Área de escrita do capítulo"
+          aria-label={extra.paperAria}
         >
           <div className="editor-paper-header">
             <div className="editor-paper-story-label">
@@ -1061,15 +1206,15 @@ export const DesktopEditorScreen: React.FC = () => {
             <input
               type="text"
               className="editor-paper-title"
-              aria-label="Título principal do capítulo no rascunho"
+              aria-label={extra.paperTitleAria}
               value={leonardoDraft.chapterTitle}
               onChange={(e) =>
                 updateLeonardoDraft({ chapterTitle: e.target.value })
               }
-              placeholder="Título do capítulo"
+              placeholder={t.editor.chapterTitleAria}
             />
             <div className="editor-paper-subtitle">
-              {wordCountText} palavras • Idioma do capítulo: Português
+              {t.editor.wordsCount(wordCountText)} • {extra.chapterLangLine}
             </div>
           </div>
 
@@ -1097,7 +1242,7 @@ export const DesktopEditorScreen: React.FC = () => {
                   <div
                     key={block.id}
                     className="editor-separator-block"
-                    aria-label="Separador de cena centralizado"
+                    aria-label={extra.centeredSceneBreak}
                   >
                     <span className="editor-separator-line" aria-hidden="true" />
                     <span className="editor-separator-stars">***</span>
@@ -1106,10 +1251,10 @@ export const DesktopEditorScreen: React.FC = () => {
                       type="button"
                       className="editor-block-remove-btn"
                       onClick={() =>
-                        handleRemoveBlock(block.id, 'Separador de cena')
+                        handleRemoveBlock(block.id, t.editor.sceneBreakLabel)
                       }
                     >
-                      Remover
+                      {t.common.remove}
                     </button>
                   </div>
                 );
@@ -1121,14 +1266,14 @@ export const DesktopEditorScreen: React.FC = () => {
                     <div className="editor-media-card-header">
                       <span className="editor-media-badge">
                         <ImageIcon size={16} />
-                        Imagem do capítulo
+                        {extra.imageBadge}
                       </span>
                       <button
                         type="button"
                         className="editor-block-remove-btn"
-                        onClick={() => handleRemoveBlock(block.id, 'Imagem')}
+                        onClick={() => handleRemoveBlock(block.id, extra.imageNoun)}
                       >
-                        Remover imagem
+                        {extra.removeImage}
                       </button>
                     </div>
                     <figure className="editor-image-figure">
@@ -1136,7 +1281,7 @@ export const DesktopEditorScreen: React.FC = () => {
                         <ChapterIllustrationSvg
                           preset={block.meta?.imagePreset}
                           altTitle={
-                            block.meta?.caption || 'Ilustração do capítulo'
+                            block.meta?.caption || extra.chapterIllustrationAlt
                           }
                         />
                       </div>
@@ -1157,27 +1302,26 @@ export const DesktopEditorScreen: React.FC = () => {
                     <div className="editor-media-card-header">
                       <span className="editor-media-badge">
                         <VideoIcon size={16} />
-                        Vídeo / Trilha do capítulo
+                        {extra.videoBadge}
                       </span>
                       <button
                         type="button"
                         className="editor-block-remove-btn"
-                        onClick={() => handleRemoveBlock(block.id, 'Vídeo')}
+                        onClick={() => handleRemoveBlock(block.id, extra.videoNoun)}
                       >
-                        Remover vídeo
+                        {extra.removeVideo}
                       </button>
                     </div>
                     <div className="editor-video-box">
                       <div className="editor-video-screen">
                         <div className="editor-video-info">
                           <span className="editor-video-title">
-                            {block.meta?.videoTitle ||
-                              'Trilha sonora do capítulo'}
+                            {block.meta?.videoTitle || extra.videoFallbackTitle}
                           </span>
                           <span className="editor-video-meta">
                             {isPlaying
-                              ? 'Reproduzindo prévia simulada • 00:42 / 02:14'
-                              : 'Mídia incorporada • 02:14'}
+                              ? extra.videoPlayingMeta
+                              : extra.videoIdleMeta}
                           </span>
                         </div>
                         <button
@@ -1192,7 +1336,9 @@ export const DesktopEditorScreen: React.FC = () => {
                           ) : (
                             <PlayIcon size={16} />
                           )}
-                          <span>{isPlaying ? 'Pausar' : 'Reproduzir'}</span>
+                          <span>
+                            {isPlaying ? t.reader.pauseLabel : t.reader.playLabel}
+                          </span>
                         </button>
                       </div>
                       {block.meta?.caption && (
@@ -1219,19 +1365,19 @@ export const DesktopEditorScreen: React.FC = () => {
                     <div className="editor-media-card-header">
                       <span className="editor-media-badge">
                         <PollIcon size={16} />
-                        Enquete para os leitores
+                        {extra.pollBadge}
                       </span>
                       <button
                         type="button"
                         className="editor-block-remove-btn"
-                        onClick={() => handleRemoveBlock(block.id, 'Enquete')}
+                        onClick={() => handleRemoveBlock(block.id, extra.pollNoun)}
                       >
-                        Remover enquete
+                        {extra.removePoll}
                       </button>
                     </div>
                     <div className="editor-poll-card">
                       <h3 className="editor-poll-question">
-                        {block.meta?.pollQuestion || 'Enquete do capítulo'}
+                        {block.meta?.pollQuestion || extra.pollFallbackQuestion}
                       </h3>
                       <div className="editor-poll-options">
                         {options.map((opt, idx) => {
@@ -1278,8 +1424,8 @@ export const DesktopEditorScreen: React.FC = () => {
                       </div>
                       <div className="editor-poll-footer">
                         {picked !== undefined
-                          ? 'Prévia de votação simulada registrada.'
-                          : 'Clique em uma opção para testar a resposta dos leitores.'}
+                          ? extra.pollVotedEditor
+                          : extra.pollHintEditor}
                       </div>
                     </div>
                   </div>
@@ -1292,7 +1438,7 @@ export const DesktopEditorScreen: React.FC = () => {
         </article>
       </div>
 
-      {/* Modais em PT-BR */}
+      {/* Modais localizados */}
       <ImageInsertModal
         isOpen={imageModalOpen}
         onClose={() => setImageModalOpen(false)}

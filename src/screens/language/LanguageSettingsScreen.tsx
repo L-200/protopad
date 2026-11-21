@@ -6,6 +6,7 @@
  */
 import React from 'react';
 import { ChevronLeftIcon, GlobeIcon } from '../../components/shared/Icons';
+import { useTranslation } from '../../i18n/useTranslation';
 import { usePrototype } from '../../state/PrototypeContext';
 import { LanguageSettingsForm } from './LanguageSettingsForm';
 import './LanguageSettings.css';
@@ -16,6 +17,7 @@ import './LanguageSettings.css';
  */
 export const LanguageSettingsScreen: React.FC = () => {
   const { previousScreen, navigateTo } = usePrototype();
+  const { t } = useTranslation();
   const returnTarget =
     previousScreen && previousScreen !== 'tela_2_idioma'
       ? previousScreen
@@ -27,10 +29,11 @@ export const LanguageSettingsScreen: React.FC = () => {
         <button
           type="button"
           className="btn-pill-secondary"
+          aria-label={t.language.backToPrevious}
           onClick={() => navigateTo(returnTarget)}
         >
           <ChevronLeftIcon size={18} />
-          <span>Voltar</span>
+          <span>{t.language.backBtn}</span>
         </button>
       </div>
 
@@ -39,12 +42,9 @@ export const LanguageSettingsScreen: React.FC = () => {
           <span className="lang-modal-title-icon" aria-hidden="true">
             <GlobeIcon size={20} />
           </span>
-          <h1 id="lang-page-title">Configurações de idioma</h1>
+          <h1 id="lang-page-title">{t.language.pageTitle}</h1>
         </div>
-        <p className="lang-page-subtitle">
-          Escolha separadamente o idioma dos menus do site e o idioma das histórias
-          recomendadas na página inicial.
-        </p>
+        <p className="lang-page-subtitle">{t.language.subtitle}</p>
 
         <LanguageSettingsForm
           mode="page"

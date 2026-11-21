@@ -20,7 +20,8 @@ import {
   UnderlineIcon,
   VideoIcon,
 } from '../../components/shared/Icons';
-import { TextAlign } from '../../types/prototype';
+import { useTranslation } from '../../i18n/useTranslation';
+import { SiteLanguage, TextAlign } from '../../types/prototype';
 
 /** Estado consolidado das formatações ativas no cursor ou seleção do editor. */
 export interface ActiveEditorFormats {
@@ -58,6 +59,43 @@ interface ToolbarItemConfig {
   onActivate: (fromKeyboard: boolean) => void;
 }
 
+const TOOLBAR_EXTRA_STRINGS: Record<
+  SiteLanguage,
+  {
+    on: string;
+    off: string;
+    headingFocus: string;
+    sceneFocus: string;
+    group1Aria: string;
+    group2Aria: string;
+  }
+> = {
+  'pt-BR': {
+    on: 'ativado',
+    off: 'desativado',
+    headingFocus: 'Título ou subtítulo',
+    sceneFocus: 'Inserir separador de cena centralizado',
+    group1Aria: 'Formatação de texto e alinhamento',
+    group2Aria: 'Inserção de mídia e elementos no capítulo',
+  },
+  'en-US': {
+    on: 'on',
+    off: 'off',
+    headingFocus: 'Heading or subtitle',
+    sceneFocus: 'Insert centered scene break',
+    group1Aria: 'Text formatting and alignment',
+    group2Aria: 'Insert media and chapter elements',
+  },
+  'es-ES': {
+    on: 'activado',
+    off: 'desactivado',
+    headingFocus: 'Título o subtítulo',
+    sceneFocus: 'Insertar separador de escena centrado',
+    group1Aria: 'Formato de texto y alineación',
+    group2Aria: 'Inserción de medios y elementos del capítulo',
+  },
+};
+
 /**
  * Toolbar ARIA (`role="toolbar"`) dividida em Grupo 1 (estilo/alinhamento) e Grupo 2
  * (inserção de mídia, separador de cena e enquete).
@@ -75,6 +113,8 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   onOpenPollModal,
   onToolbarFocusAnnounce,
 }) => {
+  const { t, siteLanguage } = useTranslation();
+  const extra = TOOLBAR_EXTRA_STRINGS[siteLanguage];
   const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const pointerDownRef = useRef<boolean>(false);
 
@@ -82,122 +122,128 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
     {
       id: 'negrito',
       group: 1,
-      label: 'Negrito',
-      tooltip: 'Negrito (Ctrl+B)',
+      label: t.editor.bold,
+      tooltip: t.editor.boldTooltip,
       icon: <BoldIcon size={17} />,
       isToggle: true,
       pressed: activeFormats.bold,
-      focusAnnouncement: `Negrito (Ctrl+B), ${activeFormats.bold ? 'ativado' : 'desativado'}`,
+      focusAnnouncement: `${t.editor.boldTooltip}, ${
+        activeFormats.bold ? extra.on : extra.off
+      }`,
       onActivate: (fromKeyboard) => onToggleInlineFormat('bold', fromKeyboard),
     },
     {
       id: 'italico',
       group: 1,
-      label: 'Itálico',
-      tooltip: 'Itálico (Ctrl+I)',
+      label: t.editor.italic,
+      tooltip: t.editor.italicTooltip,
       icon: <ItalicIcon size={17} />,
       isToggle: true,
       pressed: activeFormats.italic,
-      focusAnnouncement: `Itálico (Ctrl+I), ${activeFormats.italic ? 'ativado' : 'desativado'}`,
+      focusAnnouncement: `${t.editor.italicTooltip}, ${
+        activeFormats.italic ? extra.on : extra.off
+      }`,
       onActivate: (fromKeyboard) => onToggleInlineFormat('italic', fromKeyboard),
     },
     {
       id: 'sublinhado',
       group: 1,
-      label: 'Sublinhado',
-      tooltip: 'Sublinhado (Ctrl+U)',
+      label: t.editor.underline,
+      tooltip: t.editor.underlineTooltip,
       icon: <UnderlineIcon size={17} />,
       isToggle: true,
       pressed: activeFormats.underline,
-      focusAnnouncement: `Sublinhado (Ctrl+U), ${activeFormats.underline ? 'ativado' : 'desativado'}`,
+      focusAnnouncement: `${t.editor.underlineTooltip}, ${
+        activeFormats.underline ? extra.on : extra.off
+      }`,
       onActivate: (fromKeyboard) => onToggleInlineFormat('underline', fromKeyboard),
     },
     {
       id: 'alinhar-esquerda',
       group: 1,
-      label: 'Esquerda',
-      tooltip: 'Alinhar à esquerda',
+      label: t.editor.alignLeft,
+      tooltip: t.editor.alignLeftTooltip,
       icon: <AlignLeftIcon size={17} />,
       isToggle: true,
       pressed: activeFormats.align === 'left',
-      focusAnnouncement: `Alinhar à esquerda, ${
-        activeFormats.align === 'left' ? 'ativado' : 'desativado'
+      focusAnnouncement: `${t.editor.alignLeftTooltip}, ${
+        activeFormats.align === 'left' ? extra.on : extra.off
       }`,
       onActivate: () => onChangeAlign('left'),
     },
     {
       id: 'alinhar-centro',
       group: 1,
-      label: 'Centro',
-      tooltip: 'Centralizar texto',
+      label: t.editor.alignCenter,
+      tooltip: t.editor.alignCenterTooltip,
       icon: <AlignCenterIcon size={17} />,
       isToggle: true,
       pressed: activeFormats.align === 'center',
-      focusAnnouncement: `Centralizar texto, ${
-        activeFormats.align === 'center' ? 'ativado' : 'desativado'
+      focusAnnouncement: `${t.editor.alignCenterTooltip}, ${
+        activeFormats.align === 'center' ? extra.on : extra.off
       }`,
       onActivate: () => onChangeAlign('center'),
     },
     {
       id: 'alinhar-direita',
       group: 1,
-      label: 'Direita',
-      tooltip: 'Alinhar à direita',
+      label: t.editor.alignRight,
+      tooltip: t.editor.alignRightTooltip,
       icon: <AlignRightIcon size={17} />,
       isToggle: true,
       pressed: activeFormats.align === 'right',
-      focusAnnouncement: `Alinhar à direita, ${
-        activeFormats.align === 'right' ? 'ativado' : 'desativado'
+      focusAnnouncement: `${t.editor.alignRightTooltip}, ${
+        activeFormats.align === 'right' ? extra.on : extra.off
       }`,
       onActivate: () => onChangeAlign('right'),
     },
     {
       id: 'titulo-subtitulo',
       group: 1,
-      label: 'Título/Subtítulo',
-      tooltip: 'Alternar título ou subtítulo',
+      label: t.editor.heading,
+      tooltip: t.editor.headingTooltip,
       icon: <HeadingIcon size={17} />,
       isToggle: true,
       pressed: activeFormats.heading,
-      focusAnnouncement: `Título ou subtítulo, ${
-        activeFormats.heading ? 'ativado' : 'desativado'
+      focusAnnouncement: `${extra.headingFocus}, ${
+        activeFormats.heading ? extra.on : extra.off
       }`,
       onActivate: () => onToggleHeading(),
     },
     {
       id: 'inserir-imagem',
       group: 2,
-      label: 'Inserir imagem',
-      tooltip: 'Inserir imagem no capítulo',
+      label: t.editor.insertImage,
+      tooltip: t.editor.insertImageTooltip,
       icon: <ImageIcon size={17} />,
-      focusAnnouncement: 'Inserir imagem no capítulo',
+      focusAnnouncement: t.editor.insertImageTooltip,
       onActivate: () => onOpenImageModal(),
     },
     {
       id: 'inserir-video',
       group: 2,
-      label: 'Inserir vídeo',
-      tooltip: 'Inserir vídeo no capítulo',
+      label: t.editor.insertVideo,
+      tooltip: t.editor.insertVideoTooltip,
       icon: <VideoIcon size={17} />,
-      focusAnnouncement: 'Inserir vídeo no capítulo',
+      focusAnnouncement: t.editor.insertVideoTooltip,
       onActivate: () => onOpenVideoModal(),
     },
     {
       id: 'separador-cena',
       group: 2,
-      label: 'Separador de cena',
-      tooltip: 'Inserir separador de cena (*** centralizado)',
+      label: t.editor.sceneBreak,
+      tooltip: t.editor.sceneBreakTooltip,
       icon: <SceneSeparatorIcon size={17} />,
-      focusAnnouncement: 'Inserir separador de cena centralizado',
+      focusAnnouncement: extra.sceneFocus,
       onActivate: () => onInsertSeparator(),
     },
     {
       id: 'adicionar-enquete',
       group: 2,
-      label: 'Adicionar enquete',
-      tooltip: 'Adicionar enquete ao final do capítulo',
+      label: t.editor.addPoll,
+      tooltip: t.editor.addPollTooltip,
       icon: <PollIcon size={17} />,
-      focusAnnouncement: 'Adicionar enquete ao final do capítulo',
+      focusAnnouncement: t.editor.addPollTooltip,
       onActivate: () => onOpenPollModal(),
     },
   ];
@@ -281,12 +327,12 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
       <div
         className="editor-toolbar"
         role="toolbar"
-        aria-label="Barra de formatação do capítulo"
+        aria-label={t.editor.toolbarAria}
       >
         <div
           className="editor-toolbar-group"
           role="group"
-          aria-label="Formatação de texto e alinhamento"
+          aria-label={extra.group1Aria}
         >
           {group1.map((item, idx) => renderButton(item, idx))}
         </div>
@@ -300,7 +346,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
         <div
           className="editor-toolbar-group"
           role="group"
-          aria-label="Inserção de mídia e elementos no capítulo"
+          aria-label={extra.group2Aria}
         >
           {group2.map((item, idx) => renderButton(item, group1.length + idx))}
         </div>

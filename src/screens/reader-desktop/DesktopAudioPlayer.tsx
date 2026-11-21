@@ -17,6 +17,7 @@ import {
   SpeedIcon,
 } from '../../components/shared/Icons';
 import { LanguageBadge } from '../../components/shared/LanguageBadge';
+import { useTranslation } from '../../i18n/useTranslation';
 import {
   PlaybackRate,
   SiteLanguage,
@@ -33,13 +34,13 @@ export const PLAYBACK_RATE_OPTIONS: readonly PlaybackRate[] = [
   2.0,
 ];
 
-const RATE_LABELS: Record<PlaybackRate, string> = {
-  0.75: '0,75x',
-  1.0: '1,0x',
-  1.25: '1,25x',
-  1.5: '1,5x',
-  1.75: '1,75x',
-  2.0: '2,0x',
+const RATE_DOT_LABELS: Record<PlaybackRate, string> = {
+  0.75: '0.75x',
+  1.0: '1.0x',
+  1.25: '1.25x',
+  1.5: '1.5x',
+  1.75: '1.75x',
+  2.0: '2.0x',
 };
 
 const STORY_LANG_NAME: Record<StoryLanguage, string> = {
@@ -54,14 +55,55 @@ const SITE_LANG_NAME: Record<SiteLanguage, string> = {
   'es-ES': 'Español',
 };
 
+const PLAYER_EXTRA: Record<
+  SiteLanguage,
+  {
+    audioLangAria: (lang: string) => string;
+    mismatchAria: (storyLang: string, siteLang: string) => string;
+    speedListboxAria: string;
+    speedPopoverHeader: string;
+  }
+> = {
+  'pt-BR': {
+    audioLangAria: (lang) => `Idioma do áudio: ${lang}`,
+    mismatchAria: (storyLang, siteLang) =>
+      `Aviso de idioma: história e leitura em voz alta em ${storyLang}, enquanto o site está em ${siteLang}`,
+    speedListboxAria: 'Selecionar velocidade de leitura',
+    speedPopoverHeader: 'Velocidade da voz',
+  },
+  'en-US': {
+    audioLangAria: (lang) => `Audio language: ${lang}`,
+    mismatchAria: (storyLang, siteLang) =>
+      `Language notice: story and text-to-speech in ${storyLang}, while the site is in ${siteLang}`,
+    speedListboxAria: 'Select reading speed',
+    speedPopoverHeader: 'Voice speed',
+  },
+  'es-ES': {
+    audioLangAria: (lang) => `Idioma del audio: ${lang}`,
+    mismatchAria: (storyLang, siteLang) =>
+      `Aviso de idioma: historia y lectura en voz alta en ${storyLang}, mientras el sitio está en ${siteLang}`,
+    speedListboxAria: 'Seleccionar velocidad de lectura',
+    speedPopoverHeader: 'Velocidad de la voz',
+  },
+};
+
 /**
- * Formata a velocidade de reprodução no padrão brasileiro com vírgula decimal (`1,75x`).
+ * Formata a velocidade de reprodução conforme o idioma do site:
+ * vírgula decimal em `pt-BR` e `es-ES` (`1,75x`) e ponto em `en-US` (`1.75x`).
  *
  * @param rate Fator numérico de velocidade.
+ * @param siteLanguage Idioma atual do site (padrão `pt-BR`).
  * @returns Rótulo formatado para exibição no botão e anúncio no leitor de tela.
  */
-export function formatPlaybackRate(rate: PlaybackRate): string {
-  return RATE_LABELS[rate] ?? `${String(rate).replace('.', ',')}x`;
+export function formatPlaybackRate(
+  rate: PlaybackRate,
+  siteLanguage: SiteLanguage = 'pt-BR'
+): string {
+  const dotLabel = RATE_DOT_LABELS[rate] ?? `${rate}x`;
+  if (siteLanguage === 'en-US') {
+    return dotLabel;
+  }
+  return dotLabel.replace('.', ',');
 }
 
 /** Propriedades controladas do player fixo inferior (`DesktopAudioPlayer`). */
@@ -82,7 +124,7 @@ export interface DesktopAudioPlayerProps {
 }
 
 /**
- * Barra fixa inferior de áudio envolvida por `<section role="region" aria-label="Ouvir">`.
+ * Barra fixa inferior de áudio envolvida por `<section role="region" aria-label={t.reader.playerRegionLabel}>`.
  * Recebe foco programático via skip link ou tecla `D` (`tabIndex={-1}`) sem iniciar ou
  * pausar a narração automaticamente (`R4`, `R21`).
  */
@@ -101,12 +143,14 @@ export const DesktopAudioPlayer: React.FC<DesktopAudioPlayerProps> = ({
   onSeekParagraph,
   onFocusProgress,
 }) => {
+  const { t } = useTranslation();
+  const extra = PLAYER_EXTRA[siteLanguage];
   const [speedMenuOpen, setSpeedMenuOpen] = useState(false);
   const speedWrapperRef = useRef<HTMLDivElement | null>(null);
   const speedButtonRef = useRef<HTMLButtonElement | null>(null);
   const speedOptionRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
-  const formattedRate = formatPlaybackRate(playbackRate);
+  const formattedRate = formatPlaybackRate(playbackRate, siteLanguage);
   const languageDiffersFromSite = !siteLanguage.startsWith(storyLanguage);
 
   // Fecha popover ao clicar fora
@@ -190,29 +234,34 @@ export const DesktopAudioPlayer: React.FC<DesktopAudioPlayerProps> = ({
       id="audio-player-region"
       ref={playerRegionRef}
       role="region"
-      aria-label="Ouvir"
+      aria-label={t.reader.playerRegionLabel}
       aria-describedby="player-ouvir-tooltip"
       tabIndex={-1}
       className="desktop-player-bar"
     >
       <div className="desktop-player-bar__inner">
-        {/* Identificação consistente "Ouvir" + selo de idioma antes dos controles (R8, R16, R17) */}
+        {/* Identificação consistente "Ouvir"/"Listen"/"Escuchar" + selo de idioma antes dos controles (R8, R16, R17) */}
         <div className="desktop-player-identity">
           <LanguageBadge
             language={storyLanguage}
-            ariaLabel={`Idioma do áudio: ${STORY_LANG_NAME[storyLanguage]}`}
+            ariaLabel={extra.audioLangAria(STORY_LANG_NAME[storyLanguage])}
           />
 
           {languageDiffersFromSite && (
             <span
               className="player-lang-mismatch"
               role="note"
-              aria-label={`Aviso de idioma: história e leitura em voz alta em ${STORY_LANG_NAME[storyLanguage]}, enquanto o site está em ${SITE_LANG_NAME[siteLanguage]}`}
+              aria-label={extra.mismatchAria(
+                STORY_LANG_NAME[storyLanguage],
+                SITE_LANG_NAME[siteLanguage]
+              )}
             >
               <InfoIcon size={14} />
               <span>
-                Voz em {STORY_LANG_NAME[storyLanguage]} (site em{' '}
-                {SITE_LANG_NAME[siteLanguage]})
+                {t.reader.voiceMismatch(
+                  STORY_LANG_NAME[storyLanguage],
+                  SITE_LANG_NAME[siteLanguage]
+                )}
               </span>
             </span>
           )}
@@ -220,10 +269,10 @@ export const DesktopAudioPlayer: React.FC<DesktopAudioPlayerProps> = ({
           <div className="tooltip-wrapper player-ouvir-tooltip">
             <span className="player-ouvir-badge">
               <HeadphonesIcon size={18} />
-              <span>Ouvir</span>
+              <span>{t.reader.listenLabel}</span>
             </span>
             <span id="player-ouvir-tooltip" role="tooltip" className="tooltip-bubble">
-              Ouvir com leitura em voz alta (voz automática)
+              {t.reader.listenTooltip}
             </span>
           </div>
         </div>
@@ -242,10 +291,10 @@ export const DesktopAudioPlayer: React.FC<DesktopAudioPlayerProps> = ({
               onClick={onTogglePlay}
             >
               {isPlaying ? <PauseIcon size={18} /> : <PlayIcon size={18} />}
-              <span>{isPlaying ? 'Pausar' : 'Reproduzir'}</span>
+              <span>{isPlaying ? t.reader.pauseLabel : t.reader.playLabel}</span>
             </button>
             <span id="tooltip-play-pause" role="tooltip" className="tooltip-bubble">
-              {isPlaying ? 'Pausar (Alt+P)' : 'Reproduzir (Alt+P)'}
+              {isPlaying ? t.reader.pauseTooltip : t.reader.playTooltip}
             </span>
           </div>
 
@@ -254,16 +303,16 @@ export const DesktopAudioPlayer: React.FC<DesktopAudioPlayerProps> = ({
             <button
               type="button"
               className="player-btn"
-              aria-label="Voltar parágrafo"
+              aria-label={t.reader.prevAria}
               aria-disabled={currentParagraph <= 1}
               aria-describedby="tooltip-prev-paragraph"
               onClick={onPrevParagraph}
             >
               <PrevParagraphIcon size={18} />
-              <span>Voltar</span>
+              <span>{t.reader.prevShort}</span>
             </button>
             <span id="tooltip-prev-paragraph" role="tooltip" className="tooltip-bubble">
-              Voltar parágrafo (Alt+↑)
+              {t.reader.prevTooltip}
             </span>
           </div>
 
@@ -272,16 +321,16 @@ export const DesktopAudioPlayer: React.FC<DesktopAudioPlayerProps> = ({
             <button
               type="button"
               className="player-btn"
-              aria-label="Avançar parágrafo"
+              aria-label={t.reader.nextAria}
               aria-disabled={currentParagraph >= totalParagraphs}
               aria-describedby="tooltip-next-paragraph"
               onClick={onNextParagraph}
             >
               <NextParagraphIcon size={18} />
-              <span>Avançar</span>
+              <span>{t.reader.nextShort}</span>
             </button>
             <span id="tooltip-next-paragraph" role="tooltip" className="tooltip-bubble">
-              Avançar parágrafo (Alt+↓)
+              {t.reader.nextTooltip}
             </span>
           </div>
 
@@ -292,7 +341,7 @@ export const DesktopAudioPlayer: React.FC<DesktopAudioPlayerProps> = ({
                 ref={speedButtonRef}
                 type="button"
                 className="player-btn"
-                aria-label={`Velocidade de leitura: ${formattedRate}`}
+                aria-label={t.reader.speedAria(formattedRate)}
                 aria-haspopup="listbox"
                 aria-expanded={speedMenuOpen}
                 aria-describedby={!speedMenuOpen ? 'tooltip-speed' : undefined}
@@ -303,7 +352,7 @@ export const DesktopAudioPlayer: React.FC<DesktopAudioPlayerProps> = ({
               </button>
               {!speedMenuOpen && (
                 <span id="tooltip-speed" role="tooltip" className="tooltip-bubble">
-                  Velocidade de leitura ({formattedRate})
+                  {`${t.reader.speedMenuLabel} (${formattedRate})`}
                 </span>
               )}
             </div>
@@ -311,15 +360,18 @@ export const DesktopAudioPlayer: React.FC<DesktopAudioPlayerProps> = ({
             {speedMenuOpen && (
               <div
                 role="listbox"
-                aria-label="Selecionar velocidade de leitura"
+                aria-label={extra.speedListboxAria}
                 className="player-speed-popover"
               >
                 <div className="player-speed-popover__header">
-                  Velocidade da voz
+                  {extra.speedPopoverHeader}
                 </div>
                 {PLAYBACK_RATE_OPTIONS.map((rateOption, idx) => {
                   const isSelected = rateOption === playbackRate;
-                  const optionLabel = formatPlaybackRate(rateOption);
+                  const optionLabel = formatPlaybackRate(
+                    rateOption,
+                    siteLanguage
+                  );
                   return (
                     <button
                       key={optionLabel}
@@ -358,13 +410,16 @@ export const DesktopAudioPlayer: React.FC<DesktopAudioPlayerProps> = ({
               step={1}
               value={currentParagraph}
               className="player-progress-slider"
-              aria-label="Progresso do capítulo"
-              aria-valuetext={`Parágrafo ${currentParagraph} de ${totalParagraphs}`}
+              aria-label={t.reader.progressAria}
+              aria-valuetext={t.reader.paragraphOf(
+                currentParagraph,
+                totalParagraphs
+              )}
               onFocus={onFocusProgress}
               onChange={(e) => onSeekParagraph(Number(e.target.value))}
             />
             <span className="player-progress-text" aria-hidden="true">
-              Parágrafo {currentParagraph} de {totalParagraphs}
+              {t.reader.paragraphOf(currentParagraph, totalParagraphs)}
             </span>
           </div>
         </div>

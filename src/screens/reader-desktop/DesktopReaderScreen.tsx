@@ -18,8 +18,13 @@ import {
 } from '../../components/shared/Icons';
 import { LanguageBadge } from '../../components/shared/LanguageBadge';
 import { StoryCoverSvg } from '../../components/shared/StoryCoverSvg';
+import { useTranslation } from '../../i18n/useTranslation';
 import { usePrototype } from '../../state/PrototypeContext';
-import { PlaybackRate, StoryLanguage } from '../../types/prototype';
+import {
+  PlaybackRate,
+  SiteLanguage,
+  StoryLanguage,
+} from '../../types/prototype';
 import {
   DesktopAudioPlayer,
   formatPlaybackRate,
@@ -36,6 +41,117 @@ const STORY_LANG_LABEL: Record<StoryLanguage, string> = {
   pt: 'Português',
   en: 'English',
   es: 'Español',
+};
+
+const READER_EXTRA: Record<
+  SiteLanguage,
+  {
+    storySelectAria: string;
+    headsetAria: string;
+    removeFromListAria: string;
+    inListText: string;
+    byWord: string;
+    currentParagraphLabel: string;
+    paragraphShort: (current: number, total: number) => string;
+    savedSpeedLabel: string;
+    shortcutsPrefix: string;
+    shortcutsKeys: (
+      kbdD: React.ReactNode,
+      kbdAlt: React.ReactNode,
+      kbdP: React.ReactNode,
+      kbdUp: React.ReactNode,
+      kbdDown: React.ReactNode
+    ) => React.ReactNode;
+    activeReadingTag: (num: number) => string;
+    activeSelectedTag: (num: number) => string;
+    footerNavAria: string;
+    endOfChapterTitle: (num: number) => string;
+    continueReadingDesc: (rate: string) => string;
+    endOfStoryDesc: string;
+    backToChapter1: string;
+  }
+> = {
+  'pt-BR': {
+    storySelectAria: 'Selecionar história',
+    headsetAria: 'Tecla de mídia do headset: alternar reproduzir ou pausar',
+    removeFromListAria: 'Remover história da lista de leitura',
+    inListText: 'Na lista',
+    byWord: 'por',
+    currentParagraphLabel: 'Parágrafo atual',
+    paragraphShort: (current, total) => `${current} de ${total}`,
+    savedSpeedLabel: 'Velocidade salva',
+    shortcutsPrefix: 'Atalhos de leitura:',
+    shortcutsKeys: (kbdD, kbdAlt, kbdP, kbdUp, kbdDown) => (
+      <>
+        {kbdD} ir para região Ouvir · {kbdAlt}+{kbdP} reproduzir/pausar ·{' '}
+        {kbdAlt}+{kbdUp} / {kbdAlt}+{kbdDown} voltar/avançar parágrafo · clique em
+        qualquer parágrafo para saltar.
+      </>
+    ),
+    activeReadingTag: (num) => `▶ Em leitura · Parágrafo ${num}`,
+    activeSelectedTag: (num) => `● Selecionado · Parágrafo ${num}`,
+    footerNavAria: 'Navegação entre capítulos',
+    endOfChapterTitle: (num) => `Fim do Capítulo ${num}`,
+    continueReadingDesc: (rate) =>
+      `Continue a leitura mantendo sua velocidade salva (${rate}) e o player na mesma posição.`,
+    endOfStoryDesc:
+      'Você chegou ao final dos capítulos disponíveis nesta história.',
+    backToChapter1: 'Voltar ao Capítulo 1',
+  },
+  'en-US': {
+    storySelectAria: 'Select story',
+    headsetAria: 'Headset media key: toggle play or pause',
+    removeFromListAria: 'Remove story from reading list',
+    inListText: 'In list',
+    byWord: 'by',
+    currentParagraphLabel: 'Current paragraph',
+    paragraphShort: (current, total) => `${current} of ${total}`,
+    savedSpeedLabel: 'Saved speed',
+    shortcutsPrefix: 'Reading shortcuts:',
+    shortcutsKeys: (kbdD, kbdAlt, kbdP, kbdUp, kbdDown) => (
+      <>
+        {kbdD} jump to Listen region · {kbdAlt}+{kbdP} play/pause · {kbdAlt}+
+        {kbdUp} / {kbdAlt}+{kbdDown} previous/next paragraph · click any
+        paragraph to jump.
+      </>
+    ),
+    activeReadingTag: (num) => `▶ Reading · Paragraph ${num}`,
+    activeSelectedTag: (num) => `● Selected · Paragraph ${num}`,
+    footerNavAria: 'Chapter navigation',
+    endOfChapterTitle: (num) => `End of Chapter ${num}`,
+    continueReadingDesc: (rate) =>
+      `Continue reading while keeping your saved speed (${rate}) and the player in the same position.`,
+    endOfStoryDesc:
+      'You have reached the end of the available chapters in this story.',
+    backToChapter1: 'Back to Chapter 1',
+  },
+  'es-ES': {
+    storySelectAria: 'Seleccionar historia',
+    headsetAria: 'Tecla multimedia de auriculares: alternar reproducir o pausar',
+    removeFromListAria: 'Quitar historia de la lista de lectura',
+    inListText: 'En lista',
+    byWord: 'por',
+    currentParagraphLabel: 'Párrafo actual',
+    paragraphShort: (current, total) => `${current} de ${total}`,
+    savedSpeedLabel: 'Velocidad guardada',
+    shortcutsPrefix: 'Atajos de lectura:',
+    shortcutsKeys: (kbdD, kbdAlt, kbdP, kbdUp, kbdDown) => (
+      <>
+        {kbdD} ir a región Escuchar · {kbdAlt}+{kbdP} reproducir/pausar ·{' '}
+        {kbdAlt}+{kbdUp} / {kbdAlt}+{kbdDown} párrafo anterior/siguiente · haz
+        clic en cualquier párrafo para saltar.
+      </>
+    ),
+    activeReadingTag: (num) => `▶ Leyendo · Párrafo ${num}`,
+    activeSelectedTag: (num) => `● Seleccionado · Párrafo ${num}`,
+    footerNavAria: 'Navegación entre capítulos',
+    endOfChapterTitle: (num) => `Fin del Capítulo ${num}`,
+    continueReadingDesc: (rate) =>
+      `Continúa leyendo manteniendo tu velocidad guardada (${rate}) y el reproductor en la misma posición.`,
+    endOfStoryDesc:
+      'Has llegado al final de los capítulos disponibles en esta historia.',
+    backToChapter1: 'Volver al Capítulo 1',
+  },
 };
 
 /**
@@ -64,12 +180,15 @@ function isEditableElement(target: EventTarget | null): boolean {
  * Formata o rótulo de capítulo evitando prefixo duplicado quando o título já começa
  * com "Capítulo" ou "Chapter".
  */
-function formatChapterLabel(number: number, title: string): string {
+function formatChapterLabel(
+  title: string,
+  chapterLabelPrefix: string
+): string {
   const lower = title.trim().toLowerCase();
   if (lower.startsWith('capítulo') || lower.startsWith('chapter')) {
     return title;
   }
-  return `Capítulo ${number} — ${title}`;
+  return `${chapterLabelPrefix} — ${title}`;
 }
 
 /**
@@ -98,6 +217,8 @@ export const DesktopReaderScreen: React.FC = () => {
     magnifierEnabled,
     setMagnifierEnabled,
   } = usePrototype();
+  const { t } = useTranslation();
+  const extra = READER_EXTRA[siteLanguage];
 
   const [votedStories, setVotedStories] = useState<Record<string, boolean>>({});
   const [listedStories, setListedStories] = useState<Record<string, boolean>>({});
@@ -155,29 +276,32 @@ export const DesktopReaderScreen: React.FC = () => {
   const handleTogglePlay = useCallback(() => {
     const next = !isPlaying;
     setIsPlaying(next);
-    announceNvda(next ? 'Reproduzindo' : 'Pausado', 'control');
-  }, [isPlaying, setIsPlaying, announceNvda]);
+    announceNvda(next ? t.reader.nvdaPlaying : t.reader.nvdaPaused, 'control');
+  }, [isPlaying, setIsPlaying, announceNvda, t]);
 
   const handlePrevParagraph = useCallback(() => {
     const next = Math.max(1, currentParagraph - 1);
     hasUserNavigatedParagraphRef.current = true;
     setCurrentParagraph(next);
-    announceNvda(`Parágrafo ${next} de ${totalParagraphs}`, 'control');
-  }, [currentParagraph, totalParagraphs, setCurrentParagraph, announceNvda]);
+    announceNvda(t.reader.paragraphOf(next, totalParagraphs), 'control');
+  }, [currentParagraph, totalParagraphs, setCurrentParagraph, announceNvda, t]);
 
   const handleNextParagraph = useCallback(() => {
     const next = Math.min(totalParagraphs, currentParagraph + 1);
     hasUserNavigatedParagraphRef.current = true;
     setCurrentParagraph(next);
-    announceNvda(`Parágrafo ${next} de ${totalParagraphs}`, 'control');
-  }, [currentParagraph, totalParagraphs, setCurrentParagraph, announceNvda]);
+    announceNvda(t.reader.paragraphOf(next, totalParagraphs), 'control');
+  }, [currentParagraph, totalParagraphs, setCurrentParagraph, announceNvda, t]);
 
   const handleChangeRate = useCallback(
     (rate: PlaybackRate) => {
       setPlaybackRate(rate);
-      announceNvda(`Velocidade ${formatPlaybackRate(rate)}`, 'control');
+      announceNvda(
+        t.reader.nvdaSpeed(formatPlaybackRate(rate, siteLanguage)),
+        'control'
+      );
     },
-    [setPlaybackRate, announceNvda]
+    [setPlaybackRate, announceNvda, t, siteLanguage]
   );
 
   const handleSeekParagraph = useCallback(
@@ -185,17 +309,17 @@ export const DesktopReaderScreen: React.FC = () => {
       const clamped = Math.max(1, Math.min(paragraph, totalParagraphs));
       hasUserNavigatedParagraphRef.current = true;
       setCurrentParagraph(clamped);
-      announceNvda(`Parágrafo ${clamped} de ${totalParagraphs}`, 'progress');
+      announceNvda(t.reader.paragraphOf(clamped, totalParagraphs), 'progress');
     },
-    [totalParagraphs, setCurrentParagraph, announceNvda]
+    [totalParagraphs, setCurrentParagraph, announceNvda, t]
   );
 
   const handleFocusProgress = useCallback(() => {
     announceNvda(
-      `Parágrafo ${currentParagraph} de ${totalParagraphs}`,
+      t.reader.paragraphOf(currentParagraph, totalParagraphs),
       'progress'
     );
-  }, [currentParagraph, totalParagraphs, announceNvda]);
+  }, [currentParagraph, totalParagraphs, announceNvda, t]);
 
   const handleSelectParagraph = useCallback(
     (paragraphNumber: number) => {
@@ -220,7 +344,7 @@ export const DesktopReaderScreen: React.FC = () => {
       ) {
         event.preventDefault();
         playerRegionRef.current?.focus({ preventScroll: true });
-        announceNvda('Região Ouvir', 'system');
+        announceNvda(t.reader.nvdaRegionFocus, 'system');
         return;
       }
 
@@ -252,6 +376,7 @@ export const DesktopReaderScreen: React.FC = () => {
     handleTogglePlay,
     handlePrevParagraph,
     handleNextParagraph,
+    t,
   ]);
 
   // Integração com Media Session API (R5)
@@ -265,7 +390,7 @@ export const DesktopReaderScreen: React.FC = () => {
     try {
       if (typeof MediaMetadata !== 'undefined') {
         mediaSession.metadata = new MediaMetadata({
-          title: `${activeChapter.title} — Parágrafo ${currentParagraph} de ${totalParagraphs}`,
+          title: `${activeChapter.title} — ${t.reader.paragraphOf(currentParagraph, totalParagraphs)}`,
           artist: activeStory.author,
           album: activeStory.title,
         });
@@ -289,13 +414,13 @@ export const DesktopReaderScreen: React.FC = () => {
     safeSetAction('play', () => {
       if (!isPlaying) {
         setIsPlaying(true);
-        announceNvda('Reproduzindo', 'control');
+        announceNvda(t.reader.nvdaPlaying, 'control');
       }
     });
     safeSetAction('pause', () => {
       if (isPlaying) {
         setIsPlaying(false);
-        announceNvda('Pausado', 'control');
+        announceNvda(t.reader.nvdaPaused, 'control');
       }
     });
     safeSetAction('previoustrack', () => {
@@ -322,6 +447,7 @@ export const DesktopReaderScreen: React.FC = () => {
     announceNvda,
     handlePrevParagraph,
     handleNextParagraph,
+    t,
   ]);
 
   // Motor de Reprodução: Web Speech API + Fallback Temporizado (R21: avanço automático silencioso)
@@ -491,7 +617,7 @@ export const DesktopReaderScreen: React.FC = () => {
   return (
     <div ref={screenRootRef} className="reader-desktop">
       {/* Sub-header sticky #funbar abaixo do WattpadHeader (top: 68px) */}
-      <div id="funbar" className="reader-funbar">
+      <div id="funbar" className="reader-funbar" role="region" aria-label={t.reader.funbarLabel}>
         <div className="reader-funbar__inner">
           <div className="reader-funbar__story">
             <StoryCoverSvg
@@ -508,18 +634,21 @@ export const DesktopReaderScreen: React.FC = () => {
 
               <div className="reader-funbar__select-group">
                 <label htmlFor="reader-chapter-select" className="sr-only">
-                  Selecionar capítulo
+                  {t.reader.chapterSelectLabel}
                 </label>
                 <select
                   id="reader-chapter-select"
                   className="reader-funbar__select"
-                  aria-label="Selecionar capítulo"
+                  aria-label={t.reader.chapterSelectLabel}
                   value={activeChapterIndex}
                   onChange={(e) => setActiveChapter(Number(e.target.value))}
                 >
                   {chapters.map((ch, idx) => (
                     <option key={ch.id} value={idx}>
-                      {formatChapterLabel(ch.number, ch.title)}
+                      {formatChapterLabel(
+                        ch.title,
+                        t.reader.chapterLabel(ch.number)
+                      )}
                     </option>
                   ))}
                 </select>
@@ -527,12 +656,12 @@ export const DesktopReaderScreen: React.FC = () => {
 
               <div className="reader-funbar__select-group">
                 <label htmlFor="reader-story-select" className="sr-only">
-                  Alternar história para teste de idioma
+                  {t.reader.storySelectLabel}
                 </label>
                 <select
                   id="reader-story-select"
                   className="reader-funbar__select"
-                  aria-label="Selecionar história"
+                  aria-label={extra.storySelectAria}
                   value={activeStory.id}
                   onChange={(e) => setActiveStory(e.target.value, 0)}
                 >
@@ -551,13 +680,14 @@ export const DesktopReaderScreen: React.FC = () => {
               type="button"
               role="switch"
               aria-checked={isHighContrast}
+              title={t.reader.highContrastTooltip}
               className={`funbar-btn ${isHighContrast ? 'funbar-btn--active' : ''}`}
               onClick={toggleHighContrast}
             >
               <ContrastIcon size={16} />
-              <span>Alto Contraste</span>
+              <span>{t.reader.highContrastBtn}</span>
               <span className="funbar-btn__state">
-                {isHighContrast ? 'Ativo' : 'Desligado'}
+                {isHighContrast ? t.common.on : t.common.off}
               </span>
             </button>
 
@@ -565,26 +695,28 @@ export const DesktopReaderScreen: React.FC = () => {
               type="button"
               role="switch"
               aria-checked={magnifierEnabled}
+              title={t.reader.magnifierTooltip}
               className={`funbar-btn ${
                 magnifierEnabled ? 'funbar-btn--active' : ''
               }`}
               onClick={() => setMagnifierEnabled(!magnifierEnabled)}
             >
               <ZoomInIcon size={16} />
-              <span>Lupa 200%</span>
+              <span>{t.reader.magnifierBtn}</span>
               <span className="funbar-btn__state">
-                {magnifierEnabled ? 'Ativa' : 'Desligada'}
+                {magnifierEnabled ? t.common.onFem : t.common.offFem}
               </span>
             </button>
 
             <button
               type="button"
               className="funbar-btn"
-              aria-label="Tecla de mídia do headset: alternar reproduzir ou pausar"
+              aria-label={extra.headsetAria}
+              title={t.reader.headsetTooltip}
               onClick={handleTogglePlay}
             >
               <HeadphonesIcon size={16} />
-              <span>Tecla de mídia do headset</span>
+              <span>{t.reader.headsetBtn}</span>
             </button>
 
             <button
@@ -593,8 +725,13 @@ export const DesktopReaderScreen: React.FC = () => {
               aria-pressed={addedToList}
               aria-label={
                 addedToList
-                  ? 'Remover história da lista de leitura'
-                  : 'Adicionar história à lista de leitura'
+                  ? extra.removeFromListAria
+                  : t.reader.addToListTooltip
+              }
+              title={
+                addedToList
+                  ? extra.removeFromListAria
+                  : t.reader.addToListTooltip
               }
               onClick={() =>
                 setListedStories((prev) => ({
@@ -604,7 +741,7 @@ export const DesktopReaderScreen: React.FC = () => {
               }
             >
               {addedToList ? <CheckIcon size={16} /> : <PlusIcon size={16} />}
-              <span>{addedToList ? 'Na lista' : '+'}</span>
+              <span>{addedToList ? extra.inListText : '+'}</span>
             </button>
 
             <button
@@ -613,6 +750,7 @@ export const DesktopReaderScreen: React.FC = () => {
                 hasVoted ? 'funbar-btn--voted' : ''
               }`}
               aria-pressed={hasVoted}
+              title={t.reader.voteTooltip}
               onClick={() =>
                 setVotedStories((prev) => ({
                   ...prev,
@@ -621,7 +759,7 @@ export const DesktopReaderScreen: React.FC = () => {
               }
             >
               <StarIcon size={16} />
-              <span>{hasVoted ? 'Votado' : 'Voto'}</span>
+              <span>{hasVoted ? t.reader.votedBtn : t.reader.voteBtn}</span>
             </button>
           </div>
         </div>
@@ -648,33 +786,40 @@ export const DesktopReaderScreen: React.FC = () => {
             <div className="reader-chapter-kicker">
               <LanguageBadge language={activeStory.language} />
               <span>
-                {activeStory.title} · por {activeStory.author}
+                {activeStory.title} · {extra.byWord} {activeStory.author}
               </span>
             </div>
 
             <h1 className="reader-chapter-title">
-              {formatChapterLabel(activeChapter.number, activeChapter.title)}
+              {formatChapterLabel(
+                activeChapter.title,
+                t.reader.chapterLabel(activeChapter.number)
+              )}
             </h1>
 
             <div className="reader-chapter-subtitle">
               <span>
-                {totalParagraphs} parágrafos · Parágrafo atual:{' '}
+                {t.reader.paragraphsCount(totalParagraphs)} ·{' '}
+                {extra.currentParagraphLabel}:{' '}
                 <strong>
-                  {currentParagraph} de {totalParagraphs}
+                  {extra.paragraphShort(currentParagraph, totalParagraphs)}
                 </strong>
               </span>
               <span>
-                Velocidade salva:{' '}
-                <strong>{formatPlaybackRate(playbackRate)}</strong>
+                {extra.savedSpeedLabel}:{' '}
+                <strong>{formatPlaybackRate(playbackRate, siteLanguage)}</strong>
               </span>
             </div>
 
-            <div className="reader-shortcuts-hint" lang="pt-BR">
-              <strong>Atalhos de leitura:</strong>{' '}
-              <kbd>D</kbd> ir para região Ouvir ·{' '}
-              <kbd>Alt</kbd>+<kbd>P</kbd> reproduzir/pausar ·{' '}
-              <kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd> voltar/avançar
-              parágrafo · clique em qualquer parágrafo para saltar.
+            <div className="reader-shortcuts-hint" lang={t.locale}>
+              <strong>{extra.shortcutsPrefix}</strong>{' '}
+              {extra.shortcutsKeys(
+                <kbd>D</kbd>,
+                <kbd>Alt</kbd>,
+                <kbd>P</kbd>,
+                <kbd>↑</kbd>,
+                <kbd>↓</kbd>
+              )}
             </div>
           </header>
 
@@ -695,7 +840,7 @@ export const DesktopReaderScreen: React.FC = () => {
                     isActive && isPlaying ? 'reader-paragraph--playing' : ''
                   }`}
                   onClick={() => handleSelectParagraph(paragraphNumber)}
-                  title={`Saltar para o parágrafo ${paragraphNumber}`}
+                  title={t.reader.jumpToParagraphTitle(paragraphNumber)}
                 >
                   <span className="reader-paragraph__num" aria-hidden="true">
                     {paragraphNumber}
@@ -708,8 +853,8 @@ export const DesktopReaderScreen: React.FC = () => {
                         aria-hidden="true"
                       >
                         {isPlaying
-                          ? `▶ Em leitura · Parágrafo ${paragraphNumber}`
-                          : `● Selecionado · Parágrafo ${paragraphNumber}`}
+                          ? extra.activeReadingTag(paragraphNumber)
+                          : extra.activeSelectedTag(paragraphNumber)}
                       </span>
                     )}
                   </span>
@@ -720,15 +865,16 @@ export const DesktopReaderScreen: React.FC = () => {
         </article>
 
         {/* Navegação ao final do capítulo (Cap. 1 -> Cap. 2 preservando playbackRate e player fixo) */}
-        <nav className="reader-chapter-footer" aria-label="Navegação entre capítulos">
+        <nav className="reader-chapter-footer" aria-label={extra.footerNavAria}>
           {nextChapter ? (
             <>
               <h2 className="reader-chapter-footer__title">
-                Fim do Capítulo {activeChapter.number}
+                {extra.endOfChapterTitle(activeChapter.number)}
               </h2>
               <p className="reader-chapter-footer__desc">
-                Continue a leitura mantendo sua velocidade salva (
-                {formatPlaybackRate(playbackRate)}) e o player na mesma posição.
+                {extra.continueReadingDesc(
+                  formatPlaybackRate(playbackRate, siteLanguage)
+                )}
               </p>
               <div className="reader-chapter-footer__actions">
                 <button
@@ -736,17 +882,19 @@ export const DesktopReaderScreen: React.FC = () => {
                   className="btn-pill-primary"
                   onClick={() => setActiveChapter(activeChapterIndex + 1)}
                 >
-                  Próximo capítulo: Capítulo {nextChapter.number}
+                  {t.reader.nextChapterBtn(
+                    t.reader.chapterLabel(nextChapter.number)
+                  )}
                 </button>
               </div>
             </>
           ) : (
             <>
               <h2 className="reader-chapter-footer__title">
-                Fim do Capítulo {activeChapter.number}
+                {extra.endOfChapterTitle(activeChapter.number)}
               </h2>
               <p className="reader-chapter-footer__desc">
-                Você chegou ao final dos capítulos disponíveis nesta história.
+                {extra.endOfStoryDesc}
               </p>
               <div className="reader-chapter-footer__actions">
                 {chapters.length > 1 && (
@@ -755,7 +903,7 @@ export const DesktopReaderScreen: React.FC = () => {
                     className="btn-pill-secondary"
                     onClick={() => setActiveChapter(0)}
                   >
-                    Voltar ao Capítulo 1
+                    {extra.backToChapter1}
                   </button>
                 )}
               </div>

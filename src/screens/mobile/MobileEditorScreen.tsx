@@ -25,9 +25,10 @@ import {
   UnderlineIcon,
 } from '../../components/shared/Icons';
 import { LanguageBadge } from '../../components/shared/LanguageBadge';
+import { useTranslation } from '../../i18n/useTranslation';
 import { usePrototype } from '../../state/PrototypeContext';
-import { MobileBlock, TextAlign } from '../../types/prototype';
-import { MobileFrame } from './MobileFrame';
+import { MobileBlock, SiteLanguage, TextAlign } from '../../types/prototype';
+import { formatLocalizedRate, MobileFrame } from './MobileFrame';
 import { useSansaoAudio } from './useSansaoAudio';
 import './MobileScreens.css';
 
@@ -52,6 +53,123 @@ const QWERTY_ROW_1 = ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'];
 const QWERTY_ROW_2 = ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'];
 const QWERTY_ROW_3 = ['Z', 'X', 'C', 'V', 'B', 'N', 'M'];
 
+const MOBILE_EDITOR_STRINGS: Record<
+  SiteLanguage,
+  {
+    screenLabel: string;
+    cancelBackAria: string;
+    editModeKicker: string;
+    saveAria: string;
+    collapseLabel: string;
+    playNarrationAria: string;
+    pauseNarrationAria: string;
+    mainAria: string;
+    contextHint: string;
+    blocksCount: (n: number) => string;
+    editParagraphAria: (n: number) => string;
+    insertNewBelowBtn: string;
+    tapToEditAria: (n: number, text: string) => string;
+    composerAria: string;
+    cursorAfterLabel: string;
+    composerPlaceholder: string;
+    composerTextAria: string;
+    dictationListeningMsg: string;
+    dictationDoneMsg: string;
+    toolbarAria: string;
+    keyboardAria: string;
+    insertAsterisksAria: string;
+    deleteCharAria: string;
+    commaAria: string;
+    periodAria: string;
+    confirmLineAria: string;
+  }
+> = {
+  'pt-BR': {
+    screenLabel: 'Tela 6 — Editor Mobile',
+    cancelBackAria: 'Cancelar edição e voltar à leitura',
+    editModeKicker: 'Modo Edição',
+    saveAria: 'Salvar alterações do capítulo',
+    collapseLabel: 'Recolher',
+    playNarrationAria: 'Reproduzir narração',
+    pauseNarrationAria: 'Pausar narração',
+    mainAria: 'Área de edição do Capítulo 9',
+    contextHint: 'Toque em um parágrafo para editar ou inserir abaixo',
+    blocksCount: (n) => `${n} blocos`,
+    editParagraphAria: (n) => `Editar parágrafo ${n}`,
+    insertNewBelowBtn: 'Inserir novo parágrafo abaixo',
+    tapToEditAria: (n, text) => `Parágrafo ${n}: ${text}. Toque para editar`,
+    composerAria: 'Novo parágrafo em edição',
+    cursorAfterLabel: 'Cursor após parágrafo',
+    composerPlaceholder: "Digite ou toque em 'Ditado por voz'...",
+    composerTextAria: 'Texto do novo parágrafo',
+    dictationListeningMsg: 'Captando voz em Português...',
+    dictationDoneMsg: 'Ditado inserido com a formatação ativa.',
+    toolbarAria: 'Barra de formatação e alinhamento',
+    keyboardAria: 'Teclado virtual com ditado por voz',
+    insertAsterisksAria: 'Inserir asteriscos separadores',
+    deleteCharAria: 'Apagar caractere',
+    commaAria: 'Vírgula',
+    periodAria: 'Ponto final',
+    confirmLineAria: 'Confirmar linha',
+  },
+  'en-US': {
+    screenLabel: 'Screen 6 — Mobile Editor',
+    cancelBackAria: 'Cancel editing and return to reader',
+    editModeKicker: 'Edit Mode',
+    saveAria: 'Save chapter changes',
+    collapseLabel: 'Collapse',
+    playNarrationAria: 'Play narration',
+    pauseNarrationAria: 'Pause narration',
+    mainAria: 'Chapter 9 editing area',
+    contextHint: 'Tap a paragraph to edit or insert below',
+    blocksCount: (n) => `${n} blocks`,
+    editParagraphAria: (n) => `Edit paragraph ${n}`,
+    insertNewBelowBtn: 'Insert new paragraph below',
+    tapToEditAria: (n, text) => `Paragraph ${n}: ${text}. Tap to edit`,
+    composerAria: 'New paragraph being edited',
+    cursorAfterLabel: 'Insert after paragraph',
+    composerPlaceholder: 'Type or use voice dictation...',
+    composerTextAria: 'New paragraph text',
+    dictationListeningMsg: 'Listening for voice input...',
+    dictationDoneMsg: 'Dictation inserted with active formatting.',
+    toolbarAria: 'Formatting and alignment toolbar',
+    keyboardAria: 'Virtual keyboard with voice dictation',
+    insertAsterisksAria: 'Insert scene break asterisks',
+    deleteCharAria: 'Delete character',
+    commaAria: 'Comma',
+    periodAria: 'Period',
+    confirmLineAria: 'Confirm line',
+  },
+  'es-ES': {
+    screenLabel: 'Pantalla 6 — Editor Móvil',
+    cancelBackAria: 'Cancelar edición y volver a la lectura',
+    editModeKicker: 'Modo Edición',
+    saveAria: 'Guardar cambios del capítulo',
+    collapseLabel: 'Contraer',
+    playNarrationAria: 'Reproducir narración',
+    pauseNarrationAria: 'Pausar narración',
+    mainAria: 'Área de edición del Capítulo 9',
+    contextHint: 'Toca un párrafo para editar o insertar debajo',
+    blocksCount: (n) => `${n} bloques`,
+    editParagraphAria: (n) => `Editar párrafo ${n}`,
+    insertNewBelowBtn: 'Insertar nuevo párrafo debajo',
+    tapToEditAria: (n, text) => `Párrafo ${n}: ${text}. Toca para editar`,
+    composerAria: 'Nuevo párrafo en edición',
+    cursorAfterLabel: 'Insertar tras párrafo',
+    composerPlaceholder: 'Escribe o usa el dictado por voz...',
+    composerTextAria: 'Texto del nuevo párrafo',
+    dictationListeningMsg: 'Captando voz...',
+    dictationDoneMsg: 'Dictado insertado con el formato activo.',
+    toolbarAria: 'Barra de formato y alineación',
+    keyboardAria: 'Teclado virtual con dictado por voz',
+    insertAsterisksAria: 'Insertar asteriscos separadores',
+    deleteCharAria: 'Borrar carácter',
+    commaAria: 'Coma',
+    periodAria: 'Punto',
+    confirmLineAria: 'Confirmar línea',
+  },
+};
+
 /**
  * Localiza o índice padrão do cursor logo após a cena da taverna e antes da cena
  * da floresta para que a Tela 6 já abra posicionada no ponto de edição do Cenário 4.
@@ -73,6 +191,8 @@ function findDefaultInsertionIndex(blocks: MobileBlock[]): number {
  * rolável horizontalmente e teclado virtual simulado sempre acessível.
  */
 export const MobileEditorScreen: React.FC = () => {
+  const { t, siteLanguage } = useTranslation();
+  const extra = MOBILE_EDITOR_STRINGS[siteLanguage];
   const { sansaoChapter, updateSansaoChapter, navigateTo } = usePrototype();
 
   const [draftBlocks, setDraftBlocks] = useState<MobileBlock[]>(() =>
@@ -99,13 +219,15 @@ export const MobileEditorScreen: React.FC = () => {
     isPlaying,
     currentParagraph,
     totalParagraphs,
-    rateLabel,
+    playbackRate,
     progressPercent,
     togglePlay,
     prevParagraph,
     nextParagraph,
     cyclePlaybackRate,
   } = useSansaoAudio(draftBlocks);
+
+  const localizedRate = formatLocalizedRate(playbackRate, siteLanguage);
 
   // Sincroniza quando o usuário clica em "Restaurar Cap. 9 inicial" no painel lateral
   useEffect(() => {
@@ -332,33 +454,33 @@ export const MobileEditorScreen: React.FC = () => {
   };
 
   const activeStyleLabels: string[] = [];
-  if (activeStyle.bold) activeStyleLabels.push('Negrito');
-  if (activeStyle.italic) activeStyleLabels.push('Itálico');
-  if (activeStyle.underline) activeStyleLabels.push('Sublinhado');
+  if (activeStyle.bold) activeStyleLabels.push(t.mobile.bold);
+  if (activeStyle.italic) activeStyleLabels.push(t.mobile.italic);
+  if (activeStyle.underline) activeStyleLabels.push(t.mobile.underline);
   activeStyleLabels.push(
     activeStyle.align === 'center'
-      ? 'Centro'
+      ? t.mobile.center
       : activeStyle.align === 'right'
-        ? 'Direita'
-        : 'Esquerda'
+        ? t.mobile.right
+        : t.mobile.left
   );
 
   return (
-    <MobileFrame screenLabel="Tela 6 — Editor Mobile">
+    <MobileFrame screenLabel={extra.screenLabel}>
       <header className="mobile-header">
         <button
           type="button"
           className="mobile-touch-btn"
-          aria-label="Cancelar edição e voltar à leitura"
+          aria-label={extra.cancelBackAria}
           onClick={() => navigateTo('tela_5_leitura_mobile')}
         >
           <ChevronLeftIcon size={18} />
-          <span>Voltar</span>
+          <span>{t.mobile.backToReader}</span>
         </button>
 
         <div className="mobile-header-titles">
-          <span className="mobile-header-story">Modo Edição</span>
-          <span className="mobile-header-chapter">Editar Cap. 9</span>
+          <span className="mobile-header-story">{extra.editModeKicker}</span>
+          <span className="mobile-header-chapter">{t.mobile.editorTitle}</span>
         </div>
 
         <button
@@ -369,22 +491,22 @@ export const MobileEditorScreen: React.FC = () => {
           aria-expanded={isCompactPlayerExpanded}
           aria-label={
             isCompactPlayerExpanded
-              ? 'Recolher player de áudio'
-              : 'Expandir player de áudio'
+              ? t.mobile.collapsePlayerAria
+              : t.mobile.expandPlayerAria
           }
           onClick={() => setIsCompactPlayerExpanded((open) => !open)}
         >
           <HeadphonesIcon size={18} />
-          <span>Ouvir</span>
+          <span>{t.mobile.listenLabel}</span>
         </button>
 
         <button
           type="button"
           className="mobile-touch-btn mobile-touch-btn--primary"
-          aria-label="Salvar alterações do capítulo"
+          aria-label={extra.saveAria}
           onClick={handleSave}
         >
-          Salvar
+          {t.common.save}
         </button>
       </header>
 
@@ -392,7 +514,7 @@ export const MobileEditorScreen: React.FC = () => {
       {isCompactPlayerExpanded && (
         <section
           className="mobile-compact-player-drawer"
-          aria-label="Player compacto para conferência durante a edição"
+          aria-label={t.mobile.compactPlayerTitle}
         >
           <div className="mobile-progress-track" aria-hidden="true">
             <div
@@ -405,17 +527,17 @@ export const MobileEditorScreen: React.FC = () => {
             <div className="mobile-audio-meta-left">
               <LanguageBadge language="pt" showIcon={false} />
               <span className="mobile-audio-counter" aria-live="polite">
-                Parágrafo {currentParagraph} de {totalParagraphs}
+                {t.mobile.paragraphOf(currentParagraph, totalParagraphs)}
               </span>
             </div>
             <button
               type="button"
               className="mobile-compact-close-btn"
-              aria-label="Recolher player compacto"
+              aria-label={t.mobile.collapsePlayerAria}
               onClick={() => setIsCompactPlayerExpanded(false)}
             >
               <CloseIcon size={14} />
-              <span>Recolher</span>
+              <span>{extra.collapseLabel}</span>
             </button>
           </div>
 
@@ -425,42 +547,42 @@ export const MobileEditorScreen: React.FC = () => {
               className="mobile-audio-btn mobile-audio-btn--primary"
               aria-pressed={isPlaying}
               aria-label={
-                isPlaying ? 'Pausar narração' : 'Reproduzir narração'
+                isPlaying ? extra.pauseNarrationAria : extra.playNarrationAria
               }
               onClick={togglePlay}
             >
               {isPlaying ? <PauseIcon size={18} /> : <PlayIcon size={18} />}
-              <span>{isPlaying ? 'Pausar' : 'Reproduzir'}</span>
+              <span>{isPlaying ? t.mobile.pause : t.mobile.play}</span>
             </button>
 
             <button
               type="button"
               className="mobile-audio-btn"
-              aria-label="Voltar parágrafo"
+              aria-label={t.mobile.prevAria}
               onClick={prevParagraph}
             >
               <PrevParagraphIcon size={18} />
-              <span>Voltar</span>
+              <span>{t.mobile.prev}</span>
             </button>
 
             <button
               type="button"
               className="mobile-audio-btn"
-              aria-label="Avançar parágrafo"
+              aria-label={t.mobile.nextAria}
               onClick={nextParagraph}
             >
               <NextParagraphIcon size={18} />
-              <span>Avançar</span>
+              <span>{t.mobile.next}</span>
             </button>
 
             <button
               type="button"
               className="mobile-audio-btn mobile-audio-btn--rate"
-              aria-label={`Alterar velocidade de reprodução, atual ${rateLabel}`}
+              aria-label={t.mobile.speedAria(localizedRate)}
               onClick={cyclePlaybackRate}
             >
               <SpeedIcon size={16} />
-              <span>{rateLabel}</span>
+              <span>{localizedRate}</span>
             </button>
           </div>
         </section>
@@ -468,11 +590,11 @@ export const MobileEditorScreen: React.FC = () => {
 
       <main
         className="mobile-editor-scroll"
-        aria-label="Área de edição do Capítulo 9"
+        aria-label={extra.mainAria}
       >
         <div className="mobile-editor-context-hint">
-          <span>Toque em um parágrafo para editar ou inserir abaixo</span>
-          <span>{draftBlocks.length} blocos</span>
+          <span>{extra.contextHint}</span>
+          <span>{extra.blocksCount(draftBlocks.length)}</span>
         </div>
 
         {draftBlocks.map((block, index) => {
@@ -487,7 +609,7 @@ export const MobileEditorScreen: React.FC = () => {
                 <div style={{ marginBottom: '8px' }}>
                   <textarea
                     className="mobile-editor-inline-textarea"
-                    aria-label={`Editar parágrafo ${index + 1}`}
+                    aria-label={extra.editParagraphAria(index + 1)}
                     value={block.text}
                     style={{
                       textAlign: block.align,
@@ -523,7 +645,7 @@ export const MobileEditorScreen: React.FC = () => {
                       style={{ minHeight: '48px', padding: '0 14px' }}
                       onClick={() => setEditingBlockId(null)}
                     >
-                      Inserir novo parágrafo abaixo
+                      {extra.insertNewBelowBtn}
                     </button>
                   </div>
                 </div>
@@ -540,7 +662,7 @@ export const MobileEditorScreen: React.FC = () => {
                     textDecoration: block.underline ? 'underline' : 'none',
                     letterSpacing: isSep ? '0.25em' : undefined,
                   }}
-                  aria-label={`Parágrafo ${index + 1}: ${block.text}. Toque para editar`}
+                  aria-label={extra.tapToEditAria(index + 1, block.text)}
                   onClick={() => handleSelectBlock(block, index)}
                 >
                   {block.text}
@@ -550,14 +672,14 @@ export const MobileEditorScreen: React.FC = () => {
               {isAnchor && !editingBlockId && (
                 <div
                   className="mobile-editor-composer"
-                  aria-label="Novo parágrafo em edição"
+                  aria-label={extra.composerAria}
                 >
                   <div className="mobile-editor-composer-top">
                     <span>
-                      Cursor após parágrafo {index + 1}
+                      {extra.cursorAfterLabel} {index + 1}
                       {(index === 3 ||
                         block.text.toLowerCase().includes('estalajadeiro')) &&
-                        ' (fim da taverna)'}
+                        ` ${t.mobile.tavernaEndTag}`}
                     </span>
                     <span className="mobile-style-chips">
                       {activeStyleLabels.map((lbl) => (
@@ -573,8 +695,8 @@ export const MobileEditorScreen: React.FC = () => {
                       ref={composerRef}
                       className="mobile-composer-textarea"
                       rows={2}
-                      placeholder="Digite ou toque em 'Ditado por voz'..."
-                      aria-label="Texto do novo parágrafo"
+                      placeholder={extra.composerPlaceholder}
+                      aria-label={extra.composerTextAria}
                       value={composerText}
                       style={{
                         textAlign: activeStyle.align,
@@ -605,8 +727,8 @@ export const MobileEditorScreen: React.FC = () => {
                       <MicIcon size={14} />
                       <span>
                         {dictationState === 'listening'
-                          ? 'Captando voz em Português...'
-                          : 'Ditado inserido com a formatação ativa.'}
+                          ? extra.dictationListeningMsg
+                          : extra.dictationDoneMsg}
                       </span>
                     </div>
                   )}
@@ -621,40 +743,40 @@ export const MobileEditorScreen: React.FC = () => {
       <div
         className="mobile-format-toolbar-wrap"
         role="toolbar"
-        aria-label="Barra de formatação e alinhamento"
+        aria-label={extra.toolbarAria}
       >
         <div className="mobile-format-toolbar">
           <button
             type="button"
             className="mobile-format-btn"
             aria-pressed={activeStyle.bold}
-            aria-label="Negrito"
+            aria-label={t.mobile.bold}
             onClick={() => handleToggleStyle('bold')}
           >
             <BoldIcon size={18} />
-            <span>Negrito</span>
+            <span>{t.mobile.bold}</span>
           </button>
 
           <button
             type="button"
             className="mobile-format-btn"
             aria-pressed={activeStyle.italic}
-            aria-label="Itálico"
+            aria-label={t.mobile.italic}
             onClick={() => handleToggleStyle('italic')}
           >
             <ItalicIcon size={18} />
-            <span>Itálico</span>
+            <span>{t.mobile.italic}</span>
           </button>
 
           <button
             type="button"
             className="mobile-format-btn"
             aria-pressed={activeStyle.underline}
-            aria-label="Sublinhado"
+            aria-label={t.mobile.underline}
             onClick={() => handleToggleStyle('underline')}
           >
             <UnderlineIcon size={18} />
-            <span>Sublinhado</span>
+            <span>{t.mobile.underline}</span>
           </button>
 
           <span className="mobile-format-divider" aria-hidden="true" />
@@ -663,33 +785,33 @@ export const MobileEditorScreen: React.FC = () => {
             type="button"
             className="mobile-format-btn"
             aria-pressed={activeStyle.align === 'left'}
-            aria-label="Alinhar à esquerda"
+            aria-label={t.editor.alignLeftTooltip}
             onClick={() => handleSetAlign('left')}
           >
             <AlignLeftIcon size={18} />
-            <span>Esquerda</span>
+            <span>{t.mobile.left}</span>
           </button>
 
           <button
             type="button"
             className="mobile-format-btn"
             aria-pressed={activeStyle.align === 'center'}
-            aria-label="Alinhar ao centro"
+            aria-label={t.editor.alignCenterTooltip}
             onClick={() => handleSetAlign('center')}
           >
             <AlignCenterIcon size={18} />
-            <span>Centro</span>
+            <span>{t.mobile.center}</span>
           </button>
 
           <button
             type="button"
             className="mobile-format-btn"
             aria-pressed={activeStyle.align === 'right'}
-            aria-label="Alinhar à direita"
+            aria-label={t.editor.alignRightTooltip}
             onClick={() => handleSetAlign('right')}
           >
             <AlignRightIcon size={18} />
-            <span>Direita</span>
+            <span>{t.mobile.right}</span>
           </button>
 
           <span className="mobile-format-divider" aria-hidden="true" />
@@ -697,11 +819,11 @@ export const MobileEditorScreen: React.FC = () => {
           <button
             type="button"
             className="mobile-format-btn"
-            aria-label="Inserir separador de cena ***"
+            aria-label={t.editor.sceneBreakTooltip}
             onClick={handleInsertSeparator}
           >
             <SceneSeparatorIcon size={18} />
-            <span>Separador ***</span>
+            <span>{t.mobile.separatorBtn} ***</span>
           </button>
         </div>
       </div>
@@ -709,7 +831,7 @@ export const MobileEditorScreen: React.FC = () => {
       {/* Teclado virtual simulado sempre aberto na edição */}
       <section
         className="mobile-keyboard"
-        aria-label="Teclado virtual com ditado por voz"
+        aria-label={extra.keyboardAria}
       >
         <div className="mobile-keyboard-actions">
           <button
@@ -721,26 +843,28 @@ export const MobileEditorScreen: React.FC = () => {
           >
             <MicIcon size={18} />
             <span>
-              {dictationState === 'listening' ? 'Ouvindo...' : 'Ditado por voz'}
+              {dictationState === 'listening'
+                ? t.mobile.voiceDictating
+                : t.mobile.voiceDictationBtn}
             </span>
           </button>
 
           <button
             type="button"
             className="mobile-kbd-action-btn"
-            aria-label="Nova linha"
+            aria-label={t.mobile.newLineBtn}
             onClick={handleNewLine}
           >
-            <span>↵ Nova linha</span>
+            <span>↵ {t.mobile.newLineBtn}</span>
           </button>
 
           <button
             type="button"
             className="mobile-kbd-action-btn"
-            aria-label="Inserir asteriscos separadores"
+            aria-label={extra.insertAsterisksAria}
             onClick={handleInsertSeparator}
           >
-            <span>***</span>
+            <span>{t.mobile.separatorShort}</span>
           </button>
         </div>
 
@@ -784,10 +908,10 @@ export const MobileEditorScreen: React.FC = () => {
           <button
             type="button"
             className="mobile-kbd-key mobile-kbd-key--wide"
-            aria-label="Apagar caractere"
+            aria-label={extra.deleteCharAria}
             onClick={handleBackspace}
           >
-            ⌫ Apagar
+            ⌫ {t.mobile.deleteKey}
           </button>
         </div>
 
@@ -795,7 +919,7 @@ export const MobileEditorScreen: React.FC = () => {
           <button
             type="button"
             className="mobile-kbd-key"
-            aria-label="Vírgula"
+            aria-label={extra.commaAria}
             onClick={() => handleVirtualPunctuation(', ')}
           >
             ,
@@ -805,12 +929,12 @@ export const MobileEditorScreen: React.FC = () => {
             className="mobile-kbd-key mobile-kbd-key--space"
             onClick={() => handleVirtualPunctuation(' ')}
           >
-            Espaço
+            {t.mobile.spaceKey}
           </button>
           <button
             type="button"
             className="mobile-kbd-key"
-            aria-label="Ponto final"
+            aria-label={extra.periodAria}
             onClick={() => handleVirtualPunctuation('.')}
           >
             .
@@ -818,7 +942,7 @@ export const MobileEditorScreen: React.FC = () => {
           <button
             type="button"
             className="mobile-kbd-key mobile-kbd-key--wide"
-            aria-label="Confirmar linha"
+            aria-label={extra.confirmLineAria}
             onClick={handleNewLine}
           >
             ↵

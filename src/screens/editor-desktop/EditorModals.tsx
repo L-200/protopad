@@ -15,9 +15,12 @@ import {
   PlusIcon,
 } from '../../components/shared/Icons';
 import { StoryCoverSvg } from '../../components/shared/StoryCoverSvg';
+import { formatSiteLanguageName } from '../../i18n/translations';
+import { useTranslation } from '../../i18n/useTranslation';
 import {
   EditorBlock,
   LeonardoDraft,
+  SiteLanguage,
   StoryItem,
 } from '../../types/prototype';
 
@@ -42,6 +45,153 @@ export const IMAGE_PRESETS: Array<{
   },
 ];
 
+interface ModalExtraStrings {
+  preset1Desc: string;
+  preset2Desc: string;
+  imageCloseAria: string;
+  imageDefaultCaption: string;
+  imageInsertAtTop: string;
+  videoCloseAria: string;
+  videoDefaultTitle: string;
+  videoDefaultCaption: string;
+  videoCaptionLabel: string;
+  videoCaptionPlaceholder: string;
+  videoTitleError: string;
+  videoFallbackTitle: string;
+  videoPlayingMeta: string;
+  videoIdleMeta: string;
+  pollCloseAria: string;
+  pollDefaultQuestion: string;
+  pollDefaultOptions: [string, string];
+  pollQuestionError: string;
+  pollOptionsError: string;
+  pollRemoveOptionAria: (n: number) => string;
+  pollFallbackQuestion: string;
+  pollPreviewHint: string;
+  chapterIllustrationAlt: string;
+  previewLanguageLine: string;
+  publishCloseAria: string;
+  publishStoryLabel: string;
+  publishElementsLabel: string;
+  publishElementsValue: (sep: number, media: number, poll: number) => string;
+  publishPublishedAt: (time: string) => string;
+  publishContinueEditing: string;
+}
+
+const MODAL_EXTRA_STRINGS: Record<SiteLanguage, ModalExtraStrings> = {
+  'pt-BR': {
+    preset1Desc: 'Degraus em espiral iluminados por lanterna âmbar',
+    preset2Desc: 'Arcos da biblioteca antiga com feixes de luar',
+    imageCloseAria: 'Fechar janela de imagem',
+    imageDefaultCaption: 'A escadaria levava ao andar fechado havia trinta anos.',
+    imageInsertAtTop: 'Inserir no início do capítulo como imagem de abertura',
+    videoCloseAria: 'Fechar janela de vídeo',
+    videoDefaultTitle: 'Trilha sonora — Sombras da Biblioteca (Piano e Chuva)',
+    videoDefaultCaption:
+      'Sugestão de leitura: ouça esta trilha ambiente durante a leitura do capítulo.',
+    videoCaptionLabel: 'Nota para os leitores (opcional)',
+    videoCaptionPlaceholder: 'Ex.: Dica de ambientação para a cena...',
+    videoTitleError: 'Informe um título para o vídeo ou trilha sonora.',
+    videoFallbackTitle: 'Trilha sonora do capítulo',
+    videoPlayingMeta: 'Reproduzindo prévia simulada • 00:42 / 02:14',
+    videoIdleMeta: 'Mídia incorporada • 02:14',
+    pollCloseAria: 'Fechar janela de enquete',
+    pollDefaultQuestion: 'Qual segredo Rafael deveria investigar primeiro?',
+    pollDefaultOptions: [
+      'O diário escondido atrás do vitral',
+      'A chave enferrujada do arquivo submerso',
+    ],
+    pollQuestionError: 'Digite a pergunta da enquete antes de salvar.',
+    pollOptionsError: 'Preencha pelo menos 2 opções para a enquete.',
+    pollRemoveOptionAria: (n) => `Remover opção ${n}`,
+    pollFallbackQuestion: 'Enquete do capítulo',
+    pollPreviewHint: 'Clique em uma opção para testar a enquete como leitor.',
+    chapterIllustrationAlt: 'Ilustração do capítulo',
+    previewLanguageLine: 'Idioma: Português',
+    publishCloseAria: 'Fechar diálogo de publicação',
+    publishStoryLabel: 'História',
+    publishElementsLabel: 'Elementos incluídos',
+    publishElementsValue: (sep, media, poll) =>
+      `${sep} separador(es) • ${media} mídia(s) • ${poll} enquete(s)`,
+    publishPublishedAt: (time) => `Publicado às ${time}`,
+    publishContinueEditing: 'Continuar editando',
+  },
+  'en-US': {
+    preset1Desc: 'Spiral steps lit by an amber lantern',
+    preset2Desc: 'Old library arches bathed in moonlight',
+    imageCloseAria: 'Close image dialog',
+    imageDefaultCaption: 'The staircase led to the floor closed for thirty years.',
+    imageInsertAtTop: 'Insert at the start of the chapter as an opening image',
+    videoCloseAria: 'Close video dialog',
+    videoDefaultTitle: 'Soundtrack — Shadows of the Library (Piano & Rain)',
+    videoDefaultCaption:
+      'Reading tip: listen to this ambient track while reading the chapter.',
+    videoCaptionLabel: 'Note for readers (optional)',
+    videoCaptionPlaceholder: 'e.g. Mood tip for this scene...',
+    videoTitleError: 'Please enter a title for the video or soundtrack.',
+    videoFallbackTitle: 'Chapter soundtrack',
+    videoPlayingMeta: 'Playing simulated preview • 00:42 / 02:14',
+    videoIdleMeta: 'Embedded media • 02:14',
+    pollCloseAria: 'Close poll dialog',
+    pollDefaultQuestion: 'Which secret should Rafael investigate first?',
+    pollDefaultOptions: [
+      'The diary hidden behind the stained glass',
+      'The rusted key from the flooded archive',
+    ],
+    pollQuestionError: 'Enter the poll question before saving.',
+    pollOptionsError: 'Fill in at least 2 options for the poll.',
+    pollRemoveOptionAria: (n) => `Remove option ${n}`,
+    pollFallbackQuestion: 'Chapter poll',
+    pollPreviewHint: 'Click an option to test the poll as a reader.',
+    chapterIllustrationAlt: 'Chapter illustration',
+    previewLanguageLine: 'Language: Portuguese',
+    publishCloseAria: 'Close publish dialog',
+    publishStoryLabel: 'Story',
+    publishElementsLabel: 'Included elements',
+    publishElementsValue: (sep, media, poll) =>
+      `${sep} break(s) • ${media} media • ${poll} poll(s)`,
+    publishPublishedAt: (time) => `Published at ${time}`,
+    publishContinueEditing: 'Continue editing',
+  },
+  'es-ES': {
+    preset1Desc: 'Peldaños en espiral iluminados por un farol ámbar',
+    preset2Desc: 'Arcos de la antigua biblioteca bajo la luz de la luna',
+    imageCloseAria: 'Cerrar ventana de imagen',
+    imageDefaultCaption: 'La escalera llevaba al piso cerrado hacía treinta años.',
+    imageInsertAtTop: 'Insertar al inicio del capítulo como imagen de apertura',
+    videoCloseAria: 'Cerrar ventana de vídeo',
+    videoDefaultTitle: 'Banda sonora — Sombras de la Biblioteca (Piano y Lluvia)',
+    videoDefaultCaption:
+      'Sugerencia de lectura: escucha esta pista ambiental durante el capítulo.',
+    videoCaptionLabel: 'Nota para los lectores (opcional)',
+    videoCaptionPlaceholder: 'Ej.: Sugerencia de ambientación para la escena...',
+    videoTitleError: 'Ingresa un título para el vídeo o la banda sonora.',
+    videoFallbackTitle: 'Banda sonora del capítulo',
+    videoPlayingMeta: 'Reproduciendo vista previa simulada • 00:42 / 02:14',
+    videoIdleMeta: 'Multimedia incorporado • 02:14',
+    pollCloseAria: 'Cerrar ventana de encuesta',
+    pollDefaultQuestion: '¿Qué secreto debería investigar Rafael primero?',
+    pollDefaultOptions: [
+      'El diario escondido detrás del vitral',
+      'La llave oxidada del archivo inundado',
+    ],
+    pollQuestionError: 'Escribe la pregunta de la encuesta antes de guardar.',
+    pollOptionsError: 'Completa al menos 2 opciones para la encuesta.',
+    pollRemoveOptionAria: (n) => `Eliminar opción ${n}`,
+    pollFallbackQuestion: 'Encuesta del capítulo',
+    pollPreviewHint: 'Haz clic en una opción para probar la encuesta como lector.',
+    chapterIllustrationAlt: 'Ilustración del capítulo',
+    previewLanguageLine: 'Idioma: Portugués',
+    publishCloseAria: 'Cerrar diálogo de publicación',
+    publishStoryLabel: 'Historia',
+    publishElementsLabel: 'Elementos incluidos',
+    publishElementsValue: (sep, media, poll) =>
+      `${sep} separador(es) • ${media} recurso(s) • ${poll} encuesta(s)`,
+    publishPublishedAt: (time) => `Publicado a las ${time}`,
+    publishContinueEditing: 'Seguir editando',
+  },
+};
+
 /**
  * Ilustração vetorial SVG acessível (`role="img"`) exibida no editor, no seletor
  * de presets e na pré-visualização do capítulo.
@@ -50,10 +200,13 @@ export const ChapterIllustrationSvg: React.FC<{
   preset?: string;
   altTitle?: string;
 }> = ({ preset = 'escadaria', altTitle }) => {
+  const { t } = useTranslation();
   const isCorridor = preset === 'corredor';
   const label =
     altTitle ||
-    (isCorridor ? 'Corredor sob neblina' : 'Escadaria antiga à meia-luz');
+    (isCorridor
+      ? t.editor.modals.imagePreset2
+      : t.editor.modals.imagePreset1);
 
   if (isCorridor) {
     return (
@@ -248,7 +401,7 @@ function useAccessibleDialog(isOpen: boolean, onClose: () => void) {
 }
 
 /* --------------------------------------------------------------------------
-   Modal 1: Inserir Imagem (R14 — 100% PT-BR)
+   Modal 1: Inserir Imagem (R14)
    -------------------------------------------------------------------------- */
 interface ImageInsertModalProps {
   isOpen: boolean;
@@ -260,21 +413,49 @@ interface ImageInsertModalProps {
   }) => void;
 }
 
+const DEFAULT_IMAGE_CAPTIONS = Object.values(MODAL_EXTRA_STRINGS).map(
+  (s) => s.imageDefaultCaption
+);
+
 /** Modal de seleção de ilustração vetorial e legenda opcional para o capítulo (`R14`). */
 export const ImageInsertModal: React.FC<ImageInsertModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
 }) => {
+  const { t, siteLanguage } = useTranslation();
+  const extra = MODAL_EXTRA_STRINGS[siteLanguage];
+
   const [selectedPreset, setSelectedPreset] = useState<ImagePresetId>('escadaria');
-  const [caption, setCaption] = useState<string>(
-    'A escadaria levava ao andar fechado havia trinta anos.'
-  );
+  const [caption, setCaption] = useState<string>(extra.imageDefaultCaption);
   const [insertAtTop, setInsertAtTop] = useState<boolean>(true);
+
+  useEffect(() => {
+    setCaption((prev) =>
+      DEFAULT_IMAGE_CAPTIONS.includes(prev) ? extra.imageDefaultCaption : prev
+    );
+  }, [extra.imageDefaultCaption]);
 
   const dialogRef = useAccessibleDialog(isOpen, onClose);
 
   if (!isOpen) return null;
+
+  const localizedPresets: Array<{
+    id: ImagePresetId;
+    title: string;
+    description: string;
+  }> = [
+    {
+      id: 'escadaria',
+      title: t.editor.modals.imagePreset1,
+      description: extra.preset1Desc,
+    },
+    {
+      id: 'corredor',
+      title: t.editor.modals.imagePreset2,
+      description: extra.preset2Desc,
+    },
+  ];
 
   return (
     <div
@@ -294,12 +475,12 @@ export const ImageInsertModal: React.FC<ImageInsertModalProps> = ({
       >
         <div className="editor-modal-header">
           <h2 id="modal-inserir-imagem-titulo" className="editor-modal-title">
-            Inserir imagem de abertura
+            {t.editor.modals.imageTitle}
           </h2>
           <button
             type="button"
             className="editor-modal-close"
-            aria-label="Fechar janela de imagem"
+            aria-label={extra.imageCloseAria}
             onClick={onClose}
           >
             <CloseIcon size={18} />
@@ -309,10 +490,10 @@ export const ImageInsertModal: React.FC<ImageInsertModalProps> = ({
         <div className="editor-modal-body">
           <div className="editor-field">
             <span className="editor-field-label">
-              Escolha uma ilustração vetorial pronta:
+              {t.editor.modals.imageSubtitle}
             </span>
             <div className="editor-preset-grid">
-              {IMAGE_PRESETS.map((preset) => {
+              {localizedPresets.map((preset) => {
                 const isSelected = selectedPreset === preset.id;
                 return (
                   <button
@@ -342,7 +523,7 @@ export const ImageInsertModal: React.FC<ImageInsertModalProps> = ({
 
           <div className="editor-field">
             <label htmlFor="editor-image-caption" className="editor-field-label">
-              Legenda da imagem (opcional)
+              {t.editor.modals.imageCaptionLabel}
             </label>
             <input
               id="editor-image-caption"
@@ -350,7 +531,7 @@ export const ImageInsertModal: React.FC<ImageInsertModalProps> = ({
               className="editor-input"
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
-              placeholder="Escreva uma legenda breve em português..."
+              placeholder={t.editor.modals.imageCaptionPlaceholder}
             />
           </div>
 
@@ -370,7 +551,7 @@ export const ImageInsertModal: React.FC<ImageInsertModalProps> = ({
               onChange={(e) => setInsertAtTop(e.target.checked)}
               style={{ width: '18px', height: '18px' }}
             />
-            <span>Inserir no início do capítulo como imagem de abertura</span>
+            <span>{extra.imageInsertAtTop}</span>
           </label>
         </div>
 
@@ -380,7 +561,7 @@ export const ImageInsertModal: React.FC<ImageInsertModalProps> = ({
             className="btn-pill-secondary editor-action-btn"
             onClick={onClose}
           >
-            Cancelar
+            {t.common.cancel}
           </button>
           <button
             type="button"
@@ -394,7 +575,7 @@ export const ImageInsertModal: React.FC<ImageInsertModalProps> = ({
               onClose();
             }}
           >
-            Inserir imagem
+            {t.editor.modals.imageConfirm}
           </button>
         </div>
       </div>
@@ -403,7 +584,7 @@ export const ImageInsertModal: React.FC<ImageInsertModalProps> = ({
 };
 
 /* --------------------------------------------------------------------------
-   Modal 2: Inserir Vídeo (R14 — 100% PT-BR)
+   Modal 2: Inserir Vídeo (R14)
    -------------------------------------------------------------------------- */
 interface VideoInsertModalProps {
   isOpen: boolean;
@@ -411,19 +592,35 @@ interface VideoInsertModalProps {
   onConfirm: (payload: { videoTitle: string; caption: string }) => void;
 }
 
-/** Modal de inserção de vídeo ou trilha sonora com validação de título em PT-BR (`R14`). */
+const DEFAULT_VIDEO_TITLES = Object.values(MODAL_EXTRA_STRINGS).map(
+  (s) => s.videoDefaultTitle
+);
+const DEFAULT_VIDEO_CAPTIONS = Object.values(MODAL_EXTRA_STRINGS).map(
+  (s) => s.videoDefaultCaption
+);
+
+/** Modal de inserção de vídeo ou trilha sonora com validação de título (`R14`). */
 export const VideoInsertModal: React.FC<VideoInsertModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
 }) => {
-  const [videoTitle, setVideoTitle] = useState<string>(
-    'Trilha sonora — Sombras da Biblioteca (Piano e Chuva)'
-  );
-  const [caption, setCaption] = useState<string>(
-    'Sugestão de leitura: ouça esta trilha ambiente durante a leitura do capítulo.'
-  );
+  const { t, siteLanguage } = useTranslation();
+  const extra = MODAL_EXTRA_STRINGS[siteLanguage];
+
+  const [videoTitle, setVideoTitle] = useState<string>(extra.videoDefaultTitle);
+  const [caption, setCaption] = useState<string>(extra.videoDefaultCaption);
   const [error, setError] = useState<string>('');
+
+  useEffect(() => {
+    setVideoTitle((prev) =>
+      DEFAULT_VIDEO_TITLES.includes(prev) ? extra.videoDefaultTitle : prev
+    );
+    setCaption((prev) =>
+      DEFAULT_VIDEO_CAPTIONS.includes(prev) ? extra.videoDefaultCaption : prev
+    );
+    setError('');
+  }, [extra.videoDefaultTitle, extra.videoDefaultCaption]);
 
   const dialogRef = useAccessibleDialog(isOpen, onClose);
 
@@ -431,7 +628,7 @@ export const VideoInsertModal: React.FC<VideoInsertModalProps> = ({
 
   const handleSubmit = () => {
     if (!videoTitle.trim()) {
-      setError('Informe um título para o vídeo ou trilha sonora.');
+      setError(extra.videoTitleError);
       return;
     }
     setError('');
@@ -460,12 +657,12 @@ export const VideoInsertModal: React.FC<VideoInsertModalProps> = ({
       >
         <div className="editor-modal-header">
           <h2 id="modal-inserir-video-titulo" className="editor-modal-title">
-            Inserir vídeo ou trilha no capítulo
+            {t.editor.modals.videoTitle}
           </h2>
           <button
             type="button"
             className="editor-modal-close"
-            aria-label="Fechar janela de vídeo"
+            aria-label={extra.videoCloseAria}
             onClick={onClose}
           >
             <CloseIcon size={18} />
@@ -473,9 +670,13 @@ export const VideoInsertModal: React.FC<VideoInsertModalProps> = ({
         </div>
 
         <div className="editor-modal-body">
+          <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-secondary)' }}>
+            {t.editor.modals.videoSubtitle}
+          </p>
+
           <div className="editor-field">
             <label htmlFor="editor-video-title" className="editor-field-label">
-              Título do vídeo ou trilha sonora
+              {t.editor.modals.videoTitleLabel}
             </label>
             <input
               id="editor-video-title"
@@ -483,13 +684,13 @@ export const VideoInsertModal: React.FC<VideoInsertModalProps> = ({
               className="editor-input"
               value={videoTitle}
               onChange={(e) => setVideoTitle(e.target.value)}
-              placeholder="Ex.: Booktrailer oficial — Capítulo 3"
+              placeholder={t.editor.modals.videoTitlePlaceholder}
             />
           </div>
 
           <div className="editor-field">
             <label htmlFor="editor-video-caption" className="editor-field-label">
-              Nota para os leitores (opcional)
+              {extra.videoCaptionLabel}
             </label>
             <input
               id="editor-video-caption"
@@ -497,7 +698,7 @@ export const VideoInsertModal: React.FC<VideoInsertModalProps> = ({
               className="editor-input"
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
-              placeholder="Ex.: Dica de ambientação para a cena..."
+              placeholder={extra.videoCaptionPlaceholder}
             />
           </div>
 
@@ -514,14 +715,14 @@ export const VideoInsertModal: React.FC<VideoInsertModalProps> = ({
             className="btn-pill-secondary editor-action-btn"
             onClick={onClose}
           >
-            Cancelar
+            {t.common.cancel}
           </button>
           <button
             type="button"
             className="btn-pill-primary editor-action-btn"
             onClick={handleSubmit}
           >
-            Inserir vídeo
+            {t.editor.modals.videoConfirm}
           </button>
         </div>
       </div>
@@ -530,7 +731,7 @@ export const VideoInsertModal: React.FC<VideoInsertModalProps> = ({
 };
 
 /* --------------------------------------------------------------------------
-   Modal 3: Adicionar Enquete (R14 — 100% PT-BR)
+   Modal 3: Adicionar Enquete (R14)
    -------------------------------------------------------------------------- */
 interface PollInsertModalProps {
   isOpen: boolean;
@@ -538,20 +739,49 @@ interface PollInsertModalProps {
   onConfirm: (payload: { question: string; options: string[] }) => void;
 }
 
+const DEFAULT_POLL_QUESTIONS = Object.values(MODAL_EXTRA_STRINGS).map(
+  (s) => s.pollDefaultQuestion
+);
+const DEFAULT_POLL_OPT_0 = Object.values(MODAL_EXTRA_STRINGS).map(
+  (s) => s.pollDefaultOptions[0]
+);
+const DEFAULT_POLL_OPT_1 = Object.values(MODAL_EXTRA_STRINGS).map(
+  (s) => s.pollDefaultOptions[1]
+);
+
 /** Modal de criação de enquete (2 a 4 opções) para o final do capítulo (`R14`, `R15`). */
 export const PollInsertModal: React.FC<PollInsertModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
 }) => {
-  const [question, setQuestion] = useState<string>(
-    'Qual segredo Rafael deveria investigar primeiro?'
-  );
+  const { t, siteLanguage } = useTranslation();
+  const extra = MODAL_EXTRA_STRINGS[siteLanguage];
+
+  const [question, setQuestion] = useState<string>(extra.pollDefaultQuestion);
   const [options, setOptions] = useState<string[]>([
-    'O diário escondido atrás do vitral',
-    'A chave enferrujada do arquivo submerso',
+    extra.pollDefaultOptions[0],
+    extra.pollDefaultOptions[1],
   ]);
   const [error, setError] = useState<string>('');
+
+  useEffect(() => {
+    setQuestion((prev) =>
+      DEFAULT_POLL_QUESTIONS.includes(prev) ? extra.pollDefaultQuestion : prev
+    );
+    setOptions((prev) =>
+      prev.map((opt, idx) => {
+        if (idx === 0 && DEFAULT_POLL_OPT_0.includes(opt)) {
+          return extra.pollDefaultOptions[0];
+        }
+        if (idx === 1 && DEFAULT_POLL_OPT_1.includes(opt)) {
+          return extra.pollDefaultOptions[1];
+        }
+        return opt;
+      })
+    );
+    setError('');
+  }, [extra.pollDefaultQuestion, extra.pollDefaultOptions]);
 
   const dialogRef = useAccessibleDialog(isOpen, onClose);
 
@@ -576,11 +806,11 @@ export const PollInsertModal: React.FC<PollInsertModalProps> = ({
     const cleanOptions = options.map((opt) => opt.trim()).filter(Boolean);
 
     if (!cleanQuestion) {
-      setError('Digite a pergunta da enquete antes de salvar.');
+      setError(extra.pollQuestionError);
       return;
     }
     if (cleanOptions.length < 2) {
-      setError('Preencha pelo menos 2 opções para a enquete.');
+      setError(extra.pollOptionsError);
       return;
     }
 
@@ -607,12 +837,12 @@ export const PollInsertModal: React.FC<PollInsertModalProps> = ({
       >
         <div className="editor-modal-header">
           <h2 id="modal-adicionar-enquete-titulo" className="editor-modal-title">
-            Adicionar enquete ao final do capítulo
+            {t.editor.modals.pollTitle}
           </h2>
           <button
             type="button"
             className="editor-modal-close"
-            aria-label="Fechar janela de enquete"
+            aria-label={extra.pollCloseAria}
             onClick={onClose}
           >
             <CloseIcon size={18} />
@@ -620,9 +850,13 @@ export const PollInsertModal: React.FC<PollInsertModalProps> = ({
         </div>
 
         <div className="editor-modal-body">
+          <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-secondary)' }}>
+            {t.editor.modals.pollSubtitle}
+          </p>
+
           <div className="editor-field">
             <label htmlFor="editor-poll-question" className="editor-field-label">
-              Pergunta da enquete
+              {t.editor.modals.pollQuestionLabel}
             </label>
             <input
               id="editor-poll-question"
@@ -630,30 +864,32 @@ export const PollInsertModal: React.FC<PollInsertModalProps> = ({
               className="editor-input"
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              placeholder="Ex.: Qual pista você acha mais suspeita?"
+              placeholder={t.editor.modals.pollQuestionPlaceholder}
             />
           </div>
 
           <div className="editor-field">
-            <span className="editor-field-label">Opções de resposta</span>
+            <span className="editor-field-label">
+              {t.editor.modals.pollOptionsLabel}
+            </span>
             {options.map((opt, idx) => (
               <div key={idx} className="editor-poll-option-row">
                 <input
                   type="text"
                   className="editor-input"
-                  aria-label={`Opção ${idx + 1}`}
+                  aria-label={t.editor.modals.pollOptionPlaceholder(idx + 1)}
                   value={opt}
                   onChange={(e) => handleOptionChange(idx, e.target.value)}
-                  placeholder={`Opção ${idx + 1}`}
+                  placeholder={t.editor.modals.pollOptionPlaceholder(idx + 1)}
                 />
                 {options.length > 2 && (
                   <button
                     type="button"
                     className="editor-block-remove-btn"
-                    aria-label={`Remover opção ${idx + 1}`}
+                    aria-label={extra.pollRemoveOptionAria(idx + 1)}
                     onClick={() => handleRemoveOption(idx)}
                   >
-                    Remover
+                    {t.common.remove}
                   </button>
                 )}
               </div>
@@ -668,7 +904,7 @@ export const PollInsertModal: React.FC<PollInsertModalProps> = ({
                   onClick={handleAddOption}
                 >
                   <PlusIcon size={16} />
-                  <span>Adicionar opção</span>
+                  <span>{t.editor.modals.pollAddOption}</span>
                 </button>
               </div>
             )}
@@ -687,14 +923,14 @@ export const PollInsertModal: React.FC<PollInsertModalProps> = ({
             className="btn-pill-secondary editor-action-btn"
             onClick={onClose}
           >
-            Cancelar
+            {t.common.cancel}
           </button>
           <button
             type="button"
             className="btn-pill-primary editor-action-btn"
             onClick={handleSubmit}
           >
-            Adicionar enquete
+            {t.editor.modals.pollConfirm}
           </button>
         </div>
       </div>
@@ -703,7 +939,7 @@ export const PollInsertModal: React.FC<PollInsertModalProps> = ({
 };
 
 /* --------------------------------------------------------------------------
-   Modal 4: Pré-visualização Limpa do Capítulo (100% PT-BR)
+   Modal 4: Pré-visualização Limpa do Capítulo
    -------------------------------------------------------------------------- */
 interface PreviewChapterModalProps {
   isOpen: boolean;
@@ -721,6 +957,8 @@ export const PreviewChapterModal: React.FC<PreviewChapterModalProps> = ({
   storyMeta,
   wordCountText,
 }) => {
+  const { t, siteLanguage } = useTranslation();
+  const extra = MODAL_EXTRA_STRINGS[siteLanguage];
   const [selectedVote, setSelectedVote] = useState<Record<string, number>>({});
   const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
 
@@ -742,7 +980,7 @@ export const PreviewChapterModal: React.FC<PreviewChapterModalProps> = ({
               letterSpacing: '0.45em',
               color: 'var(--text-secondary)',
             }}
-            aria-label="Separador de cena"
+            aria-label={t.editor.sceneBreakLabel}
           >
             ***
           </div>
@@ -754,7 +992,7 @@ export const PreviewChapterModal: React.FC<PreviewChapterModalProps> = ({
             <div className="editor-image-svg-frame">
               <ChapterIllustrationSvg
                 preset={block.meta?.imagePreset}
-                altTitle={block.meta?.caption || 'Ilustração do capítulo'}
+                altTitle={block.meta?.caption || extra.chapterIllustrationAlt}
               />
             </div>
             {block.meta?.caption && (
@@ -772,12 +1010,10 @@ export const PreviewChapterModal: React.FC<PreviewChapterModalProps> = ({
             <div className="editor-video-screen">
               <div className="editor-video-info">
                 <span className="editor-video-title">
-                  {block.meta?.videoTitle || 'Trilha sonora do capítulo'}
+                  {block.meta?.videoTitle || extra.videoFallbackTitle}
                 </span>
                 <span className="editor-video-meta">
-                  {isPlaying
-                    ? 'Reproduzindo prévia simulada • 00:42 / 02:14'
-                    : 'Mídia incorporada • 02:14'}
+                  {isPlaying ? extra.videoPlayingMeta : extra.videoIdleMeta}
                 </span>
               </div>
               <button
@@ -788,7 +1024,7 @@ export const PreviewChapterModal: React.FC<PreviewChapterModalProps> = ({
                 }
               >
                 {isPlaying ? <PauseIcon size={16} /> : <PlayIcon size={16} />}
-                <span>{isPlaying ? 'Pausar' : 'Reproduzir'}</span>
+                <span>{isPlaying ? t.reader.pauseLabel : t.reader.playLabel}</span>
               </button>
             </div>
             {block.meta?.caption && (
@@ -806,7 +1042,7 @@ export const PreviewChapterModal: React.FC<PreviewChapterModalProps> = ({
         return (
           <div key={block.id} className="editor-poll-card" style={{ margin: '28px 0 8px' }}>
             <h3 className="editor-poll-question">
-              {block.meta?.pollQuestion || 'Enquete do capítulo'}
+              {block.meta?.pollQuestion || extra.pollFallbackQuestion}
             </h3>
             <div className="editor-poll-options">
               {options.map((opt, idx) => {
@@ -846,8 +1082,8 @@ export const PreviewChapterModal: React.FC<PreviewChapterModalProps> = ({
             </div>
             <div className="editor-poll-footer">
               {picked !== undefined
-                ? 'Voto simulado registrado na pré-visualização.'
-                : 'Clique em uma opção para testar a enquete como leitor.'}
+                ? t.editor.modals.pollVoteThanks
+                : extra.pollPreviewHint}
             </div>
           </div>
         );
@@ -894,12 +1130,12 @@ export const PreviewChapterModal: React.FC<PreviewChapterModalProps> = ({
       >
         <div className="editor-modal-header">
           <h2 id="modal-preview-capitulo-titulo" className="editor-modal-title">
-            Pré-visualização do leitor
+            {t.editor.modals.previewTitle}
           </h2>
           <button
             type="button"
             className="editor-modal-close"
-            aria-label="Fechar pré-visualização"
+            aria-label={t.editor.modals.previewClose}
             onClick={onClose}
           >
             <CloseIcon size={18} />
@@ -907,6 +1143,9 @@ export const PreviewChapterModal: React.FC<PreviewChapterModalProps> = ({
         </div>
 
         <div className="editor-modal-body">
+          <p style={{ margin: '0 0 12px', fontSize: '14px', color: 'var(--text-secondary)' }}>
+            {t.editor.modals.previewSubtitle}
+          </p>
           <div className="editor-preview-reader">
             <div
               style={{
@@ -934,7 +1173,7 @@ export const PreviewChapterModal: React.FC<PreviewChapterModalProps> = ({
                   {draft.chapterTitle}
                 </h3>
                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                  {wordCountText} palavras • Idioma: Português
+                  {t.editor.wordsCount(wordCountText)} • {extra.previewLanguageLine}
                 </div>
               </div>
             </div>
@@ -949,7 +1188,7 @@ export const PreviewChapterModal: React.FC<PreviewChapterModalProps> = ({
             className="btn-pill-primary editor-action-btn"
             onClick={onClose}
           >
-            Voltar ao editor
+            {t.editor.modals.previewClose}
           </button>
         </div>
       </div>
@@ -958,7 +1197,7 @@ export const PreviewChapterModal: React.FC<PreviewChapterModalProps> = ({
 };
 
 /* --------------------------------------------------------------------------
-   Modal 5: Publicar Capítulo (R15 — 100% PT-BR)
+   Modal 5: Publicar Capítulo (R15)
    -------------------------------------------------------------------------- */
 interface PublishChapterModalProps {
   isOpen: boolean;
@@ -969,7 +1208,7 @@ interface PublishChapterModalProps {
   onGoHome: () => void;
 }
 
-/** Modal de revisão e confirmação de publicação 100% em PT-BR com retorno à Home (`R15`). */
+/** Modal de revisão e confirmação de publicação com retorno à Home (`R15`). */
 export const PublishChapterModal: React.FC<PublishChapterModalProps> = ({
   isOpen,
   onClose,
@@ -978,6 +1217,8 @@ export const PublishChapterModal: React.FC<PublishChapterModalProps> = ({
   onConfirmPublish,
   onGoHome,
 }) => {
+  const { t, siteLanguage } = useTranslation();
+  const extra = MODAL_EXTRA_STRINGS[siteLanguage];
   const [justPublished, setJustPublished] = useState<boolean>(false);
 
   useEffect(() => {
@@ -1015,13 +1256,13 @@ export const PublishChapterModal: React.FC<PublishChapterModalProps> = ({
         <div className="editor-modal-header">
           <h2 id="modal-publicar-capitulo-titulo" className="editor-modal-title">
             {justPublished
-              ? 'Capítulo publicado!'
-              : 'Publicar capítulo em Português'}
+              ? t.editor.modals.publishSuccessTitle
+              : t.editor.modals.publishTitle}
           </h2>
           <button
             type="button"
             className="editor-modal-close"
-            aria-label="Fechar diálogo de publicação"
+            aria-label={extra.publishCloseAria}
             onClick={onClose}
           >
             <CloseIcon size={18} />
@@ -1034,47 +1275,56 @@ export const PublishChapterModal: React.FC<PublishChapterModalProps> = ({
               <div className="editor-success-title">
                 <CheckIcon size={20} />
                 <span>
-                  &ldquo;{draft.chapterTitle}&rdquo; foi publicado com sucesso!
+                  &ldquo;{draft.chapterTitle}&rdquo; — {t.editor.modals.publishSuccessTitle}
                 </span>
               </div>
               <p style={{ margin: 0, fontSize: '15px' }}>
-                Os leitores de língua portuguesa já podem acessar este capítulo em{' '}
+                {t.editor.modals.publishSuccessBody}{' '}
                 <strong>{draft.storyTitle}</strong>
-                {draft.publishedAt ? ` (publicado às ${draft.publishedAt})` : ''}.
+                {draft.publishedAt
+                  ? ` (${extra.publishPublishedAt(draft.publishedAt)})`
+                  : ''}
+                .
               </p>
             </div>
           ) : (
             <>
               <p style={{ margin: 0, fontSize: '15px', color: 'var(--text-secondary)' }}>
-                Revise os detalhes abaixo antes de publicar o capítulo para seus
-                leitores no Wattpad.
+                {t.editor.modals.publishSubtitle}
               </p>
 
               <ul className="editor-summary-list">
                 <li className="editor-summary-item">
-                  <span>História</span>
+                  <span>{extra.publishStoryLabel}</span>
                   <strong>{draft.storyTitle}</strong>
                 </li>
                 <li className="editor-summary-item">
-                  <span>Título do capítulo</span>
+                  <span>{t.editor.chapterTitleAria}</span>
                   <strong>{draft.chapterTitle}</strong>
                 </li>
                 <li className="editor-summary-item">
-                  <span>Extensão</span>
-                  <strong>{wordCountText} palavras</strong>
+                  <span>{t.editor.modals.publishWordsLabel}</span>
+                  <strong>{t.editor.wordsCount(wordCountText)}</strong>
                 </li>
                 <li className="editor-summary-item">
-                  <span>Idioma da publicação</span>
+                  <span>{t.editor.modals.publishLangLabel}</span>
                   <span className="lang-badge">
                     <GlobeIcon size={13} />
-                    Português
+                    {formatSiteLanguageName(siteLanguage)}
                   </span>
                 </li>
                 <li className="editor-summary-item">
-                  <span>Elementos incluídos</span>
+                  <span>{t.editor.modals.publishStatusLabel}</span>
+                  <strong>{t.editor.modals.publishReady}</strong>
+                </li>
+                <li className="editor-summary-item">
+                  <span>{extra.publishElementsLabel}</span>
                   <strong>
-                    {separatorCount} separador(es) • {mediaCount} mídia(s) •{' '}
-                    {pollCount} enquete(s)
+                    {extra.publishElementsValue(
+                      separatorCount,
+                      mediaCount,
+                      pollCount
+                    )}
                   </strong>
                 </li>
               </ul>
@@ -1090,7 +1340,7 @@ export const PublishChapterModal: React.FC<PublishChapterModalProps> = ({
                 className="btn-pill-secondary editor-action-btn"
                 onClick={onClose}
               >
-                Continuar editando
+                {extra.publishContinueEditing}
               </button>
               <button
                 type="button"
@@ -1100,7 +1350,7 @@ export const PublishChapterModal: React.FC<PublishChapterModalProps> = ({
                   onGoHome();
                 }}
               >
-                Ir à página inicial
+                {t.reader.backToHomeBtn}
               </button>
             </>
           ) : (
@@ -1110,7 +1360,7 @@ export const PublishChapterModal: React.FC<PublishChapterModalProps> = ({
                 className="btn-pill-secondary editor-action-btn"
                 onClick={onClose}
               >
-                Cancelar
+                {t.common.cancel}
               </button>
               <button
                 type="button"
@@ -1121,7 +1371,7 @@ export const PublishChapterModal: React.FC<PublishChapterModalProps> = ({
                 }}
               >
                 <CheckIcon size={16} />
-                <span>Confirmar publicação</span>
+                <span>{t.editor.modals.publishConfirm}</span>
               </button>
             </>
           )}

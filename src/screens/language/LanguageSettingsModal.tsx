@@ -6,6 +6,7 @@
  */
 import React, { useEffect, useRef } from 'react';
 import { CloseIcon, GlobeIcon } from '../../components/shared/Icons';
+import { useTranslation } from '../../i18n/useTranslation';
 import { usePrototype } from '../../state/PrototypeContext';
 import { LanguageSettingsForm } from './LanguageSettingsForm';
 import './LanguageSettings.css';
@@ -16,6 +17,7 @@ import './LanguageSettings.css';
  */
 export const LanguageSettingsModal: React.FC = () => {
   const { closeLanguageModal } = usePrototype();
+  const { t } = useTranslation();
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -82,17 +84,17 @@ export const LanguageSettingsModal: React.FC = () => {
               <GlobeIcon size={20} />
             </span>
             <h2 id="lang-modal-title" className="lang-modal-title">
-              Configurações de idioma
+              {t.language.modalTitle}
             </h2>
           </div>
 
           <button
             ref={closeButtonRef}
             type="button"
-            aria-label="Fechar"
+            aria-label={t.language.closeBtn}
             className="lang-modal-close"
             onClick={closeLanguageModal}
-            title="Fechar"
+            title={t.language.closeBtn}
           >
             <CloseIcon size={18} />
           </button>

@@ -6,15 +6,59 @@
  * além do Cenário 1 (Renata).
  */
 import React from 'react';
+import { useTranslation } from '../../i18n/useTranslation';
 import { usePrototype } from '../../state/PrototypeContext';
-import { NvdaLogSource } from '../../types/prototype';
+import { NvdaLogSource, SiteLanguage } from '../../types/prototype';
 import { CloseIcon, VolumeIcon } from './Icons';
 
-const SOURCE_LABELS: Record<NvdaLogSource, string> = {
-  control: 'Controle',
-  progress: 'Progresso',
-  editor: 'Editor',
-  system: 'Sistema',
+const SOURCE_LABELS: Record<SiteLanguage, Record<NvdaLogSource, string>> = {
+  'pt-BR': {
+    control: 'Controle',
+    progress: 'Progresso',
+    editor: 'Editor',
+    system: 'Sistema',
+  },
+  'en-US': {
+    control: 'Control',
+    progress: 'Progress',
+    editor: 'Editor',
+    system: 'System',
+  },
+  'es-ES': {
+    control: 'Control',
+    progress: 'Progreso',
+    editor: 'Editor',
+    system: 'Sistema',
+  },
+};
+
+const NVDA_EXTRA: Record<
+  SiteLanguage,
+  {
+    asideAria: string;
+    hideAria: string;
+    lastAnnouncement: string;
+    noAnnouncementYet: string;
+  }
+> = {
+  'pt-BR': {
+    asideAria: 'Monitor de anúncios NVDA',
+    hideAria: 'Ocultar monitor NVDA',
+    lastAnnouncement: 'Último anúncio:',
+    noAnnouncementYet: 'Nenhum anúncio emitido ainda',
+  },
+  'en-US': {
+    asideAria: 'NVDA announcements monitor',
+    hideAria: 'Hide NVDA monitor',
+    lastAnnouncement: 'Last announcement:',
+    noAnnouncementYet: 'No announcement emitted yet',
+  },
+  'es-ES': {
+    asideAria: 'Monitor de anuncios NVDA',
+    hideAria: 'Ocultar monitor NVDA',
+    lastAnnouncement: 'Último anuncio:',
+    noAnnouncementYet: 'Ningún anuncio emitido todavía',
+  },
 };
 
 /**
@@ -30,6 +74,9 @@ export const NvdaAnnouncer: React.FC = () => {
     showNvdaMonitor,
     setShowNvdaMonitor,
   } = usePrototype();
+  const { t, siteLanguage } = useTranslation();
+  const extra = NVDA_EXTRA[siteLanguage];
+  const sourceLabels = SOURCE_LABELS[siteLanguage];
 
   return (
     <>
@@ -47,7 +94,7 @@ export const NvdaAnnouncer: React.FC = () => {
       {/* Monitor visual opcional (ativado no preset Renata ou pelo Hub) */}
       {showNvdaMonitor && (
         <aside
-          aria-label="Monitor de anúncios NVDA"
+          aria-label={extra.asideAria}
           data-nvda-monitor="true"
           style={{
             position: 'fixed',
@@ -82,10 +129,10 @@ export const NvdaAnnouncer: React.FC = () => {
               <VolumeIcon size={17} />
               <div>
                 <div style={{ fontSize: '14px', fontWeight: 700, lineHeight: 1.2 }}>
-                  Monitor NVDA (aria-live)
+                  {t.shared.nvdaTitle}
                 </div>
                 <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                  Silencioso entre parágrafos (R21)
+                  {t.shared.nvdaPolicyNote}
                 </div>
               </div>
             </div>
@@ -103,11 +150,11 @@ export const NvdaAnnouncer: React.FC = () => {
                   fontWeight: 700,
                 }}
               >
-                Limpar
+                {t.shared.nvdaClear}
               </button>
               <button
                 type="button"
-                aria-label="Ocultar monitor NVDA"
+                aria-label={extra.hideAria}
                 onClick={() => setShowNvdaMonitor(false)}
                 style={{
                   minWidth: '34px',
@@ -133,10 +180,10 @@ export const NvdaAnnouncer: React.FC = () => {
             }}
           >
             <span style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>
-              Último anúncio:{' '}
+              {extra.lastAnnouncement}{' '}
             </span>
             <span style={{ fontWeight: 700 }}>
-              {nvdaLiveMessage || 'Nenhum anúncio emitido ainda'}
+              {nvdaLiveMessage || extra.noAnnouncementYet}
             </span>
           </div>
 
@@ -153,7 +200,7 @@ export const NvdaAnnouncer: React.FC = () => {
           >
             {nvdaLog.length === 0 ? (
               <li style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                Acione Reproduzir/Pausar, Voltar/Avançar parágrafo ou foque a barra de progresso para ver os anúncios curtos.
+                {t.shared.nvdaEmpty}
               </li>
             ) : (
               nvdaLog.map((entry) => (
@@ -180,7 +227,7 @@ export const NvdaAnnouncer: React.FC = () => {
                       fontWeight: 700,
                     }}
                   >
-                    <span>{SOURCE_LABELS[entry.source]}</span>
+                    <span>{sourceLabels[entry.source]}</span>
                     <span>{entry.timestamp}</span>
                   </div>
                   <span style={{ fontWeight: 600 }}>{entry.text}</span>

@@ -14,9 +14,16 @@ import {
   InfoIcon,
   UndoIcon,
 } from '../../components/shared/Icons';
+import { useTranslation } from '../../i18n/useTranslation';
 import { usePrototype } from '../../state/PrototypeContext';
 import { SiteLanguage, StoryLanguage } from '../../types/prototype';
 import './LanguageSettings.css';
+
+const PENDING_LABEL: Record<SiteLanguage, string> = {
+  'pt-BR': 'Alteração pendente',
+  'en-US': 'Pending change',
+  'es-ES': 'Cambio pendiente',
+};
 
 interface LanguageSettingsFormProps {
   mode: 'modal' | 'page';
@@ -83,6 +90,7 @@ export const LanguageSettingsForm: React.FC<LanguageSettingsFormProps> = ({
     updateLanguages,
     undoLanguageChange,
   } = usePrototype();
+  const { t } = useTranslation();
 
   const [draftSite, setDraftSite] = useState<SiteLanguage>(siteLanguage);
   const [draftStories, setDraftStories] = useState<StoryLanguage>(storiesLanguage);
@@ -120,11 +128,11 @@ export const LanguageSettingsForm: React.FC<LanguageSettingsFormProps> = ({
       {/* R18: Frase curta de estado atual sempre visível no topo */}
       <div className="lang-status-summary" aria-live="polite">
         <span>
-          Site: {formatSiteLanguageLabel(siteLanguage)} · Histórias:{' '}
+          {t.siteWord}: {formatSiteLanguageLabel(siteLanguage)} · {t.storiesWord}:{' '}
           {formatStoryLanguageLabel(storiesLanguage)}
         </span>
         {hasPendingChanges && (
-          <span className="lang-status-pending">Alteração pendente</span>
+          <span className="lang-status-pending">{PENDING_LABEL[siteLanguage]}</span>
         )}
       </div>
 
@@ -146,7 +154,7 @@ export const LanguageSettingsForm: React.FC<LanguageSettingsFormProps> = ({
               onClick={undoLanguageChange}
             >
               <UndoIcon size={16} />
-              <span>Desfazer</span>
+              <span>{t.common.undo}</span>
             </button>
           )}
         </div>
@@ -156,7 +164,7 @@ export const LanguageSettingsForm: React.FC<LanguageSettingsFormProps> = ({
       <div className="lang-field">
         <label htmlFor={siteSelectId} className="lang-field-label">
           <EditIcon size={18} />
-          <span>Idioma do site (menus e botões)</span>
+          <span>{t.language.siteFieldLabel}</span>
         </label>
         <div className="lang-select-wrapper">
           <select
@@ -175,8 +183,7 @@ export const LanguageSettingsForm: React.FC<LanguageSettingsFormProps> = ({
           </span>
         </div>
         <p id={siteHintId} className="lang-field-example">
-          Ex.: menus, botões, editor e mensagens como &apos;Publicar&apos;,
-          &apos;Salvar&apos; e &apos;Escrever&apos;.
+          {t.language.siteFieldExample}
         </p>
       </div>
 
@@ -184,7 +191,7 @@ export const LanguageSettingsForm: React.FC<LanguageSettingsFormProps> = ({
       <div className="lang-field">
         <label htmlFor={storiesSelectId} className="lang-field-label">
           <BookOpenIcon size={18} />
-          <span>Idioma das histórias recomendadas</span>
+          <span>{t.language.storiesFieldLabel}</span>
         </label>
         <div className="lang-select-wrapper">
           <select
@@ -203,8 +210,7 @@ export const LanguageSettingsForm: React.FC<LanguageSettingsFormProps> = ({
           </span>
         </div>
         <p id={storiesHintId} className="lang-field-example">
-          Ex.: histórias e listas recomendadas na página inicial, como romances
-          em Português ou English.
+          {t.language.storiesFieldExample}
         </p>
       </div>
 
@@ -213,11 +219,11 @@ export const LanguageSettingsForm: React.FC<LanguageSettingsFormProps> = ({
         <div className="lang-notice-card" role="note">
           <InfoIcon size={18} className="lang-notice-icon" />
           <div>
-            <strong>Os dois idiomas são independentes:</strong> os menus e botões
-            continuarão em{' '}
-            <strong>{formatSiteLanguageLabel(draftSite)}</strong>, enquanto as
-            histórias e listas recomendadas na página inicial serão exibidas em{' '}
-            <strong>{formatStoryLanguageLabel(draftStories)}</strong>.
+            <strong>{t.language.mismatchTitle}:</strong>{' '}
+            {t.language.mismatchBody(
+              formatSiteLanguageLabel(draftSite),
+              formatStoryLanguageLabel(draftStories)
+            )}
           </div>
         </div>
       )}
@@ -227,10 +233,7 @@ export const LanguageSettingsForm: React.FC<LanguageSettingsFormProps> = ({
         <div className="lang-notice-card" role="note">
           <InfoIcon size={18} className="lang-notice-icon" />
           <div>
-            Você selecionou <strong>{formatSiteLanguageLabel(draftSite)}</strong>{' '}
-            para menus e botões. Você pode retornar para{' '}
-            <strong>Português (Brasil)</strong> a qualquer momento neste painel
-            sem afetar suas histórias.
+            <strong>{t.language.nonPtTitle}:</strong> {t.language.nonPtBody}
           </div>
         </div>
       )}
@@ -243,12 +246,12 @@ export const LanguageSettingsForm: React.FC<LanguageSettingsFormProps> = ({
             className="btn-pill-secondary"
             onClick={onSecondaryAction}
           >
-            {mode === 'modal' ? 'Fechar' : 'Voltar'}
+            {mode === 'modal' ? t.language.closeBtn : t.language.backBtn}
           </button>
         )}
         <button type="submit" className="btn-pill-primary">
           <CheckIcon size={18} />
-          <span>Salvar</span>
+          <span>{t.language.saveBtn}</span>
         </button>
       </div>
     </form>
