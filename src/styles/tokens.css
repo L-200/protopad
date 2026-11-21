@@ -1,0 +1,147 @@
+/* ==========================================================================
+   Wattpad Redesign Design System Tokens — TP2 IHC 2026
+   Fiel ao wattpad_design_system.md com overrides WCAG 2.1 AA/AAA (R22)
+   ========================================================================== */
+
+:root {
+  /* Fundos e superfícies */
+  --bg-page: #FFFFFF;
+  --bg-surface: #F6F6F6;
+  --bg-elevated: #FFFFFF;
+  --divider: #EEEEEE;
+  --bg-notice: #EFEBEB;
+
+  /* Tipografia e cores de texto */
+  --text-primary: #121212;
+  --text-reading: #222222;
+  --text-secondary: #676767;
+  --text-inverse: #FFFFFF;
+
+  /* Marca e destaques acessíveis */
+  --brand-aa: #CD4008;
+  --brand-hover: #B33706;
+  --brand-decorative: #FF6122; /* NUNCA usar como texto normal sobre branco */
+  --border-input-aa: #767676;
+
+  /* Progresso e semântica */
+  --teal-progress: #00838A;
+  --teal-text-aa: #007070;
+  --teal-app: #0D6F76;
+  --semantic-success: #006E3F;
+  --semantic-alert: #E00000;
+  --warning-bg: #FFC922;
+  --warning-text: #121212;
+
+  /* Premium e badges */
+  --premium-bg: #F6F2FF;
+  --premium-text: #3B19A9;
+  --wattys-tag: #322864;
+
+  /* Selo de idioma (contraste >= 4,5:1) */
+  --badge-lang-bg: #EFEBEB;
+  --badge-lang-border: #767676;
+  --badge-lang-text: #121212;
+  --badge-lang-en-bg: #F6F2FF;
+  --badge-lang-en-border: #3B19A9;
+  --badge-lang-en-text: #3B19A9;
+
+  /* Botões e estados interativos acessíveis */
+  --btn-primary-bg: #121212;
+  --btn-primary-text: #FFFFFF;
+  --btn-primary-hover: #2A2A2A;
+  --btn-brand-bg: #CD4008;
+  --btn-brand-text: #FFFFFF;
+  --btn-active-bg: #EFEBEB;
+  --btn-active-border: #121212;
+
+  /* Tooltip */
+  --tooltip-bg: #121212;
+  --tooltip-text: #FFFFFF;
+  --tooltip-border: #121212;
+
+  /* Foco visível (R22) */
+  --focus-ring-color: #121212;
+  --focus-ring: 3px solid #121212;
+  --focus-ring-offset: 2px;
+
+  /* Sombras */
+  --shadow-carousel: 0px 4px 8px 0px rgba(18, 18, 18, 0.12);
+  --shadow-elevated: 0px 8px 20px rgba(18, 18, 18, 0.14);
+  --shadow-sticky-footer: 0px -2px 10px rgba(18, 18, 18, 0.08);
+
+  /* Família e escala tipográfica */
+  --font-sans: "Source Sans Pro", "Source Sans 3", "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+  /* Border radius */
+  --radius-none: 0px;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-cover: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 24px;
+  --radius-full: 9999px;
+
+  /* Layout e alvos de toque */
+  --header-height: 68px;
+  --reading-subheader-height: 60px;
+  --reading-column-width: 580px;
+  --target-min-desktop: 44px;
+  --target-min-mobile: 48px;
+}
+
+/* ==========================================================================
+   Tema Alto Contraste Escuro (R22 — Renata / Baixa Visão)
+   ========================================================================== */
+[data-theme="high-contrast"] {
+  --bg-page: #121212;
+  --bg-surface: #1B1B1B;
+  --bg-elevated: #242424;
+  --divider: #555555;
+  --bg-notice: #2B2B2B;
+
+  --text-primary: #FFFFFF;
+  --text-reading: #FFFFFF;
+  --text-secondary: #E0E0E0;
+  --text-inverse: #121212;
+
+  --brand-aa: #FF6122;
+  --brand-hover: #FF7D47;
+  --border-input-aa: #D0D0D0;
+
+  --teal-progress: #00E5E5;
+  --teal-text-aa: #33F0F0;
+  --teal-app: #33F0F0;
+  --semantic-success: #4ADE80;
+  --semantic-alert: #FF6B6B;
+
+  --premium-bg: #2E1F5E;
+  --premium-text: #E9DDFF;
+
+  --badge-lang-bg: #2B2B2B;
+  --badge-lang-border: #D0D0D0;
+  --badge-lang-text: #FFFFFF;
+  --badge-lang-en-bg: #2E1F5E;
+  --badge-lang-en-border: #E9DDFF;
+  --badge-lang-en-text: #E9DDFF;
+
+  --btn-primary-bg: #FFFFFF;
+  --btn-primary-text: #121212;
+  --btn-primary-hover: #E6E6E6;
+  --btn-brand-bg: #FF6122;
+  --btn-brand-text: #121212;
+  --btn-active-bg: #2E2E2E;
+  --btn-active-border: #FFC922;
+
+  --tooltip-bg: #242424;
+  --tooltip-text: #FFFFFF;
+  --tooltip-border: #FFC922;
+
+  --focus-ring-color: #FFC922;
+  --focus-ring: 3px solid #FFC922;
+
+  --shadow-carousel: 0px 4px 12px 0px rgba(0, 0, 0, 0.65);
+  --shadow-elevated: 0px 8px 24px rgba(0, 0, 0, 0.72);
+  --shadow-sticky-footer: 0px -2px 12px rgba(0, 0, 0, 0.6);
+}

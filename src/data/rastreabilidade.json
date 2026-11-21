@@ -1,0 +1,383 @@
+{
+  "meta": {
+    "projeto": "Redesign Wattpad — TP2 IHC 2026",
+    "requisitos_canonicos": "R1-R22",
+    "total_requisitos": 22,
+    "prioridades": {
+      "Essencial": 15,
+      "Simular": 6,
+      "Desejavel": 1
+    }
+  },
+  "telas": {
+    "tela_1_home": {
+      "titulo": "Página Inicial (Home / Descoberta)",
+      "funcionalidades": ["W01"],
+      "cenarios": ["Cenario 3", "Cenario 2"],
+      "hta_nos": [
+        "Cenario 3: 1 (1.1, 1.2)",
+        "Cenario 2: 5 (5.1)"
+      ],
+      "requisitos_ids": ["R9", "R16", "R17"],
+      "criterios_aceite": [
+        "Todos os títulos de carrosséis visíveis estão em português (inclusive 'Listas de leitura da comunidade').",
+        "Carrosséis sem título traduzido para PT-BR permanecem ocultos (com toggle de demonstração no protótipo).",
+        "Cada história e lista da comunidade exibe selo curto de idioma ('Português' ou 'English') com contraste >= 4,5:1.",
+        "Dropdown do perfil exibe estado dual de idioma ('Site: PT · Histórias: EN/PT') e atalho para Configurações de idioma."
+      ]
+    },
+    "tela_2_idioma": {
+      "titulo": "Configurações de Idioma (Modal e Rota Dedicada)",
+      "funcionalidades": ["W01"],
+      "cenarios": ["Cenario 3", "Cenario 2"],
+      "hta_nos": [
+        "Cenario 3: 2 (2.1, 2.2, 2.3, 2.4, 2.5)",
+        "Cenario 2: 5 (5.2, 5.3, 5.4)"
+      ],
+      "requisitos_ids": ["R10", "R15", "R16", "R18"],
+      "criterios_aceite": [
+        "Acessível tanto como modal (600px, border-radius 12px, botão X) quanto por rota dedicada.",
+        "Topo exibe frase curta com estado atual: 'Site: Português (Brasil) · Histórias: English' (ou 'Português').",
+        "Dois campos distintos: 'Idioma do site (menus e botões)' e 'Idioma das histórias recomendadas', cada um com linha de exemplo concreta do que muda.",
+        "Ao alterar e salvar, exibe confirmação em português (ex.: 'Idioma das histórias alterado para Português') com botão 'Desfazer' que restaura o estado anterior e atualiza a frase do topo.",
+        "Hierarquia clara entre botão primário 'Salvar' e secundário 'Fechar'."
+      ]
+    },
+    "tela_3_leitura_desktop": {
+      "titulo": "Leitura de Capítulo com Player de Áudio (Desktop / Notebook)",
+      "funcionalidades": ["W10", "W01"],
+      "cenarios": ["Cenario 1", "Cenario 3"],
+      "hta_nos": [
+        "Cenario 1: 1 (1.1, 1.2, 1.3), 2 (2.1-2.4), 3 (3.1, 3.2), 4 (4.1-4.3), 5 (5.1-5.4)",
+        "Cenario 3: 3 (3.1-3.6), 4 (4.1, 4.2), 5 (5.1-5.3)"
+      ],
+      "requisitos_ids": ["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R16", "R17", "R21", "R22"],
+      "criterios_aceite": [
+        "Primeiro elemento focável da página é o skip link 'Ir para o player', e o player está dentro de <section role='region' aria-label='Ouvir'> (alcançável pela tecla D).",
+        "Mover o foco para o player não inicia nem interrompe o áudio.",
+        "Barra inferior fixa de largura total com player completo desde o início do Cap. 1 e do Cap. 2 (40 parágrafos + opção de história em inglês).",
+        "Ordem fixa dos 5 controles: Reproduzir/Pausar, Voltar parágrafo, Avançar parágrafo, Velocidade, Progresso.",
+        "Rótulo 'Ouvir', ícone de fone, selo de idioma antes do player e tooltip 'Ouvir com leitura em voz alta (voz automática)'.",
+        "Atalhos Alt+P, Alt+↑ e Alt+↓ exibidos nas tooltips, além de suporte a tecla de mídia / simulador de headset.",
+        "Velocidade salva como preferência (1,75x Renata / 1,25x Adriana / 1,0x padrão) e mantida no Cap. 2.",
+        "NVDA (aria-live='polite') anuncia apenas 'Reproduzindo'/'Pausado' no play/pause e 'Parágrafo X de 40' somente ao acionar Voltar/Avançar parágrafo ou focar Progresso, sem anúncios automáticos por parágrafo.",
+        "Alto Contraste Escuro + Lupa 200% acompanhando o foco, contraste >= 4,5:1 texto / >= 3:1 ícones, e estado nunca comunicado só por cor."
+      ]
+    },
+    "tela_4_editor_desktop": {
+      "titulo": "Editor de Capítulos (Desktop / Notebook)",
+      "funcionalidades": ["W22", "W01"],
+      "cenarios": ["Cenario 2"],
+      "hta_nos": [
+        "Cenario 2: 1 (1.1-1.3), 2 (2.1-2.4), 3 (3.1-3.4), 4 (4.1-4.4), 6 (6.1-6.3)"
+      ],
+      "requisitos_ids": ["R8", "R11", "R12", "R13", "R14", "R15", "R16"],
+      "criterios_aceite": [
+        "Header exibe status 'Rascunho • 1.240 palavras • Salvo' e ações de publicação 100% em PT-BR (sem 'Type your text' ou 'Adicionar uma enquente').",
+        "Barra de formatação fixa permanente no topo da área de escrita, visível sem seleção e navegável por Tab/setas, dividida em 2 grupos com divisor.",
+        "Tooltips no hover e no foco em PT-BR com atalho ('Negrito (Ctrl+B)', 'Itálico (Ctrl+I)', 'Sublinhado (Ctrl+U)').",
+        "Botões de estilo usam aria-pressed, destaque visual (fundo + borda), toggle sem seleção e destaque simultâneo (ex.: Negrito + Itálico).",
+        "Grupo de inserção inclui Inserir imagem, Inserir vídeo, Separador de cena ('***' já centralizado) e Adicionar enquete.",
+        "Cap. 3 inicial do Leonardo contém 2 pensamentos para itálico, 2 trocas '***' para centralizar e 1 troca sem marcação.",
+        "Rascunho preservado ao visitar Home (Tela 1) ou Idioma (Tela 2) e retornar para publicar."
+      ]
+    },
+    "tela_5_leitura_mobile": {
+      "titulo": "Leitura de Capítulo com Player Mobile (390×844)",
+      "funcionalidades": ["W10"],
+      "cenarios": ["Cenario 4"],
+      "hta_nos": [
+        "Cenario 4: 1 (1.1-1.6), 6 (6.1-6.3)"
+      ],
+      "requisitos_ids": ["R1", "R2", "R3", "R6", "R19"],
+      "criterios_aceite": [
+        "Viewport dedicado 390×844 sem sobreposição do player sobre o texto do Cap. 9.",
+        "Barra inferior fixa ao alcance do polegar com alvos >= 48×48px (48×48dp), gap >= 8px e retorno visual imediato ao toque.",
+        "Linha fina de progresso apenas indicativa no topo da barra.",
+        "Ordem fixa: Reproduzir/Pausar, Voltar parágrafo, Avançar parágrafo, Velocidade (exibindo '1,25x' mantida).",
+        "Cap. 9 inicia com cena na taverna colada à cena na floresta; botão de edição permite transição à Tela 6."
+      ]
+    },
+    "tela_6_editor_mobile": {
+      "titulo": "Editor de Capítulo Mobile com Teclado Virtual (390×844)",
+      "funcionalidades": ["W22", "W10"],
+      "cenarios": ["Cenario 4"],
+      "hta_nos": [
+        "Cenario 4: 2 (2.1-2.3), 3 (3.1-3.5), 4 (4.1-4.3), 5 (5.1, 5.2)"
+      ],
+      "requisitos_ids": ["R19", "R20"],
+      "criterios_aceite": [
+        "Teclado virtual simulado inclui entrada por digitação e Ditado por voz aplicando a formatação ativa (ex.: Itálico).",
+        "Barra de formatação ancorada logo acima do teclado com Negrito, Itálico, Sublinhado e Alinhamento (alvos >= 48×48px, rótulos curtos PT-BR, destaque de estado ativo e rolagem horizontal quando exceder largura).",
+        "Player recolhido em ícone compacto que se expande para conferência do áudio sem fechar o teclado virtual.",
+        "Botão 'Salvar' persiste thought em itálico e '***' centralizado no Cap. 9 e retorna à Tela 5 com player completo e velocidade 1,25x preservada."
+      ]
+    }
+  },
+  "requisitos": {
+    "R1": {
+      "id": "R1",
+      "titulo": "Player completo desde o início de todo capítulo",
+      "funcionalidade": "W10",
+      "origem": "Renata",
+      "reforcado_por": ["Adriana", "Sansão"],
+      "prioridade": "Essencial",
+      "resumo": "Player completo (Play/Pausa, Voltar e Avançar parágrafo, Velocidade, Progresso) disponível desde o início de todo capítulo, inclusive o capítulo 1.",
+      "telas": ["tela_3_leitura_desktop", "tela_5_leitura_mobile"],
+      "cenarios": ["Cenario 1", "Cenario 3", "Cenario 4"],
+      "criterio_aceite": "Ao abrir o Cap. 1 (ou Cap. 9 mobile), todos os controles obrigatórios já estão renderizados no primeiro scroll (scrollY = 0)."
+    },
+    "R2": {
+      "id": "R2",
+      "titulo": "Player sempre na mesma posição em barra inferior fixa",
+      "funcionalidade": "W10",
+      "origem": "Renata",
+      "reforcado_por": ["Adriana", "Sansão"],
+      "prioridade": "Essencial",
+      "resumo": "Player sempre na mesma posição: barra inferior fixa de largura total que acompanha o foco e a Lupa e não cobre o texto.",
+      "telas": ["tela_3_leitura_desktop", "tela_5_leitura_mobile"],
+      "cenarios": ["Cenario 1", "Cenario 3", "Cenario 4"],
+      "criterio_aceite": "Barra permanece fixa no rodapé durante toda a rolagem e entre Cap. 1 e Cap. 2, com padding inferior reservado para nunca sobrepor parágrafos."
+    },
+    "R3": {
+      "id": "R3",
+      "titulo": "Ordem fixa dos botões em todos os capítulos",
+      "funcionalidade": "W10",
+      "origem": "Renata",
+      "reforcado_por": ["Adriana", "Sansão"],
+      "prioridade": "Essencial",
+      "resumo": "Ordem fixa dos botões em todos os capítulos: Reproduzir/Pausar, Voltar parágrafo, Avançar parágrafo, Velocidade e Progresso.",
+      "telas": ["tela_3_leitura_desktop", "tela_5_leitura_mobile"],
+      "cenarios": ["Cenario 1", "Cenario 3", "Cenario 4"],
+      "criterio_aceite": "A sequência visual e de tabulação dos controles é idêntica no Cap. 1 e no Cap. 2 (e mantida nos controles do player mobile)."
+    },
+    "R4": {
+      "id": "R4",
+      "titulo": "Player identificável pelo leitor de tela",
+      "funcionalidade": "W10",
+      "origem": "Renata",
+      "reforcado_por": [],
+      "prioridade": "Essencial",
+      "resumo": "Player identificável por landmark/região 'Ouvir' (acessível pela tecla D) e skip link inicial 'Ir para o player'.",
+      "telas": ["tela_3_leitura_desktop"],
+      "cenarios": ["Cenario 1"],
+      "criterio_aceite": "Link 'Ir para o player' é o primeiro item focável e <section role='region' aria-label='Ouvir'> envolve o player, transferindo foco sem iniciar áudio."
+    },
+    "R5": {
+      "id": "R5",
+      "titulo": "Atalhos de teclado, teclas de mídia e headset",
+      "funcionalidade": "W10",
+      "origem": "Renata",
+      "reforcado_por": [],
+      "prioridade": "Simular",
+      "resumo": "Atalhos exibidos nas dicas dos botões (Alt+P, Alt+↑ e Alt+↓), suporte a teclas de mídia do sistema e botões do headset.",
+      "telas": ["tela_3_leitura_desktop"],
+      "cenarios": ["Cenario 1"],
+      "criterio_aceite": "Alt+P alterna reprodução/pausa, Alt+↑/Alt+↓ navegam parágrafos, tooltips exibem os atalhos e há suporte/simulador de tecla de mídia."
+    },
+    "R6": {
+      "id": "R6",
+      "titulo": "Persistência de velocidade exibida no botão",
+      "funcionalidade": "W10",
+      "origem": "Renata",
+      "reforcado_por": ["Adriana", "Sansão"],
+      "prioridade": "Essencial",
+      "resumo": "Velocidade de reprodução guardada como preferência da conta, mostrada diretamente no botão (ex.: '1,75x', '1,25x') e mantida entre capítulos.",
+      "telas": ["tela_3_leitura_desktop", "tela_5_leitura_mobile"],
+      "cenarios": ["Cenario 1", "Cenario 3", "Cenario 4"],
+      "criterio_aceite": "O botão de velocidade exibe o valor formatado com vírgula ('1,75x'/'1,25x') e mantém a escolha ao trocar de capítulo ou retornar da edição."
+    },
+    "R7": {
+      "id": "R7",
+      "titulo": "Nomes acessíveis em português e estados anunciados",
+      "funcionalidade": "W10",
+      "origem": "Renata",
+      "reforcado_por": [],
+      "prioridade": "Essencial",
+      "resumo": "Todos os controles do player com nomes acessíveis em PT-BR e estados anunciados ('Reproduzir'/'Pausar', 'Parágrafo 12 de 40').",
+      "telas": ["tela_3_leitura_desktop"],
+      "cenarios": ["Cenario 1"],
+      "criterio_aceite": "Nenhum atributo aria-label ou rótulo visível permanece em inglês e estados atualizam dinamicamente o texto/valor acessível."
+    },
+    "R8": {
+      "id": "R8",
+      "titulo": "Nome único 'Ouvir', lang declarado e voz no idioma da história",
+      "funcionalidade": "W01/W10",
+      "origem": "Renata",
+      "reforcado_por": ["Adriana", "Leonardo"],
+      "prioridade": "Essencial",
+      "resumo": "Mesmo nome do recurso em todas as telas ('Ouvir', dica 'Ouvir com leitura em voz alta (voz automática)'), idioma marcado no código (lang) e voz TTS no idioma da história.",
+      "telas": ["tela_3_leitura_desktop", "tela_4_editor_desktop"],
+      "cenarios": ["Cenario 1", "Cenario 2", "Cenario 3"],
+      "criterio_aceite": "Substitui 'Listen with text to speech'; atributo lang='pt-BR' no documento e voz selecionada corresponde ao idioma da história."
+    },
+    "R9": {
+      "id": "R9",
+      "titulo": "Títulos de carrosséis traduzidos ou ocultos",
+      "funcionalidade": "W01",
+      "origem": "Renata",
+      "reforcado_por": ["Adriana", "Leonardo"],
+      "prioridade": "Essencial",
+      "resumo": "Todos os títulos de carrosséis na página inicial traduzidos para o português; carrosséis sem tradução ficam ocultos.",
+      "telas": ["tela_1_home"],
+      "cenarios": ["Cenario 2", "Cenario 3"],
+      "criterio_aceite": "Nenhum título de carrossel em inglês é exibido na Home em PT-BR (ex.: exibe 'Listas de leitura da comunidade' e oculta carrosséis sem tradução)."
+    },
+    "R10": {
+      "id": "R10",
+      "titulo": "Dois campos de idioma com exemplo e confirmação",
+      "funcionalidade": "W01",
+      "origem": "Renata",
+      "reforcado_por": ["Adriana", "Leonardo"],
+      "prioridade": "Simular",
+      "resumo": "Configurações de idioma com dois campos curtos ('Idioma do site (menus e botões)' e 'Idioma das histórias recomendadas'), cada um com linha de exemplo do que muda e confirmação.",
+      "telas": ["tela_2_idioma"],
+      "cenarios": ["Cenario 2", "Cenario 3"],
+      "criterio_aceite": "Cada campo traz exemplo concreto do impacto (menus/botões vs. histórias/listas) e confirmação clara ao salvar."
+    },
+    "R11": {
+      "id": "R11",
+      "titulo": "Barra de formatação fixa e navegável por teclado",
+      "funcionalidade": "W22",
+      "origem": "Leonardo",
+      "reforcado_por": ["Sansão"],
+      "prioridade": "Essencial",
+      "resumo": "Barra de formatação fixa no topo do editor, visível mesmo sem texto selecionado e navegável por teclado (Tab e setas).",
+      "telas": ["tela_4_editor_desktop"],
+      "cenarios": ["Cenario 2"],
+      "criterio_aceite": "Barra aparece desde a abertura do rascunho, não desaparece ao clicar fora de parágrafos e permite navegação via Tab e setas direcionais."
+    },
+    "R12": {
+      "id": "R12",
+      "titulo": "Tooltips em português com atalho de teclado",
+      "funcionalidade": "W22",
+      "origem": "Leonardo",
+      "reforcado_por": ["Sansão"],
+      "prioridade": "Essencial",
+      "resumo": "Dica (tooltip) em cada botão com o nome em português e o atalho correspondente, exibida no hover e no foco (ex.: 'Itálico (Ctrl+I)').",
+      "telas": ["tela_4_editor_desktop"],
+      "cenarios": ["Cenario 2"],
+      "criterio_aceite": "Passar o mouse ou focar via teclado qualquer botão de formatação exibe tooltip em PT-BR informando o atalho aplicável."
+    },
+    "R13": {
+      "id": "R13",
+      "titulo": "Estado ativo destacado e anunciado via aria-pressed",
+      "funcionalidade": "W22",
+      "origem": "Leonardo",
+      "reforcado_por": ["Sansão"],
+      "prioridade": "Essencial",
+      "resumo": "Botão da formatação ativa destacado visualmente (fundo e borda) e anunciado ao leitor de tela via aria-pressed; funciona sem seleção e em estilos combinados.",
+      "telas": ["tela_4_editor_desktop"],
+      "cenarios": ["Cenario 2"],
+      "criterio_aceite": "Ativar sem seleção formata a próxima palavra digitada; cursor em trecho com Negrito+Itálico destaca ambos; aria-pressed reflete o estado real."
+    },
+    "R14": {
+      "id": "R14",
+      "titulo": "Inserção de mídia, separador centralizado e enquete na barra",
+      "funcionalidade": "W22",
+      "origem": "Leonardo",
+      "reforcado_por": [],
+      "prioridade": "Simular",
+      "resumo": "Inserir imagem, Inserir vídeo, Separador de cena ('***' já centralizado) e Adicionar enquete agrupados após divisor na mesma barra fixa (notebook).",
+      "telas": ["tela_4_editor_desktop"],
+      "cenarios": ["Cenario 2"],
+      "criterio_aceite": "Os 4 botões de inserção ficam visíveis no segundo grupo da barra; 'Separador de cena' insere '***' centralizado sem seleção prévia."
+    },
+    "R15": {
+      "id": "R15",
+      "titulo": "Editor, dicas, mensagens e publicação no idioma escolhido",
+      "funcionalidade": "W01",
+      "origem": "Leonardo",
+      "reforcado_por": [],
+      "prioridade": "Desejável",
+      "resumo": "Todo o editor, tooltips, status, formulários e opções de publicação seguem integralmente o idioma configurado no site.",
+      "telas": ["tela_4_editor_desktop", "tela_2_idioma"],
+      "cenarios": ["Cenario 2"],
+      "criterio_aceite": "Zero strings em inglês ou erros de grafia no editor ('Rascunho • 1.240 palavras • Salvo', 'Adicionar enquete', modal de publicação em PT-BR)."
+    },
+    "R16": {
+      "id": "R16",
+      "titulo": "Rótulos curtos simples com ícone e dica completa",
+      "funcionalidade": "W01/W10",
+      "origem": "Adriana",
+      "reforcado_por": ["Leonardo"],
+      "prioridade": "Essencial",
+      "resumo": "Rótulos curtos em linguagem simples sempre acompanhados de ícone, com explicação completa na dica/tooltip.",
+      "telas": ["tela_1_home", "tela_2_idioma", "tela_3_leitura_desktop", "tela_4_editor_desktop"],
+      "cenarios": ["Cenario 2", "Cenario 3"],
+      "criterio_aceite": "Controles de player, barra de editor e configurações exibem ícone + rótulo curto em PT-BR e tooltip explicativa."
+    },
+    "R17": {
+      "id": "R17",
+      "titulo": "Selo de idioma em histórias, listas e antes do Ouvir",
+      "funcionalidade": "W01",
+      "origem": "Adriana",
+      "reforcado_por": [],
+      "prioridade": "Simular",
+      "resumo": "Selo curto indicando o idioma em cada história e lista da Home, e na tela de leitura antes do botão/player Ouvir para informar o idioma da voz.",
+      "telas": ["tela_1_home", "tela_3_leitura_desktop"],
+      "cenarios": ["Cenario 3"],
+      "criterio_aceite": "Usuário identifica listas/histórias em 'English' ou 'Português' antes de abrir e visualiza o selo do idioma da voz antes de reproduzir."
+    },
+    "R18": {
+      "id": "R18",
+      "titulo": "Frase de estado atual no topo e confirmação com Desfazer",
+      "funcionalidade": "W01",
+      "origem": "Adriana",
+      "reforcado_por": ["Leonardo"],
+      "prioridade": "Simular",
+      "resumo": "Frase no topo das configurações resumindo Site e Histórias + confirmação em português com ação 'Desfazer' após alteração.",
+      "telas": ["tela_2_idioma"],
+      "cenarios": ["Cenario 2", "Cenario 3"],
+      "criterio_aceite": "Topo mostra 'Site: Português (Brasil) · Histórias: ...'; clicar 'Desfazer' após alterar reverte imediatamente o valor e atualiza a frase."
+    },
+    "R19": {
+      "id": "R19",
+      "titulo": "Alvos de toque >= 48×48 dp e barra mobile fixa com linha indicativa",
+      "funcionalidade": "W10/W22",
+      "origem": "Sansão",
+      "reforcado_por": [],
+      "prioridade": "Essencial",
+      "resumo": "Alvos >= 48×48dp (48×48px) na metade inferior da tela mobile; player fixo no rodapé com linha fina indicativa; na edição, player vira ícone compacto expansível sem fechar teclado.",
+      "telas": ["tela_5_leitura_mobile", "tela_6_editor_mobile"],
+      "cenarios": ["Cenario 4"],
+      "criterio_aceite": "Botões do player e da barra mobile medem >= 48×48px com gap >= 8px; ícone compacto do player expande sem dispensar o teclado virtual."
+    },
+    "R20": {
+      "id": "R20",
+      "titulo": "Barra de formatação mobile acima do teclado virtual",
+      "funcionalidade": "W22",
+      "origem": "Sansão",
+      "reforcado_por": ["Leonardo"],
+      "prioridade": "Essencial",
+      "resumo": "Barra com Negrito, Itálico, Sublinhado e Alinhamento ancorada logo acima do teclado virtual, com destaque de estado ativo e rolagem horizontal quando necessário.",
+      "telas": ["tela_6_editor_mobile"],
+      "cenarios": ["Cenario 4"],
+      "criterio_aceite": "Ao focar o texto no mobile, teclado virtual abre com barra ancorada acima; ativar Itálico/Centro aplica estilo ao texto ditado ou digitado sem seleção prévia."
+    },
+    "R21": {
+      "id": "R21",
+      "titulo": "Convivência silenciosa do player com o NVDA",
+      "funcionalidade": "W10",
+      "origem": "Renata",
+      "reforcado_por": [],
+      "prioridade": "Simular",
+      "resumo": "Avisos curtos na região aria-live apenas quando o usuário aciona um controle ou foca a barra de progresso; nenhum anúncio automático a cada parágrafo.",
+      "telas": ["tela_3_leitura_desktop"],
+      "cenarios": ["Cenario 1"],
+      "criterio_aceite": "Durante reprodução contínua, o log/região aria-live não emite anúncios automáticos de parágrafo; Alt+P anuncia 'Reproduzindo'/'Pausado' e Alt+↑/↓ anuncia 'Parágrafo X de 40'."
+    },
+    "R22": {
+      "id": "R22",
+      "titulo": "Contraste mínimo WCAG, foco visível e estado não só por cor",
+      "funcionalidade": "W10",
+      "origem": "Renata",
+      "reforcado_por": [],
+      "prioridade": "Essencial",
+      "resumo": "Contraste >= 4,5:1 em texto e >= 3:1 em ícones/bordas, indicador de foco altamente visível e estados comunicados por ícone+texto/borda (nunca só por cor), inclusive em Alto Contraste.",
+      "telas": ["tela_3_leitura_desktop"],
+      "cenarios": ["Cenario 1"],
+      "criterio_aceite": "Modo Alto Contraste Escuro e modo padrão passam contraste AA/AAA, foco tem contorno visível >= 3px e botão Play/Pause altera ícone e rótulo."
+    }
+  }
+}
