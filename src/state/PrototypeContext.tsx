@@ -251,6 +251,7 @@ export const PrototypeProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       if (screen !== 'tela_3_leitura_desktop') {
         setIsPlaying(false);
+        setMagnifierEnabled(false);
       }
       if (screen !== 'tela_5_leitura_mobile' && screen !== 'tela_6_editor_mobile') {
         setSansaoChapter((prev) =>

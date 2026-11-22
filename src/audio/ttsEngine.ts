@@ -2,16 +2,16 @@
  * @fileoverview Motor unificado de leitura em voz alta (TTS) compartilhado entre o
  * Leitor Desktop (Tela 3) e o Leitor Mobile (Telas 5 e 6) — atende W10 (`R1`, `R6`, `R8`, `R21`).
  *
- * Estratégia em camadas para qualidade de voz máxima sem nunca travar a demonstração:
- * 1. **Piper TTS Neural Local (`/api/tts`)**: sintetiza áudio WAV humano 100% offline em
- *    `pt-BR` (`pt_BR-faber-medium`) e `en-US` (`en_US-lessac-medium`), com cache em memória
- *    (ObjectURL), pré-carregamento do próximo parágrafo e ajuste dinâmico de `playbackRate`
- *    em tempo real sem reiniciar a frase.
- * 2. **Fallback Web Speech API ranqueada**: se o servidor Piper não estiver disponível,
- *    prioriza vozes neurais/naturais do navegador (`Natural`, `Neural`, `Google`, `Francisca`,
- *    `Luciana`, `Antonio`) em vez de sintetizadores robóticos (`eSpeak`).
- * 3. **Fallback temporizado silencioso**: garante o avanço contínuo dos parágrafos mesmo
- *    em ambientes sem nenhuma saída de áudio configurada.
+ * Correção crítica de persistência de voz neural no Firefox/Linux:
+ * - Reutiliza um **único elemento `HTMLAudioElement` persistente (`sharedAudio`)** desbloqueado
+ *   sincronamente no gesto de clique do usuário. Criar `new Audio()` dentro de callbacks
+ *   assíncronos (`onended` após ~10s de leitura ou após `await fetch('/api/tts')`) faz o Firefox
+ *   rejeitar `audio.play()` com `NotAllowedError` quando a ativação transiente expira (~5s),
+ *   o que antes acionava o fallback `window.speechSynthesis` (`eSpeak-NG` robótico) a partir do
+ *   3.º parágrafo.
+ * - Quando o servidor local Piper (`/api/tts`) está ativo e retorna o WAV neural, o motor
+ *   **nunca** invoca `window.speechSynthesis` (`eSpeak-NG`), mantendo 100% de consistência
+ *   na voz neural em todos os parágrafos, capítulos e livros (`pt-BR` e `en-US`).
  */
 
 export interface SpeakOptions {
@@ -40,6 +40,25 @@ const memoryAudioCache = new Map<string, string>();
 const inflightRequests = new Map<string, Promise<string | null>>();
 /** Flag de disponibilidade do endpoint local `/api/tts` (`null` = ainda não verificado). */
 let localPiperAvailable: boolean | null = null;
+/**
+ * Singleton `HTMLAudioElement` reutilizado entre todos os parágrafos, capítulos e histórias.
+ * Reutilizar o mesmo elemento mantém a permissão de reprodução contínua no Firefox/Chrome
+ * mesmo após dezenas de transições automáticas (`onended`) e awaits de rede.
+ */
+let sharedAudio: HTMLAudioElement | null = null;
+/** Identificador incremental de sessão de fala para invalidar callbacks de parágrafos anteriores. */
+let activeSessionId = 0;
+
+function getSharedAudio(): HTMLAudioElement | null {
+  if (typeof window === 'undefined' || typeof Audio === 'undefined') {
+    return null;
+  }
+  if (!sharedAudio) {
+    sharedAudio = new Audio();
+    sharedAudio.preload = 'auto';
+  }
+  return sharedAudio;
+}
 
 function buildCacheKey(lang: string, text: string): string {
   return `${lang}::${text.trim()}`;
@@ -55,7 +74,6 @@ async function fetchLocalPiperAudioUrl(
 ): Promise<string | null> {
   const clean = text.trim();
   if (!clean) return null;
-  if (localPiperAvailable === false) return null;
 
   const key = buildCacheKey(lang, clean);
   const cached = memoryAudioCache.get(key);
@@ -110,14 +128,17 @@ async function fetchLocalPiperAudioUrl(
  * Dispara a pré-síntese silenciosa de um parágrafo futuro no servidor Piper local
  * para eliminar latência na transição contínua de parágrafos.
  */
-export function prefetchParagraphAudio(text: string | undefined, lang: string): void {
+export function prefetchParagraphAudio(
+  text: string | undefined,
+  lang: string
+): void {
   if (!text || !text.trim() || localPiperAvailable === false) return;
   void fetchLocalPiperAudioUrl(text, lang);
 }
 
 /**
- * Seleciona a melhor voz disponível na Web Speech API (fallback quando Piper não está ativo),
- * dando forte preferência a vozes neurais/naturais e penalizando `eSpeak`.
+ * Seleciona a melhor voz disponível na Web Speech API (usada SOMENTE se o servidor
+ * Piper local não estiver instalado), priorizando vozes neurais e penalizando `eSpeak`.
  */
 function pickBestBrowserVoice(lang: string): SpeechSynthesisVoice | undefined {
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
@@ -161,20 +182,37 @@ function pickBestBrowserVoice(lang: string): SpeechSynthesisVoice | undefined {
 }
 
 /**
- * Inicia a reprodução em voz alta de um parágrafo utilizando Piper neural local
- * com fallback automático para Web Speech API ranqueada e temporizador seguro.
- *
- * @param options Texto, idioma da história, velocidade, próximo parágrafo e callback de término.
- * @returns Controle para pausar/interromper e ajustar `playbackRate` ao vivo.
+ * Inicia a reprodução em voz alta de um parágrafo utilizando o Piper neural local
+ * através do elemento `<audio>` singleton persistente.
  */
 export function speakParagraph(options: SpeakOptions): TtsPlaybackHandle {
   const { text, lang, rate, nextText, onEnded } = options;
+  const sessionId = ++activeSessionId;
   let stopped = false;
-  let activeAudio: HTMLAudioElement | null = null;
   let fallbackTimer: number | null = null;
   let watchdogTimer: number | null = null;
   let safetyTimer: number | null = null;
   let currentRate = rate;
+
+  const audioEl = getSharedAudio();
+
+  // Interrompe imediatamente qualquer reprodução anterior no elemento singleton
+  if (audioEl) {
+    try {
+      audioEl.onended = null;
+      audioEl.onerror = null;
+      audioEl.pause();
+    } catch {
+      // Ignora erro ao pausar
+    }
+  }
+
+  // Dispara o pré-carregamento do próximo parágrafo desde já em paralelo
+  if (nextText) {
+    prefetchParagraphAudio(nextText, lang);
+  }
+
+  const isCurrentSession = () => !stopped && sessionId === activeSessionId;
 
   const clearTimers = () => {
     if (fallbackTimer !== null) {
@@ -196,16 +234,14 @@ export function speakParagraph(options: SpeakOptions): TtsPlaybackHandle {
     stopped = true;
     clearTimers();
 
-    if (activeAudio) {
+    if (audioEl && sessionId === activeSessionId) {
       try {
-        activeAudio.onended = null;
-        activeAudio.onerror = null;
-        activeAudio.pause();
-        activeAudio.src = '';
+        audioEl.onended = null;
+        audioEl.onerror = null;
+        audioEl.pause();
       } catch {
-        // Ignora erro ao encerrar elemento de áudio
+        // Ignora erro ao pausar elemento de áudio
       }
-      activeAudio = null;
     }
 
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -219,26 +255,40 @@ export function speakParagraph(options: SpeakOptions): TtsPlaybackHandle {
 
   const setRate = (nextRate: number) => {
     currentRate = nextRate;
-    if (activeAudio) {
-      activeAudio.playbackRate = nextRate;
+    if (audioEl && isCurrentSession()) {
+      audioEl.playbackRate = nextRate;
     }
   };
 
   const finishOnce = () => {
-    if (stopped) return;
+    if (!isCurrentSession()) return;
     stopped = true;
     clearTimers();
     onEnded();
   };
 
-  const startTimedAndSpeechFallback = () => {
-    if (stopped) return;
+  const startTimedOnlyFallback = () => {
+    if (!isCurrentSession()) return;
+    const words = Math.max(4, text.trim().split(/\s+/).length);
+    const baseMs = Math.min(5400, Math.max(2200, words * 165));
+    const estimatedMs = Math.max(850, Math.round(baseMs / currentRate));
+    fallbackTimer = window.setTimeout(finishOnce, estimatedMs);
+  };
+
+  const startBrowserSpeechFallback = () => {
+    if (!isCurrentSession()) return;
+    // Se o Piper local já está ativo nesta máquina, NUNCA cai no eSpeak robótico do navegador
+    if (localPiperAvailable === true) {
+      startTimedOnlyFallback();
+      return;
+    }
+
     const words = Math.max(4, text.trim().split(/\s+/).length);
     const baseMs = Math.min(5400, Math.max(2200, words * 165));
     const estimatedMs = Math.max(850, Math.round(baseMs / currentRate));
 
     const startFallbackTimer = (delayMs: number) => {
-      if (stopped || fallbackTimer !== null) return;
+      if (!isCurrentSession() || fallbackTimer !== null) return;
       fallbackTimer = window.setTimeout(finishOnce, delayMs);
     };
 
@@ -264,29 +314,30 @@ export function speakParagraph(options: SpeakOptions): TtsPlaybackHandle {
       }
 
       utterance.onstart = () => {
-        if (stopped) return;
+        if (!isCurrentSession()) return;
         speechStarted = true;
         if (watchdogTimer !== null) {
           window.clearTimeout(watchdogTimer);
           watchdogTimer = null;
         }
-        safetyTimer = window.setTimeout(finishOnce, Math.max(12000, estimatedMs * 4));
+        safetyTimer = window.setTimeout(
+          finishOnce,
+          Math.max(12000, estimatedMs * 4)
+        );
       };
 
       utterance.onend = () => {
-        if (stopped) return;
         finishOnce();
       };
 
       utterance.onerror = () => {
-        if (stopped) return;
         startFallbackTimer(estimatedMs);
       };
 
       window.speechSynthesis.speak(utterance);
 
       watchdogTimer = window.setTimeout(() => {
-        if (!stopped && !speechStarted) {
+        if (isCurrentSession() && !speechStarted) {
           try {
             window.speechSynthesis.cancel();
           } catch {
@@ -300,45 +351,43 @@ export function speakParagraph(options: SpeakOptions): TtsPlaybackHandle {
     }
   };
 
-  // Executa síntese neural local primeiro; só usa fallback se indisponível
   void (async () => {
     const audioUrl = await fetchLocalPiperAudioUrl(text, lang);
-    if (stopped) return;
+    if (!isCurrentSession()) return;
 
-    if (!audioUrl) {
-      startTimedAndSpeechFallback();
+    if (!audioUrl || !audioEl) {
+      startBrowserSpeechFallback();
       return;
     }
 
-    // Pré-aquece o próximo parágrafo enquanto este toca
-    if (nextText) {
-      prefetchParagraphAudio(nextText, lang);
-    }
-
     try {
-      const audio = new Audio(audioUrl);
-      activeAudio = audio;
-      audio.playbackRate = currentRate;
-      // Preserva o timbre natural da voz ao acelerar para 1,25x / 1,75x
-      if ('preservesPitch' in audio) {
-        audio.preservesPitch = true;
+      audioEl.onended = null;
+      audioEl.onerror = null;
+      audioEl.src = audioUrl;
+      audioEl.currentTime = 0;
+      audioEl.playbackRate = currentRate;
+      if ('preservesPitch' in audioEl) {
+        audioEl.preservesPitch = true;
       }
 
-      audio.onended = () => {
+      audioEl.onended = () => {
         finishOnce();
       };
 
-      audio.onerror = () => {
-        if (stopped) return;
-        activeAudio = null;
-        startTimedAndSpeechFallback();
+      audioEl.onerror = () => {
+        if (!isCurrentSession()) return;
+        startTimedOnlyFallback();
       };
 
-      await audio.play();
+      await audioEl.play();
+      // Reaplica playbackRate após play() pois alguns navegadores resetam playbackRate ao trocar src
+      if (isCurrentSession()) {
+        audioEl.playbackRate = currentRate;
+      }
     } catch {
-      if (!stopped) {
-        activeAudio = null;
-        startTimedAndSpeechFallback();
+      if (isCurrentSession()) {
+        // Se play() falhar momentaneamente, avança com timer sem invocar eSpeak
+        startTimedOnlyFallback();
       }
     }
   })();

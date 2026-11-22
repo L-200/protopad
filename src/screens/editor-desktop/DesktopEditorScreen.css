@@ -4,24 +4,24 @@
    ========================================================================== */
 
 .desktop-editor-page {
-  min-height: calc(100vh - var(--header-height, 68px));
+  min-height: 100vh;
   background-color: var(--bg-surface);
   color: var(--text-primary);
-  padding-bottom: 84px;
+  padding-bottom: 72px;
 }
 
-/* Container sticky único para Header do Editor + Barra Fixa (sem folga nem sobreposição) */
+/* Container sticky único para Header do Editor + Barra Fixa no topo da viewport (top: 0) */
 .editor-sticky-chrome {
   position: sticky;
-  top: var(--header-height, 68px);
+  top: 0;
   z-index: 840;
   background-color: var(--bg-page);
   border-bottom: 1px solid var(--divider);
-  box-shadow: 0 2px 8px rgba(18, 18, 18, 0.06);
+  box-shadow: 0 2px 6px rgba(18, 18, 18, 0.05);
 }
 
 /* --------------------------------------------------------------------------
-   Header do Editor (R15)
+   Header do Editor Compacto (R15) — 1 linha horizontal enxuta (~52px)
    -------------------------------------------------------------------------- */
 .editor-header {
   border-bottom: 1px solid var(--divider);
@@ -29,34 +29,33 @@
 }
 
 .editor-header-inner {
-  max-width: 1280px;
+  max-width: 1360px;
   margin: 0 auto;
-  min-height: 76px;
-  padding: 10px 24px;
+  min-height: 52px;
+  padding: 6px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .editor-header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
-  flex: 1 1 380px;
+  flex: 1 1 auto;
 }
 
 .editor-back-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   flex-shrink: 0;
   border-radius: var(--radius-full);
-  border: 2px solid var(--border-input-aa);
+  border: 1.5px solid var(--border-input-aa);
   background-color: var(--bg-elevated);
   color: var(--text-primary);
   transition: background-color 0.15s ease, border-color 0.15s ease;
@@ -69,53 +68,55 @@
 
 .editor-cover-thumb {
   flex-shrink: 0;
-  box-shadow: 0 2px 6px rgba(18, 18, 18, 0.14);
+  box-shadow: 0 1px 4px rgba(18, 18, 18, 0.14);
   border-radius: var(--radius-cover);
 }
 
 .editor-title-meta {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 14px;
   min-width: 0;
   flex: 1 1 auto;
 }
 
 .editor-story-kicker {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  font-size: 13px;
+  gap: 6px;
+  font-size: 12.5px;
   font-weight: 700;
   color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 .editor-published-badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 10px;
+  padding: 1px 8px;
   border-radius: var(--radius-pill);
   background-color: var(--bg-notice);
   border: 1px solid var(--semantic-success);
   color: var(--semantic-success);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
 }
 
 .editor-chapter-input {
-  width: 100%;
-  max-width: 480px;
-  padding: 4px 8px;
-  margin-left: -8px;
+  width: auto;
+  min-width: 220px;
+  max-width: 340px;
+  padding: 2px 8px;
   border-radius: var(--radius-sm);
   border: 1.5px solid transparent;
   background-color: transparent;
   color: var(--text-primary);
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
-  line-height: 1.3;
+  line-height: 1.25;
   transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
@@ -132,18 +133,19 @@
 }
 
 .editor-status-line {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--teal-text-aa);
+  white-space: nowrap;
 }
 
 .editor-status-dot {
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
   border-radius: var(--radius-full);
   background-color: var(--teal-progress);
   flex-shrink: 0;
@@ -156,59 +158,60 @@
 .editor-save-toast {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 2px 10px;
+  gap: 4px;
+  padding: 1px 8px;
   border-radius: var(--radius-pill);
   background-color: var(--bg-notice);
   border: 1px solid var(--semantic-success);
   color: var(--semantic-success);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
 }
 
 .editor-header-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .editor-action-btn {
-  min-height: 44px;
-  padding: 0 16px;
-  font-size: 14px;
+  min-height: 36px;
+  padding: 0 13px;
+  font-size: 13px;
 }
 
 /* --------------------------------------------------------------------------
    Barra de Formatação Fixa Permanente em 2 Grupos (R11, R12, R13, R14, R16)
+   Compacta em linha única (~44px)
    -------------------------------------------------------------------------- */
 .editor-toolbar-container {
   background-color: var(--bg-page);
 }
 
 .editor-toolbar {
-  max-width: 1280px;
+  max-width: 1360px;
   margin: 0 auto;
-  padding: 8px 24px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.editor-toolbar-group {
+  padding: 5px 20px;
   display: flex;
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
 }
 
+.editor-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
 .editor-toolbar-divider {
   width: 1px;
-  height: 24px;
+  height: 22px;
   background-color: var(--border-input-aa);
   opacity: 0.45;
-  margin: 0 4px;
+  margin: 0 3px;
   flex-shrink: 0;
 }
 
@@ -216,14 +219,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 6px 11px;
+  gap: 5px;
+  min-height: 36px;
+  padding: 4px 9px;
   border-radius: var(--radius-md);
   border: 1.5px solid var(--divider);
   background-color: var(--bg-elevated);
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
   line-height: 1.2;
   white-space: nowrap;
@@ -262,42 +265,41 @@
 }
 
 /* --------------------------------------------------------------------------
-   Área de Escrita Centralizada (Papel Editorial Wattpad — max-width: 720px)
+   Área de Escrita Centralizada (Ampla — ~80% da viewport dedicada ao texto)
    -------------------------------------------------------------------------- */
 .editor-workspace {
-  max-width: 768px;
-  margin: 24px auto 0;
-  padding: 0 24px;
+  max-width: 960px;
+  margin: 10px auto 0;
+  padding: 0 20px;
 }
 
-/* Legenda discreta de apoio ao avaliador (Cenário 2) */
+/* Legenda discreta e enxuta de apoio ao avaliador (Cenário 2) */
 .editor-helper-banner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
-  padding: 12px 16px;
-  margin-bottom: 18px;
+  padding: 6px 12px;
+  margin-bottom: 10px;
   border-radius: var(--radius-md);
   background-color: var(--bg-page);
   border: 1px solid var(--divider);
-  border-left: 4px solid var(--teal-progress);
-  font-size: 13.5px;
-  line-height: 1.45;
+  border-left: 3px solid var(--teal-progress);
+  font-size: 12.5px;
+  line-height: 1.35;
   color: var(--text-secondary);
 }
 
 .editor-helper-text {
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
+  align-items: center;
+  gap: 6px;
   flex: 1 1 420px;
 }
 
 .editor-helper-text svg {
   flex-shrink: 0;
-  margin-top: 2px;
   color: var(--teal-text-aa);
 }
 
@@ -308,14 +310,14 @@
 .editor-reset-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  min-height: 38px;
-  padding: 6px 14px;
+  gap: 5px;
+  min-height: 30px;
+  padding: 3px 10px;
   border-radius: var(--radius-pill);
   border: 1.5px solid var(--border-input-aa);
   background-color: var(--bg-elevated);
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -325,11 +327,11 @@
   border-color: var(--text-primary);
 }
 
-/* Papel editorial */
+/* Papel editorial amplo */
 .editor-paper {
-  max-width: 720px;
+  max-width: 880px;
   margin: 0 auto;
-  padding: 44px 52px 56px;
+  padding: 20px 44px 48px;
   border-radius: var(--radius-lg);
   background-color: var(--bg-page);
   border: 1px solid var(--divider);
@@ -337,32 +339,35 @@
 }
 
 .editor-paper-header {
-  margin-bottom: 28px;
-  padding-bottom: 20px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
   border-bottom: 1px solid var(--divider);
-  text-align: center;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .editor-paper-story-label {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--brand-aa);
-  margin-bottom: 8px;
 }
 
 .editor-paper-title {
-  width: 100%;
-  text-align: center;
+  flex: 1 1 320px;
+  text-align: left;
   border: 1.5px solid transparent;
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-primary);
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 700;
   line-height: 1.25;
-  padding: 6px 10px;
+  padding: 2px 6px;
 }
 
 .editor-paper-title:hover {
@@ -377,15 +382,15 @@
 }
 
 .editor-paper-subtitle {
-  margin-top: 8px;
-  font-size: 14px;
+  font-size: 12.5px;
   color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 .editor-blocks-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .editor-block-wrapper {

@@ -614,6 +614,7 @@ export const DesktopReaderScreen: React.FC = () => {
             <button
               type="button"
               role="switch"
+              data-magnifier-toggle="true"
               aria-checked={magnifierEnabled}
               title={t.reader.magnifierTooltip}
               className={`funbar-btn ${
@@ -753,7 +754,9 @@ export const DesktopReaderScreen: React.FC = () => {
                   ref={(el) => {
                     paragraphRefs.current[idx] = el;
                   }}
+                  tabIndex={0}
                   data-paragraph={paragraphNumber}
+                  data-paragraph-number={paragraphNumber}
                   className={`reader-paragraph ${
                     isActive ? 'reader-paragraph--active' : ''
                   } ${

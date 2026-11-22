@@ -31,6 +31,8 @@ const PrototypeShell: React.FC = () => {
   const isMobileScreen =
     activeScreen === 'tela_5_leitura_mobile' ||
     activeScreen === 'tela_6_editor_mobile';
+  const showGlobalHeader =
+    !isMobileScreen && activeScreen !== 'tela_4_editor_desktop';
 
   /**
    * Transfere o foco diretamente para o landmark do player de áudio (`#audio-player-region`)
@@ -81,7 +83,7 @@ const PrototypeShell: React.FC = () => {
         </a>
       )}
 
-      {!isMobileScreen && <WattpadHeader />}
+      {showGlobalHeader && <WattpadHeader />}
 
       <main id="main-content" className="app-main" tabIndex={-1}>
         {renderActiveScreen()}
