@@ -14,8 +14,8 @@ Protótipo funcional e navegável em **React + Vite + TypeScript** desenvolvido 
 ## Instalação e Execução
 
 ```bash
-# 1. Acesse o diretório da aplicação
-cd prototipo/app
+# 1. Acesse a pasta do repositório
+cd protopad
 
 # 2. Instale as dependências
 npm install
@@ -36,6 +36,16 @@ npm run dev
 | `npm run build` | Executa verificação estrita de tipos (`tsc --noEmit`) e gera o bundle otimizado em `dist/`. |
 | `npm run preview` | Serve localmente o build de produção gerado em `dist/` (com suporte a `/api/tts`). |
 
+### Testar o Cenário 4 (Sansão) num celular de verdade
+
+1. Ligue o computador e o celular na mesma rede Wi-Fi.
+2. Rode `npm run dev`. O servidor já aceita conexões da rede (`host: true` em `vite.config.ts`), e o Vite mostra o endereço na linha `Network`, por exemplo `http://192.168.0.10:5173`.
+3. Abra esse endereço no navegador do celular. O protótipo detecta o aparelho e abre direto na **Tela 5 (Leitura Mobile)**, em tela inteira e com o preset do Sansão (`1,25x`).
+4. Em **Editar** (Tela 6), o texto é editável de verdade: toque onde quer escrever, use o teclado do aparelho e o **microfone do próprio teclado** para ditar. A barra de formatação fica logo acima do teclado, e os botões dela não fecham o teclado.
+5. Para recomeçar do Cap. 9 original, recarregue a página.
+
+No computador, `?celular` no fim do endereço força o modo celular e `?simulador` força a moldura `390 × 844` mesmo no celular.
+
 ---
 
 ## Telas Implementadas
@@ -45,15 +55,17 @@ npm run dev
 | **1** | **Página Inicial / Exploração (Desktop)** | `src/screens/home/HomeScreen.tsx` | **W01** · `R9`, `R16`, `R17` |
 | **2** | **Configurações de Idioma (Modal + Rota Dedicada)** | `src/screens/language/LanguageSettingsModal.tsx`<br>`src/screens/language/LanguageSettingsScreen.tsx` | **W01** · `R10`, `R15`, `R16`, `R18` |
 | **3** | **Leitura de Capítulo Desktop (Cap. 1, Cap. 2 e English)** | `src/screens/reader-desktop/DesktopReaderScreen.tsx`<br>`src/screens/reader-desktop/DesktopAudioPlayer.tsx` | **W10, W01** · `R1`–`R8`, `R16`, `R17`, `R21`, `R22` |
-| **4** | **Editor de Capítulos Desktop (Rascunho Cap. 3)** | `src/screens/editor-desktop/DesktopEditorScreen.tsx`<br>`src/screens/editor-desktop/EditorToolbar.tsx` | **W22, W01** · `R8`, `R11`–`R16` |
-| **5** | **Leitura de Capítulo Mobile (`390 × 844 px` — Cap. 9)** | `src/screens/mobile/MobileReaderScreen.tsx` | **W10** · `R1`–`R3`, `R6`, `R19` |
-| **6** | **Editor de Capítulos Mobile (`390 × 844 px` — Cap. 9)** | `src/screens/mobile/MobileEditorScreen.tsx` | **W22, W10** · `R19`, `R20` |
+| **4** | **Editor de Capítulos Desktop (Rascunho Cap. 3)** | `src/screens/editor-desktop/DesktopEditorScreen.tsx`<br>`src/screens/editor-desktop/EditorToolbar.tsx` | **W22, W01** · `R11`–`R16` |
+| **5** | **Leitura de Capítulo Mobile (simulador `390 × 844 px` ou celular real — Cap. 9)** | `src/screens/mobile/MobileReaderScreen.tsx` | **W10** · `R1`–`R3`, `R6`, `R19` |
+| **6** | **Editor de Capítulos Mobile (simulador `390 × 844 px` ou celular real — Cap. 9)** | `src/screens/mobile/MobileEditorScreen.tsx` (simulador)<br>`src/screens/mobile/MobileEditorNative.tsx` (celular real) | **W22, W10** · `R19`, `R20` |
 
 ---
 
 ## Hub do Avaliador e Presets dos 4 Cenários (`EvaluatorHub`)
 
-No canto inferior direito da interface, o botão recolhível **Hub de Avaliação** (`src/components/shared/EvaluatorHub.tsx`) permite alternar instantaneamente entre os **4 presets oficiais** com todas as pré-condições carregadas, navegar diretamente entre as 6 telas e abrir a gaveta **"Requisitos desta tela"** (alimentada por `src/data/rastreabilidade.json`):
+No canto inferior direito da interface, o botão recolhível **Hub de Avaliação** (`src/components/shared/EvaluatorHub.tsx`) permite alternar instantaneamente entre os **4 presets oficiais** com todas as pré-condições carregadas, navegar diretamente entre as 6 telas e abrir a gaveta **"Requisitos desta tela"** (alimentada por `src/data/rastreabilidade.json`).
+
+Tudo o que é só para teste fica nesse painel, fora da interface que o usuário vê: Alto Contraste, Monitor NVDA, Lupa 200% e a seção **Simulações de teste**, que muda conforme a tela (mostrar o carrossel sem tradução do `R9` na Home, apertar a tecla de mídia do headset do `R5` na Tela 3 e restaurar o Cap. 9 nas Telas 5 e 6). No celular real o painel não aparece, para não cobrir o player.
 
 1. **Cenário 1 — Renata (Desktop · Baixa visão + NVDA + Lupa):**
    - Ativa **Alto Contraste Escuro**, velocidade **`1,75x`**, **Monitor NVDA** (`aria-live="polite"`) e abre o **Cap. 1** (40 parágrafos em português).
@@ -63,10 +75,10 @@ No canto inferior direito da interface, o botão recolhível **Hub de Avaliaçã
    - Barra fixa permanente com 2 grupos, tooltips no hover/foco, `aria-pressed`, `Separador de cena` (`***` centralizado), `Inserir imagem`, `Inserir vídeo`, `Adicionar enquete` e preservação do rascunho ao conferir idioma na Home/Configurações.
 3. **Cenário 3 — Adriana (Desktop · Idioma Dual + Leitura em Áudio):**
    - Abre a **Home** em tema claro com **`Site: Português (Brasil) · Histórias: English`** e velocidade **`1,0x`**.
-   - Permite identificar listas marcadas com selo `"English"`, alternar o idioma das histórias com confirmação + **`Desfazer`** (`R18`), testar o toggle demonstrativo de carrosséis sem tradução (`R9`), ajustar velocidade `1,25x` no Cap. 1 e confirmar persistência no Cap. 2 (além de testar uma história em `English` no player).
-4. **Cenário 4 — Sansão (Mobile `390 × 844 px` · Uma mão só no metrô):**
+   - Permite identificar listas marcadas com selo `"English"`, alternar o idioma das histórias, que vale na hora (sem botão "Salvar"), com confirmação + **`Desfazer`** (`R18`), ver no painel do avaliador o carrossel sem tradução que o `R9` oculta, ajustar velocidade `1,25x` no Cap. 1 e confirmar persistência no Cap. 2 (além de testar uma história em `English` no player).
+4. **Cenário 4 — Sansão (Mobile · Uma mão só no metrô):**
    - Abre a **Tela 5 (Leitura Mobile)** no **Cap. 9** (cena na taverna colada à cena na floresta) com velocidade **`1,25x`**, alvos `≥ 48 × 48 px` (`gap ≥ 8 px`) e linha fina indicativa de progresso.
-   - Ao tocar em **"Editar"**, abre a **Tela 6** com teclado virtual simulado (**Ditado por voz** + digitação manual), barra de formatação ancorada acima do teclado com rolagem horizontal e player recolhido em ícone compacto que se expande **sem fechar o teclado**.
+   - Ao tocar em **"Editar"**, abre a **Tela 6**. No computador, um teclado desenhado na tela simula a digitação e o **Ditado por voz**; no celular real, o texto é editado com o teclado e o ditado do próprio aparelho (veja "Testar o Cenário 4 num celular de verdade"). Nos dois casos há barra de formatação ancorada acima do teclado com rolagem horizontal e player recolhido em ícone compacto que se expande **sem fechar o teclado**.
 
 ---
 
@@ -80,7 +92,7 @@ No canto inferior direito da interface, o botão recolhível **Hub de Avaliaçã
 | `Alt + P` | Alterna `Reproduzir` / `Pausar` com anúncio curto no NVDA (`R5`, `R21`). |
 | `Alt + ↑` | Volta 1 parágrafo e anuncia `"Parágrafo X de 40"` (`R5`, `R7`, `R21`). |
 | `Alt + ↓` | Avança 1 parágrafo e anuncia `"Parágrafo X de 40"` (`R5`, `R7`, `R21`). |
-| *Headset / Media Session* | Suporte a `navigator.mediaSession` + botão simulador `"Tecla de mídia do headset"` no sub-header (`R5`). |
+| *Headset / Media Session* | Suporte a `navigator.mediaSession`. A tecla de mídia do headset é simulada pelo painel do avaliador, em **Simulações de teste** (`R5`). |
 
 ### Tela 4 — Editor de Capítulos Desktop (W22)
 | Atalho | Ação |
@@ -155,7 +167,7 @@ prototipo/
             ├── language/          # Tela 2 — Configurações de Idioma (Modal + Rota Dedicada)
             ├── reader-desktop/    # Tela 3 — Leitura Desktop + Player Acessível W10
             ├── editor-desktop/    # Tela 4 — Editor de Capítulos Desktop W22 (layout compacto)
-            └── mobile/            # Telas 5 e 6 — Frame 390×844 Leitura e Editor Mobile
+            └── mobile/            # Telas 5 e 6 — Leitura e Editor Mobile (simulador 390×844 ou celular real)
 ```
 
 ---
@@ -167,4 +179,4 @@ prototipo/
 | `R1`–`R7`, `R21`, `R22` | **W10 (Leitura em Áudio)** | Player completo desde Cap. 1 em barra inferior fixa, ordem fixa dos 5 controles, skip link + landmark `"Ouvir"`, atalhos `Alt+P`/`↑`/`↓` + headset, velocidade persistida, PT-BR, convivência silenciosa com NVDA e Alto Contraste + Lupa. |
 | `R8`–`R10`, `R15`–`R18` | **W01 (Idioma e Consistência)** | Nome único `"Ouvir"` + `lang` declarado, carrosséis traduzidos ou ocultos, configurações em 2 campos com exemplo + frase de estado + `Desfazer`, editor/publicação 100% PT-BR, rótulos curtos com ícone e selos de idioma. |
 | `R11`–`R14` | **W22 (Editor Desktop)** | Barra fixa permanente navegável por teclado, tooltips PT-BR com atalhos, `aria-pressed` + destaque (com/sem seleção e estilos combinados), `Inserir imagem`, `Inserir vídeo`, `Separador de cena` (`***` centralizado) e `Adicionar enquete`. |
-| `R19`, `R20` | **W10 + W22 (Mobile `390×844`)** | Alvos `≥ 48 × 48 px` (`gap ≥ 8 px`) na metade inferior, linha fina indicativa no player, barra de formatação com rolagem horizontal acima do teclado virtual (com Ditado por voz) e player compacto expansível sem fechar o teclado. |
+| `R19`, `R20` | **W10 + W22 (Mobile)** | Alvos `≥ 48 × 48 px` (`gap ≥ 8 px`) na metade inferior, linha fina indicativa no player, barra de formatação com rolagem horizontal acima do teclado (simulado no computador, do próprio aparelho no celular, com ditado por voz) e player compacto expansível sem fechar o teclado. |

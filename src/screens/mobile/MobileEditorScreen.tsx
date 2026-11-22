@@ -17,19 +17,12 @@ import {
   AlignRightIcon,
   BoldIcon,
   ChevronLeftIcon,
-  CloseIcon,
   HeadphonesIcon,
   ItalicIcon,
   MicIcon,
-  NextParagraphIcon,
-  PauseIcon,
-  PlayIcon,
-  PrevParagraphIcon,
   SceneSeparatorIcon,
-  SpeedIcon,
   UnderlineIcon,
 } from '../../components/shared/Icons';
-import { LanguageBadge } from '../../components/shared/LanguageBadge';
 import { useTranslation } from '../../i18n/useTranslation';
 import { usePrototype } from '../../state/PrototypeContext';
 import {
@@ -38,7 +31,10 @@ import {
   SiteLanguage,
   TextAlign,
 } from '../../types/prototype';
-import { formatLocalizedRate, MobileFrame } from './MobileFrame';
+import { IS_PHONE_DEVICE } from './deviceMode';
+import { MobileCompactPlayer } from './MobileCompactPlayer';
+import { MobileEditorNative } from './MobileEditorNative';
+import { MobileFrame } from './MobileFrame';
 import { useSansaoAudio } from './useSansaoAudio';
 import './MobileScreens.css';
 
@@ -325,7 +321,11 @@ function renderInlineSegments(
  * Editor mobile do Cap. 9 com suporte a formatação inline por trecho na mesma linha,
  * tecla Shift/Caps Lock no teclado virtual e ditado por voz contínuo.
  */
-export const MobileEditorScreen: React.FC = () => {
+export const MobileEditorScreen: React.FC = () =>
+  IS_PHONE_DEVICE ? <MobileEditorNative /> : <MobileEditorSimulated />;
+
+/** Editor do simulador 390×844 (computador), com teclado virtual desenhado na tela. */
+const MobileEditorSimulated: React.FC = () => {
   const { t, siteLanguage } = useTranslation();
   const extra = MOBILE_EDITOR_STRINGS[siteLanguage];
   const { sansaoChapter, updateSansaoChapter, navigateTo } = usePrototype();
@@ -358,19 +358,8 @@ export const MobileEditorScreen: React.FC = () => {
 
   const composerPlainText = segmentsToPlainText(composerSegments);
 
-  const {
-    isPlaying,
-    currentParagraph,
-    totalParagraphs,
-    playbackRate,
-    progressPercent,
-    togglePlay,
-    prevParagraph,
-    nextParagraph,
-    cyclePlaybackRate,
-  } = useSansaoAudio(draftBlocks);
-
-  const localizedRate = formatLocalizedRate(playbackRate, siteLanguage);
+  const audio = useSansaoAudio(draftBlocks);
+  const { currentParagraph } = audio;
 
   // Sincroniza quando o usuário clica em "Restaurar Cap. 9 inicial" no painel lateral
   useEffect(() => {
@@ -810,80 +799,10 @@ export const MobileEditorScreen: React.FC = () => {
 
       {/* Player compacto expansível sem fechar o teclado virtual (R19) */}
       {isCompactPlayerExpanded && (
-        <section
-          className="mobile-compact-player-drawer"
-          aria-label={t.mobile.compactPlayerTitle}
-        >
-          <div className="mobile-progress-track" aria-hidden="true">
-            <div
-              className="mobile-progress-fill"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-
-          <div className="mobile-compact-player-header">
-            <div className="mobile-audio-meta-left">
-              <LanguageBadge language="pt" showIcon={false} />
-              <span className="mobile-audio-counter">
-                {t.mobile.paragraphOf(currentParagraph, totalParagraphs)}
-              </span>
-            </div>
-            <button
-              type="button"
-              className="mobile-compact-close-btn"
-              aria-label={t.mobile.collapsePlayerAria}
-              onClick={() => setIsCompactPlayerExpanded(false)}
-            >
-              <CloseIcon size={14} />
-              <span>{extra.collapseLabel}</span>
-            </button>
-          </div>
-
-          <div className="mobile-audio-controls">
-            <button
-              type="button"
-              className="mobile-audio-btn mobile-audio-btn--primary"
-              aria-pressed={isPlaying}
-              aria-label={
-                isPlaying ? extra.pauseNarrationAria : extra.playNarrationAria
-              }
-              onClick={togglePlay}
-            >
-              {isPlaying ? <PauseIcon size={18} /> : <PlayIcon size={18} />}
-              <span>{isPlaying ? t.mobile.pause : t.mobile.play}</span>
-            </button>
-
-            <button
-              type="button"
-              className="mobile-audio-btn"
-              aria-label={t.mobile.prevAria}
-              onClick={prevParagraph}
-            >
-              <PrevParagraphIcon size={18} />
-              <span>{t.mobile.prev}</span>
-            </button>
-
-            <button
-              type="button"
-              className="mobile-audio-btn"
-              aria-label={t.mobile.nextAria}
-              onClick={nextParagraph}
-            >
-              <NextParagraphIcon size={18} />
-              <span>{t.mobile.next}</span>
-            </button>
-
-            <button
-              type="button"
-              className="mobile-audio-btn mobile-audio-btn--rate"
-              aria-label={t.mobile.speedAria(localizedRate)}
-              onClick={cyclePlaybackRate}
-            >
-              <SpeedIcon size={16} />
-              <span>{localizedRate}</span>
-            </button>
-          </div>
-        </section>
+        <MobileCompactPlayer
+          audio={audio}
+          onClose={() => setIsCompactPlayerExpanded(false)}
+        />
       )}
 
       <main className="mobile-editor-scroll" aria-label={extra.mainAria}>

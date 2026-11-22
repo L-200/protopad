@@ -9,10 +9,12 @@ import React, { useMemo, useState } from 'react';
 import rastreabilidadeData from '../../data/rastreabilidade.json';
 import { usePrototype } from '../../state/PrototypeContext';
 import { PersonaPresetId, ScreenId } from '../../types/prototype';
+import { dispatchHeadsetMediaKey } from './evaluatorEvents';
 import {
   ClipboardListIcon,
   CloseIcon,
   ContrastIcon,
+  HeadphonesIcon,
   VolumeIcon,
   ZoomInIcon,
 } from './Icons';
@@ -85,6 +87,32 @@ const SCREEN_LINKS: Array<{ id: ScreenId; shortLabel: string }> = [
   { id: 'tela_6_editor_mobile', shortLabel: 'Tela 6 · Editor Mobile' },
 ];
 
+const SECTION_TITLE_STYLE: React.CSSProperties = {
+  margin: '0 0 8px',
+  fontSize: '14px',
+  fontWeight: 800,
+  textTransform: 'uppercase',
+  letterSpacing: '0.03em',
+};
+
+/** Estilo das linhas de ação do painel, com destaque quando a opção está ativa. */
+function toggleRowStyle(active: boolean): React.CSSProperties {
+  return {
+    minHeight: '42px',
+    padding: '6px 12px',
+    borderRadius: 'var(--radius-md)',
+    border: '1.5px solid var(--border-input-aa)',
+    backgroundColor: active ? 'var(--btn-active-bg)' : 'var(--bg-page)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '8px',
+    fontSize: '14px',
+    fontWeight: 700,
+    textAlign: 'left',
+  };
+}
+
 /**
  * Painel compacto retrátil exibido no canto inferior direito (ajustado acima da barra do player na Tela 3)
  * para apoiar demonstrações e verificações de requisitos durante a avaliação do protótipo.
@@ -101,6 +129,9 @@ export const EvaluatorHub: React.FC = () => {
     setShowNvdaMonitor,
     magnifierEnabled,
     setMagnifierEnabled,
+    hideUntranslatedCarousels,
+    setHideUntranslatedCarousels,
+    resetSansaoChapter,
   } = usePrototype();
 
   const [isOpen, setIsOpen] = useState<boolean>(false);
@@ -441,6 +472,59 @@ export const EvaluatorHub: React.FC = () => {
                     </span>
                     <span>{magnifierEnabled ? 'Ativa' : 'Desligada'}</span>
                   </button>
+                </div>
+              </section>
+
+              {/* Simulações que não fazem parte da interface do usuário */}
+              <section aria-label="Simulações de teste">
+                <h2 style={SECTION_TITLE_STYLE}>Simulações de teste</h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {activeScreen === 'tela_1_home' && (
+                    <button
+                      type="button"
+                      aria-pressed={!hideUntranslatedCarousels}
+                      onClick={() =>
+                        setHideUntranslatedCarousels(!hideUntranslatedCarousels)
+                      }
+                      style={toggleRowStyle(!hideUntranslatedCarousels)}
+                    >
+                      <span>R9 · Mostrar carrossel sem tradução</span>
+                      <span>{hideUntranslatedCarousels ? 'Oculto' : 'Visível'}</span>
+                    </button>
+                  )}
+
+                  {isReaderDesktop && (
+                    <button
+                      type="button"
+                      onClick={dispatchHeadsetMediaKey}
+                      style={toggleRowStyle(false)}
+                    >
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                        <HeadphonesIcon size={17} />
+                        <span>R5 · Tecla de mídia do headset (Play/Pausa)</span>
+                      </span>
+                    </button>
+                  )}
+
+                  {(activeScreen === 'tela_5_leitura_mobile' ||
+                    activeScreen === 'tela_6_editor_mobile') && (
+                    <button
+                      type="button"
+                      onClick={resetSansaoChapter}
+                      style={toggleRowStyle(false)}
+                    >
+                      <span>Restaurar o Cap. 9 inicial (Sansão)</span>
+                    </button>
+                  )}
+
+                  {activeScreen !== 'tela_1_home' &&
+                    !isReaderDesktop &&
+                    activeScreen !== 'tela_5_leitura_mobile' &&
+                    activeScreen !== 'tela_6_editor_mobile' && (
+                      <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)' }}>
+                        Nenhuma simulação extra nesta tela.
+                      </p>
+                    )}
                 </div>
               </section>
             </>

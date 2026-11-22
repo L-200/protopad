@@ -1,7 +1,7 @@
 /**
  * @fileoverview Cabeçalho global desktop do protótipo com marca, navegação principal,
  * busca acessível, aviso Premium e menu do usuário exibindo o estado dual de idioma.
- * Atende aos requisitos R8/R15 (interface localizada conforme `siteLanguage`), R10/R18
+ * Atende aos requisitos R15 (interface localizada conforme `siteLanguage`), R10/R18
  * (atalhos para modal e rota de idioma com estado dual `'Site: ... · Histórias: ...'`)
  * e R22 (alvos >= 44px e contraste >= 4,5:1).
  */

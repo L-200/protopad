@@ -4,7 +4,7 @@
  * o modal global de idioma (R10, R18), o cabeçalho desktop, o monitor NVDA (R21), a lupa de foco (R22)
  * e a ordem rigorosa do primeiro foco na Tela 3 via skip link (R4).
  */
-import React from 'react';
+import React, { useEffect } from 'react';
 import { EvaluatorHub } from './components/shared/EvaluatorHub';
 import { FocusMagnifier } from './components/shared/FocusMagnifier';
 import { NvdaAnnouncer } from './components/shared/NvdaAnnouncer';
@@ -14,6 +14,7 @@ import { HomeScreen } from './screens/home/HomeScreen';
 import { LanguageSettingsModal } from './screens/language/LanguageSettingsModal';
 import { LanguageSettingsScreen } from './screens/language/LanguageSettingsScreen';
 import { MobileEditorScreen } from './screens/mobile/MobileEditorScreen';
+import { IS_PHONE_DEVICE } from './screens/mobile/deviceMode';
 import { MobileReaderScreen } from './screens/mobile/MobileReaderScreen';
 import { DesktopReaderScreen } from './screens/reader-desktop/DesktopReaderScreen';
 import { TRANSLATIONS } from './i18n/translations';
@@ -25,8 +26,14 @@ import { PrototypeProvider, usePrototype } from './state/PrototypeContext';
  * simuladores de acessibilidade sem interferir na ordem inicial de tabulação.
  */
 const PrototypeShell: React.FC = () => {
-  const { activeScreen, isLanguageModalOpen, siteLanguage } = usePrototype();
+  const { activeScreen, isLanguageModalOpen, siteLanguage, applyPersonaPreset } =
+    usePrototype();
   const t = TRANSLATIONS[siteLanguage];
+
+  // No celular, o protótipo abre direto no Cenário 4 (Sansão), em tela inteira.
+  useEffect(() => {
+    if (IS_PHONE_DEVICE) applyPersonaPreset('sansao');
+  }, [applyPersonaPreset]);
 
   const isMobileScreen =
     activeScreen === 'tela_5_leitura_mobile' ||
@@ -94,8 +101,9 @@ const PrototypeShell: React.FC = () => {
       <NvdaAnnouncer />
       <FocusMagnifier />
 
-      {/* Renderizado no final do DOM para nunca roubar o 1.º foco do skip link (R4) */}
-      <EvaluatorHub />
+      {/* Renderizado no final do DOM para nunca roubar o 1.º foco do skip link (R4).
+          No celular real ele ficaria por cima do player, então não aparece. */}
+      {!(IS_PHONE_DEVICE && isMobileScreen) && <EvaluatorHub />}
     </div>
   );
 };

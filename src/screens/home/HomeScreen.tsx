@@ -41,9 +41,6 @@ const HOME_EXTRA: Record<
     untranslatedTag: string;
     scrollLeftTooltip: string;
     scrollRightTooltip: string;
-    r9HiddenCount: (count: number) => string;
-    r9DefaultActive: string;
-    r9DemoShowing: string;
     byAuthor: (author: string) => string;
     chaptersCount: (count: number) => string;
     searchHeading: (query: string) => string;
@@ -58,12 +55,9 @@ const HOME_EXTRA: Record<
     listCount: (count) => `${count} histórias`,
     readsTitle: 'Leituras',
     votesTitle: 'Votos',
-    untranslatedTag: 'Sem tradução em PT-BR (filtro R9 desligado)',
+    untranslatedTag: 'Sem tradução em PT-BR (visível só na demonstração)',
     scrollLeftTooltip: 'Rolar para a esquerda',
     scrollRightTooltip: 'Rolar para a direita',
-    r9HiddenCount: (count) => `${count} carrossel sem tradução oculto`,
-    r9DefaultActive: 'Ativo por padrão',
-    r9DemoShowing: 'Demonstração: exibindo carrossel sem tradução abaixo',
     byAuthor: (author) => `Por ${author}`,
     chaptersCount: (count) => `${count} capítulos`,
     searchHeading: (query) => `Resultados da busca para “${query}”`,
@@ -79,13 +73,9 @@ const HOME_EXTRA: Record<
     listCount: (count) => `${count} stories`,
     readsTitle: 'Reads',
     votesTitle: 'Votes',
-    untranslatedTag: 'No PT-BR translation (R9 filter off)',
+    untranslatedTag: 'No PT-BR translation (shown for demo only)',
     scrollLeftTooltip: 'Scroll left',
     scrollRightTooltip: 'Scroll right',
-    r9HiddenCount: (count) =>
-      `${count} untranslated ${count === 1 ? 'carousel' : 'carousels'} hidden`,
-    r9DefaultActive: 'Enabled by default',
-    r9DemoShowing: 'Demo: showing untranslated carousel below',
     byAuthor: (author) => `By ${author}`,
     chaptersCount: (count) => `${count} chapters`,
     searchHeading: (query) => `Search results for “${query}”`,
@@ -101,13 +91,9 @@ const HOME_EXTRA: Record<
     listCount: (count) => `${count} historias`,
     readsTitle: 'Lecturas',
     votesTitle: 'Votos',
-    untranslatedTag: 'Sin traducción al PT-BR (filtro R9 desactivado)',
+    untranslatedTag: 'Sin traducción al PT-BR (visible solo en la demostración)',
     scrollLeftTooltip: 'Desplazar a la izquierda',
     scrollRightTooltip: 'Desplazar a la derecha',
-    r9HiddenCount: (count) =>
-      `${count} ${count === 1 ? 'carrusel sin traducción oculto' : 'carruseles sin traducción ocultos'}`,
-    r9DefaultActive: 'Activo por defecto',
-    r9DemoShowing: 'Demostración: mostrando carrusel sin traducción abajo',
     byAuthor: (author) => `Por ${author}`,
     chaptersCount: (count) => `${count} capítulos`,
     searchHeading: (query) => `Resultados de búsqueda para “${query}”`,
@@ -301,7 +287,7 @@ const CarouselRow: React.FC<CarouselRowProps> = ({ carousel, onOpenStory }) => {
 
 /**
  * Tela 1 (Home / Descoberta).
- * Gerencia exibição do banner de idioma (`R18`), switch demonstrativo do filtro R9,
+ * Gerencia exibição do banner de idioma (`R18`), filtro de carrosséis sem tradução (`R9`),
  * destaque editorial para abertura direta do Cap. 1 e busca global por título/autor/gênero/tags.
  */
 export const HomeScreen: React.FC = () => {
@@ -309,7 +295,6 @@ export const HomeScreen: React.FC = () => {
     stories,
     carousels,
     hideUntranslatedCarousels,
-    setHideUntranslatedCarousels,
     siteLanguage,
     storiesLanguage,
     languageConfirmation,
@@ -338,11 +323,6 @@ export const HomeScreen: React.FC = () => {
       ) ?? stories[0]
     );
   }, [stories]);
-
-  const hiddenUntranslatedCount = useMemo(
-    () => carousels.filter((c) => !c.hasPtTranslation).length,
-    [carousels]
-  );
 
   const visibleCarousels = useMemo(
     () =>
@@ -401,7 +381,7 @@ export const HomeScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Faixa de resumo de idioma e demonstração do filtro R9 */}
+      {/* Faixa de resumo de idioma (R18). O filtro R9 é demonstrado pelo painel do avaliador. */}
       <section className="home-r9-bar" aria-label={t.home.languageBarLabel}>
         <div className="home-r9-summary-group">
           <div className="home-r9-status-pill">
@@ -427,33 +407,6 @@ export const HomeScreen: React.FC = () => {
           </div>
         </div>
 
-        <div className="home-r9-switch-group">
-          <button
-            type="button"
-            role="switch"
-            aria-checked={hideUntranslatedCarousels}
-            className="home-r9-switch-btn"
-            onClick={() =>
-              setHideUntranslatedCarousels(!hideUntranslatedCarousels)
-            }
-          >
-            <span
-              className="home-r9-track"
-              data-checked={hideUntranslatedCarousels}
-              aria-hidden="true"
-            >
-              <span className="home-r9-thumb" />
-            </span>
-            <span>{t.home.r9ToggleLabel}</span>
-          </button>
-          <span className="home-r9-note">
-            {hideUntranslatedCarousels
-              ? hiddenUntranslatedCount > 0
-                ? extra.r9HiddenCount(hiddenUntranslatedCount)
-                : extra.r9DefaultActive
-              : extra.r9DemoShowing}
-          </span>
-        </div>
       </section>
 
       {/* Hero Editorial com CTA para abrir Cap. 1 de "As Crônicas do Silêncio" */}

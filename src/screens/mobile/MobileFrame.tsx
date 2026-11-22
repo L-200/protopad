@@ -1,14 +1,14 @@
 /**
- * @fileoverview Moldura simuladora de smartphone (`390 × 844 px`) compartilhada pelas
- * Telas 5 e 6 (Cenário 4 — Sansão no metrô).
- * Isola o viewport mobile com barra de status realista e painel lateral de apoio
- * exibindo o passo a passo de demonstração, estado sincronizado do Cap. 9 e botão
- * de restauração inicial (`R19`, `R20`).
+ * @fileoverview Moldura das Telas 5 e 6 (Cenário 4 — Sansão no metrô).
+ * - No computador: simulador de smartphone `390 × 844 px` com barra de status.
+ * - No celular (`IS_PHONE_DEVICE`): tela inteira, acompanhando a área visível para que
+ *   a barra de formatação fique logo acima do teclado do aparelho (`R19`, `R20`).
+ * Os controles de demonstração (como restaurar o Cap. 9) ficam no painel do avaliador.
  */
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useTranslation } from '../../i18n/useTranslation';
-import { usePrototype } from '../../state/PrototypeContext';
 import { PlaybackRate, SiteLanguage } from '../../types/prototype';
+import { IS_PHONE_DEVICE, useVisualViewport } from './deviceMode';
 import './MobileScreens.css';
 
 interface MobileFrameProps {
@@ -29,167 +29,77 @@ export function formatLocalizedRate(
   return `${localized}x`;
 }
 
-interface MobileFrameExtraStrings {
-  bezelAria: (screenLabel: string) => string;
-  asideAria: string;
-  demoDescPrefix: string;
-  demoDescMid: string;
-  demoDescSuffix: string;
-  step1: (rateLabel: string) => React.ReactNode;
-  step2: React.ReactNode;
-  step3: React.ReactNode;
-  step4: React.ReactNode;
-  currentPosLabel: string;
-  globalSpeedLabel: string;
-  chapterStatusLabel: string;
-  statusEdited: string;
-  statusInitial: string;
-}
+const BEZEL_ARIA: Record<SiteLanguage, (screenLabel: string) => string> = {
+  'pt-BR': (screenLabel) =>
+    `Simulador de smartphone 390 por 844 pixels — ${screenLabel}`,
+  'en-US': (screenLabel) =>
+    `Smartphone simulator 390 by 844 pixels — ${screenLabel}`,
+  'es-ES': (screenLabel) =>
+    `Simulador de teléfono inteligente 390 por 844 píxeles — ${screenLabel}`,
+};
 
-const MOBILE_FRAME_STRINGS: Record<SiteLanguage, MobileFrameExtraStrings> = {
-  'pt-BR': {
-    bezelAria: (screenLabel) =>
-      `Simulador de smartphone 390 por 844 pixels — ${screenLabel}`,
-    asideAria: 'Guia de demonstração do Cenário 4',
-    demoDescPrefix: 'Viewport mobile dedicado de ',
-    demoDescMid: ' com alvos de toque ',
-    demoDescSuffix:
-      ' na zona do polegar, sem sobrepor nenhuma linha de texto.',
-    step1: (rateLabel) => (
-      <>
-        Na <strong>Tela 5</strong>, use <em>Reproduzir</em> e <em>Voltar</em>{' '}
-        (múltiplos toques) com velocidade <strong>{rateLabel}</strong>.
-      </>
-    ),
-    step2: (
-      <>
-        Toque em <strong>Editar</strong> para abrir a <strong>Tela 6</strong>{' '}
-        já posicionada entre a taverna e a floresta.
-      </>
-    ),
-    step3: (
-      <>
-        Role a barra acima do teclado para ativar <em>Itálico</em> (ou desativar
-        um toque acidental), use <strong>Ditado por voz</strong>, adicione{' '}
-        <code>***</code> centralizado e expanda o player pelo ícone de fones sem
-        fechar o teclado.
-      </>
-    ),
-    step4: (
-      <>
-        Toque em <strong>Salvar</strong> para conferir o capítulo atualizado na
-        Tela 5 com velocidade preservada.
-      </>
-    ),
-    currentPosLabel: 'Posição atual:',
-    globalSpeedLabel: 'Velocidade global:',
-    chapterStatusLabel: 'Estado do Cap. 9:',
-    statusEdited: 'Editado e salvo',
-    statusInitial: 'Versão inicial (taverna + floresta coladas)',
-  },
-  'en-US': {
-    bezelAria: (screenLabel) =>
-      `Smartphone simulator 390 by 844 pixels — ${screenLabel}`,
-    asideAria: 'Scenario 4 demo guide',
-    demoDescPrefix: 'Dedicated mobile viewport of ',
-    demoDescMid: ' with touch targets ',
-    demoDescSuffix:
-      ' inside the thumb zone, without overlapping any line of text.',
-    step1: (rateLabel) => (
-      <>
-        On <strong>Screen 5</strong>, tap <em>Play</em> and <em>Previous</em>{' '}
-        (multiple taps) at <strong>{rateLabel}</strong> speed.
-      </>
-    ),
-    step2: (
-      <>
-        Tap <strong>Edit</strong> to open <strong>Screen 6</strong> already
-        positioned between the tavern and forest scenes.
-      </>
-    ),
-    step3: (
-      <>
-        Scroll the bar above the keyboard to toggle <em>Italic</em> (or undo an
-        accidental tap), use <strong>Voice dictation</strong>, insert centered{' '}
-        <code>***</code>, and expand the audio player via the Listen button
-        without closing the keyboard.
-      </>
-    ),
-    step4: (
-      <>
-        Tap <strong>Save</strong> to verify the updated chapter on Screen 5 with
-        the playback speed preserved.
-      </>
-    ),
-    currentPosLabel: 'Current position:',
-    globalSpeedLabel: 'Global speed:',
-    chapterStatusLabel: 'Ch. 9 status:',
-    statusEdited: 'Edited and saved',
-    statusInitial: 'Initial version (tavern + forest merged)',
-  },
-  'es-ES': {
-    bezelAria: (screenLabel) =>
-      `Simulador de teléfono inteligente 390 por 844 píxeles — ${screenLabel}`,
-    asideAria: 'Guía de demostración del Escenario 4',
-    demoDescPrefix: 'Viewport móvil dedicado de ',
-    demoDescMid: ' con objetivos táctiles ',
-    demoDescSuffix:
-      ' en la zona del pulgar, sin superponer ninguna línea de texto.',
-    step1: (rateLabel) => (
-      <>
-        En la <strong>Pantalla 5</strong>, usa <em>Reproducir</em> y{' '}
-        <em>Anterior</em> (varios toques) con velocidad{' '}
-        <strong>{rateLabel}</strong>.
-      </>
-    ),
-    step2: (
-      <>
-        Toca <strong>Editar</strong> para abrir la <strong>Pantalla 6</strong>{' '}
-        ya situada entre la taberna y el bosque.
-      </>
-    ),
-    step3: (
-      <>
-        Desplaza la barra sobre el teclado para activar <em>Cursiva</em> (o
-        deshacer un toque accidental), usa <strong>Dictado por voz</strong>,
-        añade <code>***</code> centrado y expande el reproductor sin cerrar el
-        teclado.
-      </>
-    ),
-    step4: (
-      <>
-        Toca <strong>Guardar</strong> para revisar el capítulo actualizado en la
-        Pantalla 5 con la velocidad conservada.
-      </>
-    ),
-    currentPosLabel: 'Posición actual:',
-    globalSpeedLabel: 'Velocidad global:',
-    chapterStatusLabel: 'Estado del Cap. 9:',
-    statusEdited: 'Editado y guardado',
-    statusInitial: 'Versión inicial (taberna + bosque unidos)',
-  },
+/** Tela inteira no celular real, presa à área visível (encolhe quando o teclado abre). */
+const DeviceRoot: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const viewport = useVisualViewport(true);
+
+  // Impede que a página por trás role junto (efeito "elástico" do iOS).
+  useEffect(() => {
+    const { documentElement, body } = document;
+    documentElement.classList.add('mobile-device-lock');
+    body.classList.add('mobile-device-lock');
+    return () => {
+      documentElement.classList.remove('mobile-device-lock');
+      body.classList.remove('mobile-device-lock');
+    };
+  }, []);
+
+  // Teclado aberto: a área visível fica bem menor que a janela.
+  const keyboardOpen = Boolean(
+    viewport && viewport.height < window.innerHeight - 120
+  );
+
+  return (
+    <div
+      className={`mobile-device-root ${
+        keyboardOpen ? 'mobile-device-root--keyboard' : ''
+      }`.trim()}
+      style={
+        viewport
+          ? {
+              height: `${viewport.height}px`,
+              transform: `translateY(${viewport.offsetTop}px)`,
+            }
+          : undefined
+      }
+    >
+      {children}
+    </div>
+  );
 };
 
 /**
- * Container que emoldura as telas mobile em 390×844 px sem sobrepor conteúdo e
- * apresenta o painel lateral de estado em tempo real para o Cenário 4.
+ * Container das telas mobile: moldura 390×844 no computador ou tela inteira no celular.
  */
 export const MobileFrame: React.FC<MobileFrameProps> = ({
   screenLabel,
   children,
 }) => {
-  const { t, siteLanguage } = useTranslation();
-  const extra = MOBILE_FRAME_STRINGS[siteLanguage];
-  const { sansaoChapter, playbackRate, resetSansaoChapter } = usePrototype();
-  const totalBlocks = sansaoChapter.blocks.length;
-  const formattedRate = formatLocalizedRate(playbackRate, siteLanguage);
+  if (IS_PHONE_DEVICE) {
+    return <DeviceRoot>{children}</DeviceRoot>;
+  }
+  return <SimulatedFrame screenLabel={screenLabel}>{children}</SimulatedFrame>;
+};
+
+const SimulatedFrame: React.FC<MobileFrameProps> = ({
+  screenLabel,
+  children,
+}) => {
+  const { siteLanguage } = useTranslation();
+  const bezelAria = BEZEL_ARIA[siteLanguage](screenLabel);
 
   return (
     <div className="mobile-stage">
-      <div
-        className="mobile-device-bezel"
-        aria-label={extra.bezelAria(screenLabel)}
-      >
+      <div className="mobile-device-bezel" aria-label={bezelAria}>
         <div className="mobile-frame">
           <div className="mobile-status-bar" aria-hidden="true">
             <span>08:14</span>
@@ -210,51 +120,6 @@ export const MobileFrame: React.FC<MobileFrameProps> = ({
           {children}
         </div>
       </div>
-
-      <aside
-        className="mobile-demo-aside"
-        aria-label={extra.asideAria}
-      >
-        <span className="mobile-demo-badge">{t.mobile.demoPanelTitle}</span>
-        <h2 className="mobile-demo-title">{screenLabel}</h2>
-        <p className="mobile-demo-desc">
-          {extra.demoDescPrefix}
-          <strong>390 × 844 px</strong>
-          {extra.demoDescMid}
-          <strong>≥ 48 × 48 px</strong>
-          {extra.demoDescSuffix}
-        </p>
-
-        <ol className="mobile-demo-steps">
-          <li>{extra.step1(formattedRate)}</li>
-          <li>{extra.step2}</li>
-          <li>{extra.step3}</li>
-          <li>{extra.step4}</li>
-        </ol>
-
-        <div className="mobile-demo-status" aria-live="polite">
-          <span>
-            <strong>{extra.currentPosLabel}</strong>{' '}
-            {t.mobile.paragraphOf(sansaoChapter.currentParagraph, totalBlocks)}
-          </span>
-          <span>
-            <strong>{extra.globalSpeedLabel}</strong> {formattedRate}
-          </span>
-          <span>
-            <strong>{extra.chapterStatusLabel}</strong>{' '}
-            {sansaoChapter.edited ? extra.statusEdited : extra.statusInitial}
-          </span>
-        </div>
-
-        <button
-          type="button"
-          className="btn-pill-secondary"
-          style={{ minHeight: '48px', width: '100%' }}
-          onClick={resetSansaoChapter}
-        >
-          {t.mobile.demoResetBtn}
-        </button>
-      </aside>
     </div>
   );
 };

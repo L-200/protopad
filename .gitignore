@@ -41,3 +41,6 @@ lerna-debug.log*
 # Sistema operacional
 .DS_Store
 Thumbs.db
+
+# Material do TP (não versionar)
+TP2_IHC_Wattpad_consistente.zip
