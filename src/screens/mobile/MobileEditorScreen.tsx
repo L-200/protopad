@@ -10,7 +10,7 @@
  *   ativos apenas ao trecho ditado, mesmo quando já há texto na linha),
  * - Player compacto expansível no topo para conferência de áudio sem dispensar o teclado (Cenário 4).
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   AlignCenterIcon,
   AlignLeftIcon,
@@ -38,11 +38,26 @@ import { MobileFrame } from './MobileFrame';
 import { useSansaoAudio } from './useSansaoAudio';
 import './MobileScreens.css';
 
+type InlineStyleKey = 'bold' | 'italic' | 'underline';
+
 interface ActiveStyleState {
   bold: boolean;
   italic: boolean;
   underline: boolean;
   align: TextAlign;
+}
+
+interface SelectedSlice {
+  targetKey: string;
+  start: number;
+  end: number;
+}
+
+interface PendingSelectionRestore {
+  startTargetKey: string;
+  startOffset: number;
+  endTargetKey: string;
+  endOffset: number;
 }
 
 type ShiftMode = 'shift' | 'caps' | 'lower';
@@ -298,6 +313,226 @@ function removeLastCharFromSegments(
   return updated;
 }
 
+/** Mescla segmentos consecutivos com os mesmos estilos inline e remove vazios. */
+function mergeAdjacentSegments(
+  segments: MobileTextSegment[]
+): MobileTextSegment[] {
+  const merged: MobileTextSegment[] = [];
+  for (const seg of segments) {
+    if (!seg.text) continue;
+    const prev = merged[merged.length - 1];
+    if (
+      prev &&
+      Boolean(prev.bold) === Boolean(seg.bold) &&
+      Boolean(prev.italic) === Boolean(seg.italic) &&
+      Boolean(prev.underline) === Boolean(seg.underline)
+    ) {
+      merged[merged.length - 1] = {
+        ...prev,
+        text: prev.text + seg.text,
+      };
+    } else {
+      merged.push({
+        text: seg.text,
+        bold: Boolean(seg.bold),
+        italic: Boolean(seg.italic),
+        underline: Boolean(seg.underline),
+      });
+    }
+  }
+  return merged;
+}
+
+/** Verifica se todos os caracteres no intervalo `[start, end)` já possuem o estilo `key`. */
+function isRangeFullyStyled(
+  segments: MobileTextSegment[],
+  start: number,
+  end: number,
+  key: InlineStyleKey
+): boolean {
+  let pos = 0;
+  let sawChar = false;
+  for (const seg of segments) {
+    const segStart = pos;
+    const segEnd = pos + seg.text.length;
+    pos = segEnd;
+    if (segEnd <= start || segStart >= end) continue;
+    sawChar = true;
+    if (!seg[key]) return false;
+  }
+  return sawChar;
+}
+
+/** Aplica ou remove `key` apenas nos caracteres dentro do intervalo `[start, end)`. */
+function applyStyleToSegmentRange(
+  segments: MobileTextSegment[],
+  start: number,
+  end: number,
+  key: InlineStyleKey,
+  value: boolean
+): MobileTextSegment[] {
+  const result: MobileTextSegment[] = [];
+  let pos = 0;
+
+  for (const seg of segments) {
+    const segStart = pos;
+    const segEnd = pos + seg.text.length;
+    pos = segEnd;
+
+    if (segEnd <= start || segStart >= end) {
+      result.push(seg);
+      continue;
+    }
+
+    const sliceStart = Math.max(0, start - segStart);
+    const sliceEnd = Math.min(seg.text.length, end - segStart);
+
+    if (sliceStart > 0) {
+      result.push({ ...seg, text: seg.text.slice(0, sliceStart) });
+    }
+    if (sliceEnd > sliceStart) {
+      result.push({
+        ...seg,
+        text: seg.text.slice(sliceStart, sliceEnd),
+        [key]: value,
+      });
+    }
+    if (sliceEnd < seg.text.length) {
+      result.push({ ...seg, text: seg.text.slice(sliceEnd) });
+    }
+  }
+
+  return mergeAdjacentSegments(result);
+}
+
+/** Substitui (ou remove, se `replacement === ''`) o trecho `[start, end)` nos segmentos. */
+function replaceSegmentRange(
+  segments: MobileTextSegment[],
+  start: number,
+  end: number,
+  replacement: string,
+  style: ActiveStyleState
+): MobileTextSegment[] {
+  const result: MobileTextSegment[] = [];
+  let pos = 0;
+  let inserted = false;
+
+  for (const seg of segments) {
+    const segStart = pos;
+    const segEnd = pos + seg.text.length;
+    pos = segEnd;
+
+    if (segEnd <= start) {
+      result.push(seg);
+      continue;
+    }
+    if (segStart >= end) {
+      if (!inserted && replacement) {
+        result.push({
+          text: replacement,
+          bold: style.bold,
+          italic: style.italic,
+          underline: style.underline,
+        });
+        inserted = true;
+      }
+      result.push(seg);
+      continue;
+    }
+
+    const keepBefore = start > segStart ? seg.text.slice(0, start - segStart) : '';
+    const keepAfter = end < segEnd ? seg.text.slice(end - segStart) : '';
+
+    if (keepBefore) {
+      result.push({ ...seg, text: keepBefore });
+    }
+    if (!inserted && replacement) {
+      result.push({
+        text: replacement,
+        bold: style.bold,
+        italic: style.italic,
+        underline: style.underline,
+      });
+      inserted = true;
+    }
+    if (keepAfter) {
+      result.push({ ...seg, text: keepAfter });
+    }
+  }
+
+  if (!inserted && replacement) {
+    result.push({
+      text: replacement,
+      bold: style.bold,
+      italic: style.italic,
+      underline: style.underline,
+    });
+  }
+
+  return mergeAdjacentSegments(result);
+}
+
+/** Calcula os índices `[start, end)` de um DOM `Range` dentro de um container de segmentos. */
+function getSelectionOffsetsInRoot(
+  root: HTMLElement,
+  range: Range
+): { start: number; end: number } | null {
+  if (range.collapsed || !range.intersectsNode(root)) return null;
+
+  const rootRange = document.createRange();
+  rootRange.selectNodeContents(root);
+
+  const clamped = range.cloneRange();
+  if (clamped.compareBoundaryPoints(Range.START_TO_START, rootRange) < 0) {
+    clamped.setStart(rootRange.startContainer, rootRange.startOffset);
+  }
+  if (clamped.compareBoundaryPoints(Range.END_TO_END, rootRange) > 0) {
+    clamped.setEnd(rootRange.endContainer, rootRange.endOffset);
+  }
+  if (clamped.collapsed) return null;
+
+  const preStart = document.createRange();
+  preStart.selectNodeContents(root);
+  preStart.setEnd(clamped.startContainer, clamped.startOffset);
+  const start = preStart.toString().length;
+
+  const preEnd = document.createRange();
+  preEnd.selectNodeContents(root);
+  preEnd.setEnd(clamped.endContainer, clamped.endOffset);
+  const end = preEnd.toString().length;
+
+  return end > start ? { start, end } : null;
+}
+
+/** Localiza o nó de texto e o deslocamento equivalentes a um índice de caractere em `root`. */
+function findTextPosition(
+  root: HTMLElement,
+  targetOffset: number,
+  preferStart = false
+): { node: Text; offset: number } | null {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let currentOffset = 0;
+  let lastTextNode: Text | null = null;
+
+  while (walker.nextNode()) {
+    const node = walker.currentNode as Text;
+    const len = node.data.length;
+    lastTextNode = node;
+    const matches = preferStart
+      ? currentOffset + len > targetOffset
+      : currentOffset + len >= targetOffset;
+    if (matches) {
+      return { node, offset: Math.max(0, targetOffset - currentOffset) };
+    }
+    currentOffset += len;
+  }
+
+  if (lastTextNode) {
+    return { node: lastTextNode, offset: lastTextNode.data.length };
+  }
+  return null;
+}
+
 /** Renderiza os segmentos inline de um bloco ou compositor com Negrito, Itálico e Sublinhado por trecho. */
 function renderInlineSegments(
   segments: MobileTextSegment[],
@@ -353,13 +588,159 @@ const MobileEditorSimulated: React.FC = () => {
   >('idle');
   const [dictationCount, setDictationCount] = useState<number>(0);
 
+  const [selectionStyleOverride, setSelectionStyleOverride] =
+    useState<ActiveStyleState | null>(null);
+  const [restoreSelectionTick, setRestoreSelectionTick] = useState<number>(0);
+
   const composerBoxRef = useRef<HTMLDivElement | null>(null);
+  const toolbarWrapRef = useRef<HTMLDivElement | null>(null);
+  const segmentRootRefs = useRef<Record<string, HTMLSpanElement | null>>({});
+  const segmentRootCallbacksRef = useRef<
+    Record<string, (el: HTMLSpanElement | null) => void>
+  >({});
+  const savedSelectionRef = useRef<SelectedSlice[]>([]);
+  const pendingRestoreRef = useRef<PendingSelectionRestore | null>(null);
   const dictationTimerRef = useRef<number | null>(null);
 
   const composerPlainText = segmentsToPlainText(composerSegments);
 
   const audio = useSansaoAudio(draftBlocks);
   const { currentParagraph } = audio;
+
+  const registerSegmentRoot = useCallback((key: string) => {
+    if (!segmentRootCallbacksRef.current[key]) {
+      segmentRootCallbacksRef.current[key] = (el: HTMLSpanElement | null) => {
+        if (el) {
+          segmentRootRefs.current[key] = el;
+        } else {
+          delete segmentRootRefs.current[key];
+        }
+      };
+    }
+    return segmentRootCallbacksRef.current[key];
+  }, []);
+
+  const getOrderedTargetKeys = useCallback((): string[] => {
+    const keys: string[] = [];
+    draftBlocks.forEach((block, index) => {
+      keys.push(block.id);
+      if (index === insertAfterIndex && !editingBlockId) {
+        keys.push('composer');
+      }
+    });
+    if (draftBlocks.length === 0 && !editingBlockId) {
+      keys.push('composer');
+    }
+    return keys;
+  }, [draftBlocks, insertAfterIndex, editingBlockId]);
+
+  const getSegmentsForTarget = useCallback(
+    (targetKey: string): MobileTextSegment[] => {
+      if (targetKey === 'composer') return composerSegments;
+      const block = draftBlocks.find((b) => b.id === targetKey);
+      return block ? blockToSegments(block) : [];
+    },
+    [composerSegments, draftBlocks]
+  );
+
+  const readLiveSelectionSlices = useCallback((): SelectedSlice[] => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return [];
+    const range = sel.getRangeAt(0);
+    if (range.collapsed) return [];
+
+    const slices: SelectedSlice[] = [];
+    for (const targetKey of getOrderedTargetKeys()) {
+      const root = segmentRootRefs.current[targetKey];
+      if (!root) continue;
+      const offsets = getSelectionOffsetsInRoot(root, range);
+      if (offsets) {
+        slices.push({ targetKey, start: offsets.start, end: offsets.end });
+      }
+    }
+    return slices;
+  }, [getOrderedTargetKeys]);
+
+  const computeStyleForSlices = useCallback(
+    (slices: SelectedSlice[]): ActiveStyleState => {
+      const firstKey = slices[0]?.targetKey;
+      const firstBlock =
+        firstKey && firstKey !== 'composer'
+          ? draftBlocks.find((b) => b.id === firstKey)
+          : undefined;
+      const align = firstBlock ? firstBlock.align : activeStyle.align;
+
+      const checkKey = (key: InlineStyleKey) =>
+        slices.every((slice) =>
+          isRangeFullyStyled(
+            getSegmentsForTarget(slice.targetKey),
+            slice.start,
+            slice.end,
+            key
+          )
+        );
+
+      return {
+        bold: checkKey('bold'),
+        italic: checkKey('italic'),
+        underline: checkKey('underline'),
+        align,
+      };
+    },
+    [draftBlocks, activeStyle.align, getSegmentsForTarget]
+  );
+
+  // Sincroniza destaque dos botões da barra com qualquer trecho destacado no texto
+  useEffect(() => {
+    const handleSelectionChange = () => {
+      const slices = readLiveSelectionSlices();
+      if (slices.length > 0) {
+        savedSelectionRef.current = slices;
+        setSelectionStyleOverride(computeStyleForSlices(slices));
+        return;
+      }
+
+      // Se o foco moveu por teclado para a barra de formatação, mantém a última seleção salva
+      if (
+        toolbarWrapRef.current &&
+        document.activeElement &&
+        toolbarWrapRef.current.contains(document.activeElement)
+      ) {
+        return;
+      }
+
+      savedSelectionRef.current = [];
+      setSelectionStyleOverride(null);
+    };
+
+    document.addEventListener('selectionchange', handleSelectionChange);
+    return () => {
+      document.removeEventListener('selectionchange', handleSelectionChange);
+    };
+  }, [readLiveSelectionSlices, computeStyleForSlices]);
+
+  // Restaura o destaque visual do trecho selecionado logo após aplicar formatação
+  useLayoutEffect(() => {
+    const pending = pendingRestoreRef.current;
+    if (!pending) return;
+    pendingRestoreRef.current = null;
+
+    const startRoot = segmentRootRefs.current[pending.startTargetKey];
+    const endRoot = segmentRootRefs.current[pending.endTargetKey];
+    if (!startRoot || !endRoot) return;
+
+    const startPos = findTextPosition(startRoot, pending.startOffset, true);
+    const endPos = findTextPosition(endRoot, pending.endOffset, false);
+    if (!startPos || !endPos) return;
+
+    const sel = window.getSelection();
+    if (!sel) return;
+    const nextRange = document.createRange();
+    nextRange.setStart(startPos.node, startPos.offset);
+    nextRange.setEnd(endPos.node, endPos.offset);
+    sel.removeAllRanges();
+    sel.addRange(nextRange);
+  }, [restoreSelectionTick]);
 
   // Sincroniza quando o usuário clica em "Restaurar Cap. 9 inicial" no painel lateral
   useEffect(() => {
@@ -374,6 +755,8 @@ const MobileEditorSimulated: React.FC = () => {
       setEditingBlockId(null);
       setComposerSegments([]);
       setActiveStyle(DEFAULT_STYLE);
+      setSelectionStyleOverride(null);
+      savedSelectionRef.current = [];
       setShiftMode('shift');
       setDictationCount(0);
       setDictationState('idle');
@@ -414,7 +797,7 @@ const MobileEditorSimulated: React.FC = () => {
       };
     }
 
-    const cleanedSegments = segments.filter((s) => s.text.length > 0);
+    const cleanedSegments = mergeAdjacentSegments(segments);
     const allBold =
       cleanedSegments.length > 0 && cleanedSegments.every((s) => Boolean(s.bold));
     const allItalic =
@@ -468,15 +851,135 @@ const MobileEditorSimulated: React.FC = () => {
   };
 
   /**
-   * Alterna um modificador inline (`bold`, `italic`, `underline`) para os PRÓXIMOS
-   * caracteres digitados ou ditados na mesma linha, sem alterar os segmentos anteriores!
+   * Alterna um modificador inline (`bold`, `italic`, `underline`):
+   * - Se houver um trecho destacado (no compositor ou em qualquer parágrafo),
+   *   aplica/remove o estilo diretamente no trecho selecionado mantendo o destaque;
+   * - Se não houver seleção, ativa/desativa o estilo para os PRÓXIMOS caracteres
+   *   digitados ou ditados na mesma linha (Cenário 4 / R13 / R20).
    */
-  const handleToggleStyle = (key: 'bold' | 'italic' | 'underline') => {
+  const handleToggleStyle = (key: InlineStyleKey) => {
+    const liveSlices = readLiveSelectionSlices();
+    const slices = liveSlices.length > 0 ? liveSlices : savedSelectionRef.current;
+
+    if (slices.length > 0) {
+      const allAlreadyStyled = slices.every((slice) =>
+        isRangeFullyStyled(
+          getSegmentsForTarget(slice.targetKey),
+          slice.start,
+          slice.end,
+          key
+        )
+      );
+      const nextValue = !allAlreadyStyled;
+
+      const composerSlice = slices.find((s) => s.targetKey === 'composer');
+      if (composerSlice) {
+        setComposerSegments((prev) =>
+          applyStyleToSegmentRange(
+            prev,
+            composerSlice.start,
+            composerSlice.end,
+            key,
+            nextValue
+          )
+        );
+      }
+
+      const blockSliceMap = new Map<string, SelectedSlice>();
+      for (const slice of slices) {
+        if (slice.targetKey !== 'composer') {
+          blockSliceMap.set(slice.targetKey, slice);
+        }
+      }
+
+      if (blockSliceMap.size > 0) {
+        setDraftBlocks((prev) =>
+          prev.map((block) => {
+            const slice = blockSliceMap.get(block.id);
+            if (!slice) return block;
+            const nextSegs = applyStyleToSegmentRange(
+              blockToSegments(block),
+              slice.start,
+              slice.end,
+              key,
+              nextValue
+            );
+            const allBold =
+              nextSegs.length > 0 && nextSegs.every((s) => Boolean(s.bold));
+            const allItalic =
+              nextSegs.length > 0 && nextSegs.every((s) => Boolean(s.italic));
+            const allUnderline =
+              nextSegs.length > 0 && nextSegs.every((s) => Boolean(s.underline));
+            return {
+              ...block,
+              bold: allBold,
+              italic: allItalic,
+              underline: allUnderline,
+              segments: nextSegs,
+            };
+          })
+        );
+      }
+
+      const first = slices[0];
+      const last = slices[slices.length - 1];
+      savedSelectionRef.current = slices;
+      pendingRestoreRef.current = {
+        startTargetKey: first.targetKey,
+        startOffset: first.start,
+        endTargetKey: last.targetKey,
+        endOffset: last.end,
+      };
+      setSelectionStyleOverride((prev) => ({
+        ...(prev ?? computeStyleForSlices(slices)),
+        [key]: nextValue,
+      }));
+      setRestoreSelectionTick((tick) => tick + 1);
+      return;
+    }
+
     setActiveStyle((prev) => ({ ...prev, [key]: !prev[key] }));
     composerBoxRef.current?.focus();
   };
 
   const handleSetAlign = (align: TextAlign) => {
+    const liveSlices = readLiveSelectionSlices();
+    const slices = liveSlices.length > 0 ? liveSlices : savedSelectionRef.current;
+
+    if (slices.length > 0) {
+      const selectedBlockIds = new Set(
+        slices.filter((s) => s.targetKey !== 'composer').map((s) => s.targetKey)
+      );
+      const includesComposerOrEditing =
+        slices.some((s) => s.targetKey === 'composer') ||
+        (editingBlockId !== null && selectedBlockIds.has(editingBlockId));
+
+      if (includesComposerOrEditing) {
+        setActiveStyle((prev) => ({ ...prev, align }));
+      }
+      if (selectedBlockIds.size > 0) {
+        setDraftBlocks((prev) =>
+          prev.map((b) => (selectedBlockIds.has(b.id) ? { ...b, align } : b))
+        );
+      }
+
+      const first = slices[0];
+      const last = slices[slices.length - 1];
+      savedSelectionRef.current = slices;
+      pendingRestoreRef.current = {
+        startTargetKey: first.targetKey,
+        startOffset: first.start,
+        endTargetKey: last.targetKey,
+        endOffset: last.end,
+      };
+      setSelectionStyleOverride((prev) => ({
+        ...(prev ?? computeStyleForSlices(slices)),
+        align,
+      }));
+      setRestoreSelectionTick((tick) => tick + 1);
+      return;
+    }
+
     setActiveStyle((prev) => ({ ...prev, align }));
     if (editingBlockId) {
       setDraftBlocks((prev) =>
@@ -496,24 +999,47 @@ const MobileEditorSimulated: React.FC = () => {
     composerBoxRef.current?.focus();
   };
 
-  /** Insere texto aplicando o `activeStyle` atual apenas ao trecho recém-inserido. */
+  /** Insere texto aplicando o `activeStyle` atual (ou substituindo trecho selecionado no bloco ativo). */
   const insertTextChunk = (rawChunk: string) => {
     if (!rawChunk) return;
+
+    const activeTargetKey = editingBlockId ?? 'composer';
+    const liveSlices = readLiveSelectionSlices();
+    const activeSlice =
+      liveSlices.length === 1 && liveSlices[0].targetKey === activeTargetKey
+        ? liveSlices[0]
+        : null;
+
+    if (activeSlice) {
+      window.getSelection()?.removeAllRanges();
+      savedSelectionRef.current = [];
+      setSelectionStyleOverride(null);
+    }
 
     if (editingBlockId) {
       setDraftBlocks((prev) =>
         prev.map((b) => {
           if (b.id !== editingBlockId) return b;
-          const nextSegs = appendTextToSegments(
-            blockToSegments(b),
-            rawChunk,
-            activeStyle
-          );
+          const baseSegs = blockToSegments(b);
+          const nextSegs = activeSlice
+            ? replaceSegmentRange(
+                baseSegs,
+                activeSlice.start,
+                activeSlice.end,
+                rawChunk,
+                activeStyle
+              )
+            : appendTextToSegments(baseSegs, rawChunk, activeStyle);
           const nextPlain = segmentsToPlainText(nextSegs);
           return {
             ...b,
             text: nextPlain,
             segments: nextSegs,
+            bold: nextSegs.length > 0 && nextSegs.every((s) => Boolean(s.bold)),
+            italic:
+              nextSegs.length > 0 && nextSegs.every((s) => Boolean(s.italic)),
+            underline:
+              nextSegs.length > 0 && nextSegs.every((s) => Boolean(s.underline)),
             isSeparator: nextPlain.trim() === '***',
           };
         })
@@ -522,7 +1048,15 @@ const MobileEditorSimulated: React.FC = () => {
     }
 
     setComposerSegments((prev) =>
-      appendTextToSegments(prev, rawChunk, activeStyle)
+      activeSlice
+        ? replaceSegmentRange(
+            prev,
+            activeSlice.start,
+            activeSlice.end,
+            rawChunk,
+            activeStyle
+          )
+        : appendTextToSegments(prev, rawChunk, activeStyle)
     );
   };
 
@@ -581,8 +1115,17 @@ const MobileEditorSimulated: React.FC = () => {
       const currentPlain = editingBlockId
         ? draftBlocks.find((b) => b.id === editingBlockId)?.text ?? ''
         : composerPlainText;
+      const activeTargetKey = editingBlockId ?? 'composer';
+      const liveSlices = readLiveSelectionSlices();
+      const activeSlice =
+        liveSlices.length === 1 && liveSlices[0].targetKey === activeTargetKey
+          ? liveSlices[0]
+          : null;
+      const prefixText = activeSlice
+        ? currentPlain.slice(0, activeSlice.start)
+        : currentPlain;
       const needsLeadingSpace =
-        currentPlain.length > 0 && !/\s$/.test(currentPlain);
+        prefixText.length > 0 && !/\s$/.test(prefixText);
       const textToAppend = `${needsLeadingSpace ? ' ' : ''}${phrase}`;
 
       insertTextChunk(textToAppend);
@@ -618,16 +1161,43 @@ const MobileEditorSimulated: React.FC = () => {
   };
 
   const handleBackspace = () => {
+    const activeTargetKey = editingBlockId ?? 'composer';
+    const liveSlices = readLiveSelectionSlices();
+    const activeSlice =
+      liveSlices.length === 1 && liveSlices[0].targetKey === activeTargetKey
+        ? liveSlices[0]
+        : null;
+
+    if (activeSlice) {
+      window.getSelection()?.removeAllRanges();
+      savedSelectionRef.current = [];
+      setSelectionStyleOverride(null);
+    }
+
     if (editingBlockId) {
       setDraftBlocks((prev) =>
         prev.map((b) => {
           if (b.id !== editingBlockId) return b;
-          const nextSegs = removeLastCharFromSegments(blockToSegments(b));
+          const baseSegs = blockToSegments(b);
+          const nextSegs = activeSlice
+            ? replaceSegmentRange(
+                baseSegs,
+                activeSlice.start,
+                activeSlice.end,
+                '',
+                activeStyle
+              )
+            : removeLastCharFromSegments(baseSegs);
           const nextPlain = segmentsToPlainText(nextSegs);
           return {
             ...b,
             text: nextPlain,
             segments: nextSegs,
+            bold: nextSegs.length > 0 && nextSegs.every((s) => Boolean(s.bold)),
+            italic:
+              nextSegs.length > 0 && nextSegs.every((s) => Boolean(s.italic)),
+            underline:
+              nextSegs.length > 0 && nextSegs.every((s) => Boolean(s.underline)),
           };
         })
       );
@@ -635,7 +1205,15 @@ const MobileEditorSimulated: React.FC = () => {
     }
 
     setComposerSegments((prev) => {
-      const next = removeLastCharFromSegments(prev);
+      const next = activeSlice
+        ? replaceSegmentRange(
+            prev,
+            activeSlice.start,
+            activeSlice.end,
+            '',
+            activeStyle
+          )
+        : removeLastCharFromSegments(prev);
       if (next.length === 0 && shiftMode === 'lower') {
         setShiftMode('shift');
       }
@@ -699,6 +1277,21 @@ const MobileEditorSimulated: React.FC = () => {
     }
   };
 
+  /** Atalhos Ctrl+B/I/U quando o usuário destaca um trecho em qualquer parágrafo do capítulo. */
+  const handleMainKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
+    if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+    const key = e.key.toLowerCase();
+    if (key === 'b' || key === 'i' || key === 'u') {
+      const liveSlices = readLiveSelectionSlices();
+      if (liveSlices.length > 0) {
+        e.preventDefault();
+        handleToggleStyle(
+          key === 'b' ? 'bold' : key === 'i' ? 'italic' : 'underline'
+        );
+      }
+    }
+  };
+
   /**
    * Persiste os blocos editados (incluindo o compositor pendente) no estado do Cap. 9
    * e retorna à Tela 5 preservando a velocidade global (`R6`, `R19`, `R20`).
@@ -738,19 +1331,24 @@ const MobileEditorSimulated: React.FC = () => {
     setEditingBlockId(block.id);
   };
 
+  const toolbarStyle = selectionStyleOverride ?? activeStyle;
+
   const activeStyleLabels: string[] = [];
-  if (activeStyle.bold) activeStyleLabels.push(t.mobile.bold);
-  if (activeStyle.italic) activeStyleLabels.push(t.mobile.italic);
-  if (activeStyle.underline) activeStyleLabels.push(t.mobile.underline);
+  if (toolbarStyle.bold) activeStyleLabels.push(t.mobile.bold);
+  if (toolbarStyle.italic) activeStyleLabels.push(t.mobile.italic);
+  if (toolbarStyle.underline) activeStyleLabels.push(t.mobile.underline);
   activeStyleLabels.push(
-    activeStyle.align === 'center'
+    toolbarStyle.align === 'center'
       ? t.mobile.center
-      : activeStyle.align === 'right'
+      : toolbarStyle.align === 'right'
         ? t.mobile.right
         : t.mobile.left
   );
 
   const isKeyUppercase = shiftMode === 'shift' || shiftMode === 'caps';
+
+  /** Impede que o clique nos botões da barra limpe o trecho destacado no texto. */
+  const keepSelectionOnMouseDown = (e: React.MouseEvent) => e.preventDefault();
 
   return (
     <MobileFrame screenLabel={extra.screenLabel}>
@@ -805,7 +1403,11 @@ const MobileEditorSimulated: React.FC = () => {
         />
       )}
 
-      <main className="mobile-editor-scroll" aria-label={extra.mainAria}>
+      <main
+        className="mobile-editor-scroll"
+        aria-label={extra.mainAria}
+        onKeyDown={handleMainKeyDown}
+      >
         <div className="mobile-editor-context-hint">
           <span>{extra.contextHint}</span>
           <span>{extra.blocksCount(draftBlocks.length)}</span>
@@ -848,7 +1450,9 @@ const MobileEditorSimulated: React.FC = () => {
                     style={{ textAlign: block.align }}
                     onKeyDown={handlePhysicalKeyDown}
                   >
-                    {renderInlineSegments(blockSegs, block.id)}
+                    <span ref={registerSegmentRoot(block.id)}>
+                      {renderInlineSegments(blockSegs, block.id)}
+                    </span>
                     <span
                       className="mobile-caret-indicator"
                       aria-hidden="true"
@@ -876,8 +1480,9 @@ const MobileEditorSimulated: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <button
-                  type="button"
+                <div
+                  role="button"
+                  tabIndex={0}
                   className={`mobile-editor-block ${
                     isAnchor ? 'mobile-editor-block--anchor' : ''
                   } ${isPlayingThis ? 'mobile-editor-block--playing' : ''}`.trim()}
@@ -886,24 +1491,28 @@ const MobileEditorSimulated: React.FC = () => {
                     letterSpacing: isSep ? '0.25em' : undefined,
                   }}
                   aria-label={extra.tapToEditAria(index + 1, block.text)}
-                  onClick={() => handleSelectBlock(block, index)}
+                  onClick={() => {
+                    const sel = window.getSelection();
+                    if (
+                      sel &&
+                      !sel.isCollapsed &&
+                      sel.toString().length > 0
+                    ) {
+                      return;
+                    }
+                    handleSelectBlock(block, index);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleSelectBlock(block, index);
+                    }
+                  }}
                 >
-                  {block.segments && block.segments.length > 0
-                    ? renderInlineSegments(block.segments, block.id)
-                    : (
-                        <span
-                          style={{
-                            fontWeight: block.bold ? 700 : 400,
-                            fontStyle: block.italic ? 'italic' : 'normal',
-                            textDecoration: block.underline
-                              ? 'underline'
-                              : 'none',
-                          }}
-                        >
-                          {block.text}
-                        </span>
-                      )}
-                </button>
+                  <span ref={registerSegmentRoot(block.id)}>
+                    {renderInlineSegments(blockSegs, block.id)}
+                  </span>
+                </div>
               )}
 
               {isAnchor && !editingBlockId && (
@@ -936,11 +1545,19 @@ const MobileEditorSimulated: React.FC = () => {
                     className="mobile-composer-rich-box"
                     style={{ textAlign: activeStyle.align }}
                     onKeyDown={handlePhysicalKeyDown}
-                    onClick={() => composerBoxRef.current?.focus()}
+                    onClick={() => {
+                      const sel = window.getSelection();
+                      if (sel && !sel.isCollapsed && sel.toString().length > 0) {
+                        return;
+                      }
+                      composerBoxRef.current?.focus();
+                    }}
                   >
                     {composerSegments.length > 0 ? (
                       <>
-                        {renderInlineSegments(composerSegments, 'composer')}
+                        <span ref={registerSegmentRoot('composer')}>
+                          {renderInlineSegments(composerSegments, 'composer')}
+                        </span>
                         <span
                           className="mobile-caret-indicator"
                           aria-hidden="true"
@@ -978,6 +1595,7 @@ const MobileEditorSimulated: React.FC = () => {
 
       {/* Barra de formatação horizontal ancorada acima do teclado virtual (R20) */}
       <div
+        ref={toolbarWrapRef}
         className="mobile-format-toolbar-wrap"
         role="toolbar"
         aria-label={extra.toolbarAria}
@@ -986,8 +1604,9 @@ const MobileEditorSimulated: React.FC = () => {
           <button
             type="button"
             className="mobile-format-btn"
-            aria-pressed={activeStyle.bold}
+            aria-pressed={toolbarStyle.bold}
             aria-label={t.mobile.bold}
+            onMouseDown={keepSelectionOnMouseDown}
             onClick={() => handleToggleStyle('bold')}
           >
             <BoldIcon size={18} />
@@ -997,8 +1616,9 @@ const MobileEditorSimulated: React.FC = () => {
           <button
             type="button"
             className="mobile-format-btn"
-            aria-pressed={activeStyle.italic}
+            aria-pressed={toolbarStyle.italic}
             aria-label={t.mobile.italic}
+            onMouseDown={keepSelectionOnMouseDown}
             onClick={() => handleToggleStyle('italic')}
           >
             <ItalicIcon size={18} />
@@ -1008,8 +1628,9 @@ const MobileEditorSimulated: React.FC = () => {
           <button
             type="button"
             className="mobile-format-btn"
-            aria-pressed={activeStyle.underline}
+            aria-pressed={toolbarStyle.underline}
             aria-label={t.mobile.underline}
+            onMouseDown={keepSelectionOnMouseDown}
             onClick={() => handleToggleStyle('underline')}
           >
             <UnderlineIcon size={18} />
@@ -1021,8 +1642,9 @@ const MobileEditorSimulated: React.FC = () => {
           <button
             type="button"
             className="mobile-format-btn"
-            aria-pressed={activeStyle.align === 'left'}
+            aria-pressed={toolbarStyle.align === 'left'}
             aria-label={t.editor.alignLeftTooltip}
+            onMouseDown={keepSelectionOnMouseDown}
             onClick={() => handleSetAlign('left')}
           >
             <AlignLeftIcon size={18} />
@@ -1032,8 +1654,9 @@ const MobileEditorSimulated: React.FC = () => {
           <button
             type="button"
             className="mobile-format-btn"
-            aria-pressed={activeStyle.align === 'center'}
+            aria-pressed={toolbarStyle.align === 'center'}
             aria-label={t.editor.alignCenterTooltip}
+            onMouseDown={keepSelectionOnMouseDown}
             onClick={() => handleSetAlign('center')}
           >
             <AlignCenterIcon size={18} />
@@ -1043,8 +1666,9 @@ const MobileEditorSimulated: React.FC = () => {
           <button
             type="button"
             className="mobile-format-btn"
-            aria-pressed={activeStyle.align === 'right'}
+            aria-pressed={toolbarStyle.align === 'right'}
             aria-label={t.editor.alignRightTooltip}
+            onMouseDown={keepSelectionOnMouseDown}
             onClick={() => handleSetAlign('right')}
           >
             <AlignRightIcon size={18} />
@@ -1057,6 +1681,7 @@ const MobileEditorSimulated: React.FC = () => {
             type="button"
             className="mobile-format-btn"
             aria-label={t.editor.sceneBreakTooltip}
+            onMouseDown={keepSelectionOnMouseDown}
             onClick={handleInsertSeparator}
           >
             <SceneSeparatorIcon size={18} />
