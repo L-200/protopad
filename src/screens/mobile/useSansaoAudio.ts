@@ -1,12 +1,14 @@
 /**
  * @fileoverview Hook de reprodução de áudio compartilhado pelas Telas 5 e 6 (Cenário 4).
  * Mantém sincronizados posição do parágrafo, estado `isPlaying` e velocidade global
- * (`R6`, ex.: `1,25x`) entre leitura e edição mobile, utilizando Web Speech API (`pt-BR`)
- * com fallback temporizado para ambientes sem vozes TTS instaladas.
+ * (`R6`, ex.: `1,25x`) entre leitura e edição mobile, utilizando o motor unificado
+ * `ttsEngine` (Piper TTS neural local ou Web Speech API com pausa/retomada real e
+ * atualização de velocidade em tempo real).
  */
 import { useCallback, useEffect, useRef } from 'react';
 import {
   prefetchParagraphAudio,
+  resetParagraphProgress,
   speakParagraph,
   TtsPlaybackHandle,
 } from '../../audio/ttsEngine';
@@ -31,8 +33,7 @@ export function formatPlaybackRate(rate: PlaybackRate): string {
 /**
  * Controla a narração por blocos do Cap. 9 no fluxo mobile usando o motor unificado
  * (Piper TTS neural local offline com fallback automático para Web Speech / timer).
- * Quando o editor mobile está em andamento, recebe `blocksOverride` para permitir
- * conferência de áudio ao vivo sem exigir salvamento prévio (`R19`).
+ * Suporta pausa e retomada real no meio do parágrafo e ajuste de velocidade em tempo real.
  *
  * @param blocksOverride Lista opcional de blocos em rascunho usada durante a edição na Tela 6.
  * @returns Estado do player, percentual de progresso e ações de controle por toque.
@@ -56,16 +57,17 @@ export function useSansaoAudio(blocksOverride?: MobileBlock[]) {
   const ttsHandleRef = useRef<TtsPlaybackHandle | null>(null);
   const playbackRateRef = useRef<PlaybackRate>(playbackRate);
   playbackRateRef.current = playbackRate;
+  const prevParagraphRef = useRef<number>(currentParagraph);
 
-  /** Interrompe imediatamente qualquer áudio ou timer pendente. */
-  const stopSpeechAndTimers = useCallback(() => {
-    if (ttsHandleRef.current) {
-      ttsHandleRef.current.stop();
-      ttsHandleRef.current = null;
+  // Ao trocar de parágrafo, limpa o offset de pausa para que o novo parágrafo inicie do começo
+  useEffect(() => {
+    if (prevParagraphRef.current !== currentParagraph) {
+      prevParagraphRef.current = currentParagraph;
+      resetParagraphProgress();
     }
-  }, []);
+  }, [currentParagraph]);
 
-  // Ajusta a velocidade ao vivo sem reiniciar o parágrafo atual
+  // Ajusta a velocidade ao vivo (tanto no Piper quanto na Web Speech API) sem reiniciar o parágrafo
   useEffect(() => {
     ttsHandleRef.current?.setRate(playbackRate);
   }, [playbackRate]);
@@ -83,7 +85,11 @@ export function useSansaoAudio(blocksOverride?: MobileBlock[]) {
 
   useEffect(() => {
     if (!isPlaying) {
-      stopSpeechAndTimers();
+      if (ttsHandleRef.current) {
+        // Pausa preservando o ponto exato do parágrafo atual
+        ttsHandleRef.current.pause();
+        ttsHandleRef.current = null;
+      }
       return;
     }
 
@@ -94,7 +100,10 @@ export function useSansaoAudio(blocksOverride?: MobileBlock[]) {
       return;
     }
 
-    stopSpeechAndTimers();
+    if (ttsHandleRef.current) {
+      ttsHandleRef.current.stop();
+      ttsHandleRef.current = null;
+    }
 
     const textToSpeak =
       block.isSeparator || block.text.trim() === '***'
@@ -107,12 +116,13 @@ export function useSansaoAudio(blocksOverride?: MobileBlock[]) {
         : nextBlock.text
       : undefined;
 
-    ttsHandleRef.current = speakParagraph({
+    const handle = speakParagraph({
       text: textToSpeak,
       lang: 'pt-BR',
       rate: playbackRateRef.current,
       nextText: nextTextToSpeak,
       onEnded: () => {
+        resetParagraphProgress();
         if (currentParagraph < totalParagraphs) {
           setSansaoPlayback({ currentParagraph: currentParagraph + 1 });
         } else {
@@ -120,9 +130,14 @@ export function useSansaoAudio(blocksOverride?: MobileBlock[]) {
         }
       },
     });
+    ttsHandleRef.current = handle;
 
     return () => {
-      stopSpeechAndTimers();
+      // No cleanup de mudança de estado, pause() preserva o ponto caso isPlaying tenha ido para false
+      handle.pause();
+      if (ttsHandleRef.current === handle) {
+        ttsHandleRef.current = null;
+      }
     };
   }, [
     isPlaying,
@@ -130,42 +145,50 @@ export function useSansaoAudio(blocksOverride?: MobileBlock[]) {
     totalParagraphs,
     blocks,
     setSansaoPlayback,
-    stopSpeechAndTimers,
   ]);
 
   useEffect(() => {
     return () => {
-      stopSpeechAndTimers();
+      if (ttsHandleRef.current) {
+        ttsHandleRef.current.stop();
+        ttsHandleRef.current = null;
+      }
     };
-  }, [stopSpeechAndTimers]);
+  }, []);
 
   const togglePlay = useCallback(() => {
     setSansaoPlayback({ isPlaying: !isPlaying });
   }, [isPlaying, setSansaoPlayback]);
 
   const prevParagraph = useCallback(() => {
+    resetParagraphProgress();
     const target = Math.max(1, currentParagraph - 1);
     setSansaoPlayback({ currentParagraph: target });
   }, [currentParagraph, setSansaoPlayback]);
 
   const nextParagraph = useCallback(() => {
+    resetParagraphProgress();
     const target = Math.min(totalParagraphs, currentParagraph + 1);
     setSansaoPlayback({ currentParagraph: target });
   }, [currentParagraph, totalParagraphs, setSansaoPlayback]);
 
   const cyclePlaybackRate = useCallback(() => {
     const currentIdx = PLAYBACK_RATES.indexOf(playbackRate);
-    const nextIdx = currentIdx === -1 ? 2 : (currentIdx + 1) % PLAYBACK_RATES.length;
+    const nextIdx =
+      currentIdx === -1 ? 2 : (currentIdx + 1) % PLAYBACK_RATES.length;
     setPlaybackRate(PLAYBACK_RATES[nextIdx]);
   }, [playbackRate, setPlaybackRate]);
+
+  const progressPercent = Math.round(
+    (currentParagraph / totalParagraphs) * 100
+  );
 
   return {
     isPlaying,
     currentParagraph,
     totalParagraphs,
     playbackRate,
-    rateLabel: formatPlaybackRate(playbackRate),
-    progressPercent: Math.round((currentParagraph / totalParagraphs) * 100),
+    progressPercent,
     togglePlay,
     prevParagraph,
     nextParagraph,

@@ -10,6 +10,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   prefetchParagraphAudio,
+  resetParagraphProgress,
   speakParagraph,
   TtsPlaybackHandle,
 } from '../../audio/ttsEngine';
@@ -457,6 +458,11 @@ export const DesktopReaderScreen: React.FC = () => {
     t,
   ]);
 
+  // Ao mudar de parágrafo, capítulo ou história, reseta a posição de pausa para começar do início
+  useEffect(() => {
+    resetParagraphProgress();
+  }, [currentParagraph, activeChapter.id, activeStory.id]);
+
   // Ajusta a velocidade de reprodução ao vivo sem reiniciar o parágrafo em andamento (R6)
   useEffect(() => {
     ttsHandleRef.current?.setRate(playbackRate);
@@ -479,7 +485,8 @@ export const DesktopReaderScreen: React.FC = () => {
   useEffect(() => {
     if (!isPlaying) {
       if (ttsHandleRef.current) {
-        ttsHandleRef.current.stop();
+        // Pausa preservando o ponto exato dentro do parágrafo atual
+        ttsHandleRef.current.pause();
         ttsHandleRef.current = null;
       }
       return;
@@ -506,6 +513,7 @@ export const DesktopReaderScreen: React.FC = () => {
       rate: playbackRateRef.current,
       nextText,
       onEnded: () => {
+        resetParagraphProgress();
         if (currentParagraph < totalParagraphs) {
           hasUserNavigatedParagraphRef.current = true;
           // R21: Avanço automático contínuo NUNCA anuncia no NVDA
@@ -518,7 +526,7 @@ export const DesktopReaderScreen: React.FC = () => {
     ttsHandleRef.current = handle;
 
     return () => {
-      handle.stop();
+      handle.pause();
       if (ttsHandleRef.current === handle) {
         ttsHandleRef.current = null;
       }

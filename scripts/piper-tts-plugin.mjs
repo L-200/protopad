@@ -2,8 +2,14 @@
  * @fileoverview Plugin Vite para síntese neural local offline via Piper TTS.
  * Expõe `/api/tts` (POST JSON `{ text, lang }` -> `audio/wav`) e `/api/tts/status` (GET)
  * tanto em `npm run dev` quanto em `npm run preview`, com cache em disco `.tts/cache/*.wav`.
+ *
+ * Proteções de estabilidade:
+ * - Trata eventos `error` (`EPIPE` / `ERR_STREAM_DESTROYED`) em `child.stdin` para que
+ *   uma falha do binário `piper` em máquinas incompatíveis nunca derrube o servidor Vite.
+ * - Executa health-check único (`checkPiperBinaryHealth`) para validar se o binário e os
+ *   modelos ONNX funcionam no SO/arquitetura atual antes de aceitar requisições de síntese.
  */
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -22,6 +28,39 @@ const MODEL_MAP = {
   en: path.join(MODELS_DIR, 'en_US-lessac-medium.onnx'),
 };
 
+/** Cache do health-check do binário Piper (`null` = ainda não testado). */
+let cachedBinaryHealthy = null;
+
+/**
+ * Verifica uma única vez se o binário `piper` existe, tem permissão de execução
+ * e responde a `--version` no sistema operacional/arquitetura atual sem erro fatal.
+ */
+function checkPiperBinaryHealth() {
+  if (cachedBinaryHealthy !== null) {
+    return cachedBinaryHealthy;
+  }
+  try {
+    if (!fs.existsSync(PIPER_BIN) || !fs.existsSync(MODEL_MAP['pt-BR'])) {
+      cachedBinaryHealthy = false;
+      return false;
+    }
+    const binDir = path.dirname(PIPER_BIN);
+    const probe = spawnSync(PIPER_BIN, ['--version'], {
+      timeout: 3000,
+      stdio: 'ignore',
+      env: {
+        ...process.env,
+        LD_LIBRARY_PATH: `${binDir}:${process.env.LD_LIBRARY_PATH ?? ''}`,
+      },
+    });
+    cachedBinaryHealthy = !probe.error && probe.status === 0;
+    return cachedBinaryHealthy;
+  } catch {
+    cachedBinaryHealthy = false;
+    return false;
+  }
+}
+
 /** Resolve o modelo ONNX correspondente ao idioma da história (fallback PT-BR). */
 function resolveModelPath(lang) {
   const exact = MODEL_MAP[lang];
@@ -36,54 +75,97 @@ function resolveModelPath(lang) {
 /** Sintetiza o texto via binário Piper local gravando atomicamente em `outputPath`. */
 function synthesizeWithPiper(text, modelPath, outputPath) {
   return new Promise((resolve, reject) => {
+    let settled = false;
+    const safeResolve = () => {
+      if (!settled) {
+        settled = true;
+        resolve();
+      }
+    };
+    const safeReject = (err) => {
+      if (!settled) {
+        settled = true;
+        reject(err);
+      }
+    };
+
     const tmpPath = `${outputPath}.${process.pid}.${Date.now()}.tmp.wav`;
     const binDir = path.dirname(PIPER_BIN);
-    const child = spawn(
-      PIPER_BIN,
-      [
-        '--model',
-        modelPath,
-        '--espeak_data',
-        path.join(binDir, 'espeak-ng-data'),
-        '--output_file',
-        tmpPath,
-      ],
-      {
-        stdio: ['pipe', 'ignore', 'pipe'],
-        env: {
-          ...process.env,
-          LD_LIBRARY_PATH: `${binDir}:${process.env.LD_LIBRARY_PATH ?? ''}`,
-        },
-      }
-    );
+
+    let child;
+    try {
+      child = spawn(
+        PIPER_BIN,
+        [
+          '--model',
+          modelPath,
+          '--espeak_data',
+          path.join(binDir, 'espeak-ng-data'),
+          '--output_file',
+          tmpPath,
+        ],
+        {
+          stdio: ['pipe', 'ignore', 'pipe'],
+          env: {
+            ...process.env,
+            LD_LIBRARY_PATH: `${binDir}:${process.env.LD_LIBRARY_PATH ?? ''}`,
+          },
+        }
+      );
+    } catch (err) {
+      fs.rmSync(tmpPath, { force: true });
+      safeReject(err);
+      return;
+    }
 
     let stderr = '';
-    child.stderr.on('data', (chunk) => {
-      stderr += String(chunk);
-    });
+    if (child.stderr) {
+      child.stderr.on('data', (chunk) => {
+        stderr += String(chunk);
+      });
+      child.stderr.on('error', () => {
+        // Ignora erro de stream de stderr
+      });
+    }
+
+    // CRÍTICO: captura EPIPE/EOF em stdin caso o processo filho encerre prematuramente
+    if (child.stdin) {
+      child.stdin.on('error', () => {
+        // O evento 'close' ou 'error' do processo tratará a falha sem derrubar o Vite
+      });
+    }
 
     child.on('error', (err) => {
+      cachedBinaryHealthy = false;
       fs.rmSync(tmpPath, { force: true });
-      reject(err);
+      safeReject(err);
     });
 
     child.on('close', (code) => {
       if (code === 0 && fs.existsSync(tmpPath) && fs.statSync(tmpPath).size > 44) {
         try {
           fs.renameSync(tmpPath, outputPath);
-          resolve();
+          safeResolve();
         } catch (err) {
           fs.rmSync(tmpPath, { force: true });
-          reject(err);
+          safeReject(err);
         }
       } else {
         fs.rmSync(tmpPath, { force: true });
-        reject(new Error(`Piper encerrou com código ${code}: ${stderr.trim()}`));
+        safeReject(
+          new Error(`Piper encerrou com código ${code}: ${stderr.trim()}`)
+        );
       }
     });
 
-    child.stdin.write(`${text.trim()}\n`, 'utf8');
-    child.stdin.end();
+    try {
+      if (child.stdin && !child.stdin.destroyed && child.stdin.writable) {
+        child.stdin.write(`${text.trim()}\n`, 'utf8');
+        child.stdin.end();
+      }
+    } catch {
+      // Capturado pelo listener de close/error
+    }
   });
 }
 
@@ -113,6 +195,16 @@ function readJsonBody(req) {
   });
 }
 
+/** Envia resposta JSON de forma segura verificando se os headers já foram enviados. */
+function sendJsonSafe(res, statusCode, payload) {
+  if (res.writableEnded) return;
+  if (!res.headersSent) {
+    res.statusCode = statusCode;
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  }
+  res.end(JSON.stringify(payload));
+}
+
 /** Cria o middleware HTTP compartilhado entre `vite dev` e `vite preview`. */
 function createTtsMiddleware() {
   const inflight = new Map();
@@ -121,21 +213,17 @@ function createTtsMiddleware() {
     const urlPath = (req.url ?? '').split('?')[0];
 
     if (urlPath === '/api/tts/status' && req.method === 'GET') {
-      const hasBin = fs.existsSync(PIPER_BIN);
-      const hasPt = fs.existsSync(MODEL_MAP['pt-BR']);
-      const hasEn = fs.existsSync(MODEL_MAP['en-US']);
-      res.statusCode = 200;
-      res.setHeader('Content-Type', 'application/json; charset=utf-8');
-      res.end(
-        JSON.stringify({
-          available: hasBin && hasPt,
-          engine: 'piper-neural-local',
-          voices: {
-            'pt-BR': hasPt ? 'pt_BR-faber-medium' : null,
-            'en-US': hasEn ? 'en_US-lessac-medium' : null,
-          },
-        })
-      );
+      const healthy = checkPiperBinaryHealth();
+      const hasPt = healthy && fs.existsSync(MODEL_MAP['pt-BR']);
+      const hasEn = healthy && fs.existsSync(MODEL_MAP['en-US']);
+      sendJsonSafe(res, 200, {
+        available: Boolean(healthy && hasPt),
+        engine: healthy ? 'piper-neural-local' : 'web-speech-fallback',
+        voices: {
+          'pt-BR': hasPt ? 'pt_BR-faber-medium' : null,
+          'en-US': hasEn ? 'en_US-lessac-medium' : null,
+        },
+      });
       return;
     }
 
@@ -145,14 +233,11 @@ function createTtsMiddleware() {
     }
 
     try {
-      if (!fs.existsSync(PIPER_BIN)) {
-        res.statusCode = 503;
-        res.setHeader('Content-Type', 'application/json; charset=utf-8');
-        res.end(
-          JSON.stringify({
-            error: 'Piper TTS local não instalado. Rode npm run setup:tts.',
-          })
-        );
+      if (!checkPiperBinaryHealth()) {
+        sendJsonSafe(res, 503, {
+          error:
+            'Piper TTS local indisponível neste ambiente. Usando fallback Web Speech API.',
+        });
         return;
       }
 
@@ -161,15 +246,13 @@ function createTtsMiddleware() {
       const lang = String(body.lang ?? 'pt-BR').trim();
 
       if (!text) {
-        res.statusCode = 400;
-        res.end('Texto vazio');
+        sendJsonSafe(res, 400, { error: 'Texto vazio' });
         return;
       }
 
       const modelPath = resolveModelPath(lang);
       if (!modelPath) {
-        res.statusCode = 503;
-        res.end('Modelo de voz ONNX não encontrado');
+        sendJsonSafe(res, 503, { error: 'Modelo de voz ONNX não encontrado' });
         return;
       }
 
@@ -191,20 +274,19 @@ function createTtsMiddleware() {
         await pending;
       }
 
+      if (res.writableEnded) return;
       const wavBuffer = fs.readFileSync(cachedWav);
-      res.statusCode = 200;
-      res.setHeader('Content-Type', 'audio/wav');
-      res.setHeader('Content-Length', String(wavBuffer.length));
-      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      if (!res.headersSent) {
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'audio/wav');
+        res.setHeader('Content-Length', String(wavBuffer.length));
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
       res.end(wavBuffer);
     } catch (err) {
-      res.statusCode = 500;
-      res.setHeader('Content-Type', 'application/json; charset=utf-8');
-      res.end(
-        JSON.stringify({
-          error: err instanceof Error ? err.message : 'Erro interno de TTS',
-        })
-      );
+      sendJsonSafe(res, 500, {
+        error: err instanceof Error ? err.message : 'Erro interno de TTS',
+      });
     }
   };
 }

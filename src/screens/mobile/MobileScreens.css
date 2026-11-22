@@ -546,6 +546,33 @@
   gap: 6px;
 }
 
+.mobile-composer-rich-box {
+  width: 100%;
+  min-height: 54px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--border-input-aa);
+  background-color: var(--bg-page);
+  color: var(--text-reading);
+  font-size: 16px;
+  line-height: 24px;
+  word-break: break-word;
+  cursor: text;
+}
+
+.mobile-composer-rich-box:focus {
+  outline: var(--focus-ring);
+  outline-offset: 1px;
+  border-style: solid;
+}
+
+.mobile-composer-placeholder {
+  color: var(--text-secondary);
+  font-size: 14.5px;
+  margin-left: 4px;
+  user-select: none;
+}
+
 .mobile-composer-textarea {
   width: 100%;
   min-height: 54px;
@@ -566,6 +593,7 @@
   display: inline-block;
   width: 2px;
   height: 20px;
+  margin: 0 1px;
   background-color: var(--brand-aa);
   vertical-align: text-bottom;
   animation: mobile-caret-blink 1s steps(1) infinite;
@@ -751,9 +779,28 @@
   background-color: var(--btn-active-bg);
 }
 
+.mobile-kbd-key--shift {
+  min-width: 42px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.mobile-kbd-key--shift-active {
+  background-color: #FFF0E8;
+  border: 2px solid var(--brand-aa);
+  color: var(--text-primary);
+}
+
+.mobile-kbd-key--caps-active {
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border: 2px solid var(--btn-active-border);
+  text-decoration: underline;
+}
+
 .mobile-kbd-key--wide {
-  min-width: 56px;
-  font-size: 13px;
+  min-width: 44px;
+  font-size: 14px;
   font-weight: 700;
 }
 
@@ -839,5 +886,34 @@
 
   .mobile-demo-aside {
     width: 390px;
+  }
+}
+
+@media (max-width: 480px) {
+  .mobile-stage {
+    padding: 0;
+    gap: 12px;
+  }
+
+  .mobile-device-bezel {
+    padding: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    width: 100%;
+  }
+
+  .mobile-frame {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  .mobile-demo-aside {
+    width: calc(100% - 24px);
+    margin: 0 12px 24px;
   }
 }

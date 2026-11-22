@@ -1,6 +1,6 @@
 /**
  * @fileoverview Configuração do Vite conectando o plugin React e o middleware local
- * de síntese neural offline (`piperTtsPlugin`) em `/api/tts`.
+ * de síntese neural offline (`piperTtsPlugin`) em `/api/tts`, ignorando `.tts/**` no watcher.
  */
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
@@ -11,5 +11,8 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    watch: {
+      ignored: ['**/.tts/**'],
+    },
   },
 });
