@@ -16,12 +16,10 @@ import {
 } from '../../audio/ttsEngine';
 import {
   CheckIcon,
-  ContrastIcon,
-  HeadphonesIcon,
   PlusIcon,
   StarIcon,
-  ZoomInIcon,
 } from '../../components/shared/Icons';
+import { HEADSET_MEDIA_KEY_EVENT } from '../../components/shared/evaluatorEvents';
 import { LanguageBadge } from '../../components/shared/LanguageBadge';
 import { StoryCoverSvg } from '../../components/shared/StoryCoverSvg';
 import { useTranslation } from '../../i18n/useTranslation';
@@ -53,7 +51,6 @@ const READER_EXTRA: Record<
   SiteLanguage,
   {
     storySelectAria: string;
-    headsetAria: string;
     removeFromListAria: string;
     inListText: string;
     byWord: string;
@@ -79,7 +76,6 @@ const READER_EXTRA: Record<
 > = {
   'pt-BR': {
     storySelectAria: 'Selecionar história',
-    headsetAria: 'Tecla de mídia do headset: alternar reproduzir ou pausar',
     removeFromListAria: 'Remover história da lista de leitura',
     inListText: 'Na lista',
     byWord: 'por',
@@ -106,7 +102,6 @@ const READER_EXTRA: Record<
   },
   'en-US': {
     storySelectAria: 'Select story',
-    headsetAria: 'Headset media key: toggle play or pause',
     removeFromListAria: 'Remove story from reading list',
     inListText: 'In list',
     byWord: 'by',
@@ -133,7 +128,6 @@ const READER_EXTRA: Record<
   },
   'es-ES': {
     storySelectAria: 'Seleccionar historia',
-    headsetAria: 'Tecla multimedia de auriculares: alternar reproducir o pausar',
     removeFromListAria: 'Quitar historia de la lista de lectura',
     inListText: 'En lista',
     byWord: 'por',
@@ -218,10 +212,6 @@ export const DesktopReaderScreen: React.FC = () => {
     setActiveStory,
     setActiveChapter,
     announceNvda,
-    theme,
-    toggleHighContrast,
-    magnifierEnabled,
-    setMagnifierEnabled,
   } = usePrototype();
   const { t } = useTranslation();
   const extra = READER_EXTRA[siteLanguage];
@@ -261,7 +251,6 @@ export const DesktopReaderScreen: React.FC = () => {
   );
   const hasNextChapter = activeChapterIndex < chapters.length - 1;
   const nextChapter = hasNextChapter ? chapters[activeChapterIndex + 1] : null;
-  const isHighContrast = theme === 'high-contrast';
 
   // Reseta flag de scroll ao trocar história ou capítulo para abrir sempre em scrollY = 0 (R1/R2)
   useEffect(() => {
@@ -286,6 +275,14 @@ export const DesktopReaderScreen: React.FC = () => {
     setIsPlaying(next);
     announceNvda(next ? t.reader.nvdaPlaying : t.reader.nvdaPaused, 'control');
   }, [isPlaying, setIsPlaying, announceNvda, t]);
+
+  // R5 (Simular): a tecla de mídia do headset é disparada pelo painel do avaliador,
+  // fora da interface do usuário, e chega aqui como evento global.
+  useEffect(() => {
+    const onHeadsetKey = () => handleTogglePlay();
+    window.addEventListener(HEADSET_MEDIA_KEY_EVENT, onHeadsetKey);
+    return () => window.removeEventListener(HEADSET_MEDIA_KEY_EVENT, onHeadsetKey);
+  }, [handleTogglePlay]);
 
   const handlePrevParagraph = useCallback(() => {
     const next = Math.max(1, currentParagraph - 1);
@@ -604,50 +601,6 @@ export const DesktopReaderScreen: React.FC = () => {
           </div>
 
           <div className="reader-funbar__actions">
-            <button
-              type="button"
-              role="switch"
-              aria-checked={isHighContrast}
-              title={t.reader.highContrastTooltip}
-              className={`funbar-btn ${isHighContrast ? 'funbar-btn--active' : ''}`}
-              onClick={toggleHighContrast}
-            >
-              <ContrastIcon size={16} />
-              <span>{t.reader.highContrastBtn}</span>
-              <span className="funbar-btn__state">
-                {isHighContrast ? t.common.on : t.common.off}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              role="switch"
-              data-magnifier-toggle="true"
-              aria-checked={magnifierEnabled}
-              title={t.reader.magnifierTooltip}
-              className={`funbar-btn ${
-                magnifierEnabled ? 'funbar-btn--active' : ''
-              }`}
-              onClick={() => setMagnifierEnabled(!magnifierEnabled)}
-            >
-              <ZoomInIcon size={16} />
-              <span>{t.reader.magnifierBtn}</span>
-              <span className="funbar-btn__state">
-                {magnifierEnabled ? t.common.onFem : t.common.offFem}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              className="funbar-btn"
-              aria-label={extra.headsetAria}
-              title={t.reader.headsetTooltip}
-              onClick={handleTogglePlay}
-            >
-              <HeadphonesIcon size={16} />
-              <span>{t.reader.headsetBtn}</span>
-            </button>
-
             <button
               type="button"
               className={`funbar-btn ${addedToList ? 'funbar-btn--active' : ''}`}

@@ -5,7 +5,7 @@
  * rótulos simples com ícones (`R16`), resumo de estado no topo e banner de confirmação
  * com ação "Desfazer" (`R18`) nos Cenários 2 e 3.
  */
-import React, { useEffect, useId, useState } from 'react';
+import React, { useId } from 'react';
 import {
   BookOpenIcon,
   CheckIcon,
@@ -18,12 +18,6 @@ import { useTranslation } from '../../i18n/useTranslation';
 import { usePrototype } from '../../state/PrototypeContext';
 import { SiteLanguage, StoryLanguage } from '../../types/prototype';
 import './LanguageSettings.css';
-
-const PENDING_LABEL: Record<SiteLanguage, string> = {
-  'pt-BR': 'Alteração pendente',
-  'en-US': 'Pending change',
-  'es-ES': 'Cambio pendiente',
-};
 
 interface LanguageSettingsFormProps {
   mode: 'modal' | 'page';
@@ -76,8 +70,8 @@ function getBaseLangCode(siteLang: SiteLanguage): StoryLanguage {
 
 /**
  * Formulário acessível de configuração dual de idioma (`mode="modal"` ou `mode="page"`).
- * Mantém estado local de rascunho para permitir pré-visualização de avisos antes de
- * confirmar via "Salvar" e ressincroniza automaticamente quando "Desfazer" é acionado.
+ * A mudança vale assim que o campo é alterado, sem botão "Salvar": a confirmação com
+ * "Desfazer" aparece na hora (`R18`; Cenário 3 e HTA 2.3 > 2.4 > 2.5).
  */
 export const LanguageSettingsForm: React.FC<LanguageSettingsFormProps> = ({
   mode,
@@ -92,48 +86,36 @@ export const LanguageSettingsForm: React.FC<LanguageSettingsFormProps> = ({
   } = usePrototype();
   const { t } = useTranslation();
 
-  const [draftSite, setDraftSite] = useState<SiteLanguage>(siteLanguage);
-  const [draftStories, setDraftStories] = useState<StoryLanguage>(storiesLanguage);
-
-  // Mantém os selects sincronizados com o contexto (inclusive ao clicar em "Desfazer")
-  useEffect(() => {
-    setDraftSite(siteLanguage);
-  }, [siteLanguage]);
-
-  useEffect(() => {
-    setDraftStories(storiesLanguage);
-  }, [storiesLanguage]);
-
   const baseId = useId();
   const siteSelectId = `${baseId}-site-lang`;
   const siteHintId = `${baseId}-site-hint`;
   const storiesSelectId = `${baseId}-stories-lang`;
   const storiesHintId = `${baseId}-stories-hint`;
 
-  const hasPendingChanges =
-    draftSite !== siteLanguage || draftStories !== storiesLanguage;
-  const languagesDiffer = getBaseLangCode(draftSite) !== draftStories;
+  const languagesDiffer = getBaseLangCode(siteLanguage) !== storiesLanguage;
 
-  /** Persiste os dois eixos de idioma no estado global e dispara a confirmação com Desfazer (`R18`). */
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    updateLanguages({
-      siteLanguage: draftSite,
-      storiesLanguage: draftStories,
-    });
+  /** Aplica o novo idioma do site na hora e mostra a confirmação com Desfazer (`R18`). */
+  const handleSiteChange = (value: SiteLanguage) => {
+    if (value !== siteLanguage) updateLanguages({ siteLanguage: value });
+  };
+
+  /** Aplica o novo idioma das histórias na hora e mostra a confirmação com Desfazer (`R18`). */
+  const handleStoriesChange = (value: StoryLanguage) => {
+    if (value !== storiesLanguage) updateLanguages({ storiesLanguage: value });
   };
 
   return (
-    <form className="lang-form" onSubmit={handleSubmit} noValidate>
+    <form
+      className="lang-form"
+      onSubmit={(event) => event.preventDefault()}
+      noValidate
+    >
       {/* R18: Frase curta de estado atual sempre visível no topo */}
       <div className="lang-status-summary" aria-live="polite">
         <span>
           {t.siteWord}: {formatSiteLanguageLabel(siteLanguage)} · {t.storiesWord}:{' '}
           {formatStoryLanguageLabel(storiesLanguage)}
         </span>
-        {hasPendingChanges && (
-          <span className="lang-status-pending">{PENDING_LABEL[siteLanguage]}</span>
-        )}
       </div>
 
       {/* R18: Confirmação + Ação Desfazer */}
@@ -170,8 +152,8 @@ export const LanguageSettingsForm: React.FC<LanguageSettingsFormProps> = ({
           <select
             id={siteSelectId}
             className="lang-select"
-            value={draftSite}
-            onChange={(e) => setDraftSite(e.target.value as SiteLanguage)}
+            value={siteLanguage}
+            onChange={(e) => handleSiteChange(e.target.value as SiteLanguage)}
             aria-describedby={siteHintId}
           >
             <option value="pt-BR">Português (Brasil)</option>
@@ -197,8 +179,8 @@ export const LanguageSettingsForm: React.FC<LanguageSettingsFormProps> = ({
           <select
             id={storiesSelectId}
             className="lang-select"
-            value={draftStories}
-            onChange={(e) => setDraftStories(e.target.value as StoryLanguage)}
+            value={storiesLanguage}
+            onChange={(e) => handleStoriesChange(e.target.value as StoryLanguage)}
             aria-describedby={storiesHintId}
           >
             <option value="pt">Português</option>
@@ -221,15 +203,15 @@ export const LanguageSettingsForm: React.FC<LanguageSettingsFormProps> = ({
           <div>
             <strong>{t.language.mismatchTitle}:</strong>{' '}
             {t.language.mismatchBody(
-              formatSiteLanguageLabel(draftSite),
-              formatStoryLanguageLabel(draftStories)
+              formatSiteLanguageLabel(siteLanguage),
+              formatStoryLanguageLabel(storiesLanguage)
             )}
           </div>
         </div>
       )}
 
       {/* R15: Orientação clara caso o usuário teste trocar o idioma do site */}
-      {draftSite !== 'pt-BR' && (
+      {siteLanguage !== 'pt-BR' && (
         <div className="lang-notice-card" role="note">
           <InfoIcon size={18} className="lang-notice-icon" />
           <div>
@@ -238,22 +220,19 @@ export const LanguageSettingsForm: React.FC<LanguageSettingsFormProps> = ({
         </div>
       )}
 
-      {/* Hierarquia clara dos botões: Primário Salvar + Secundário Fechar/Voltar */}
-      <div className="lang-actions">
-        {onSecondaryAction && (
+      {/* Sem "Salvar": a mudança já vale. Só resta fechar a janela ou voltar (HTA 2.5). */}
+      {onSecondaryAction && (
+        <div className="lang-actions">
           <button
             type="button"
-            className="btn-pill-secondary"
+            className="btn-pill-primary"
             onClick={onSecondaryAction}
           >
-            {mode === 'modal' ? t.language.closeBtn : t.language.backBtn}
+            <CheckIcon size={18} />
+            <span>{mode === 'modal' ? t.language.closeBtn : t.language.backBtn}</span>
           </button>
-        )}
-        <button type="submit" className="btn-pill-primary">
-          <CheckIcon size={18} />
-          <span>{t.language.saveBtn}</span>
-        </button>
-      </div>
+        </div>
+      )}
     </form>
   );
 };

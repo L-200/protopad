@@ -21,7 +21,7 @@
       "requisitos_ids": ["R9", "R16", "R17"],
       "criterios_aceite": [
         "Todos os títulos de carrosséis visíveis estão em português (inclusive 'Listas de leitura da comunidade').",
-        "Carrosséis sem título traduzido para PT-BR permanecem ocultos (com toggle de demonstração no protótipo).",
+        "Carrosséis sem título traduzido para PT-BR permanecem ocultos (a exibição para demonstração fica no painel do avaliador).",
         "Cada história e lista da comunidade exibe selo curto de idioma ('Português' ou 'English') com contraste >= 4,5:1.",
         "Dropdown do perfil exibe estado dual de idioma ('Site: PT · Histórias: EN/PT') e atalho para Configurações de idioma."
       ]
@@ -39,8 +39,8 @@
         "Acessível tanto como modal (600px, border-radius 12px, botão X) quanto por rota dedicada.",
         "Topo exibe frase curta com estado atual: 'Site: Português (Brasil) · Histórias: English' (ou 'Português').",
         "Dois campos distintos: 'Idioma do site (menus e botões)' e 'Idioma das histórias recomendadas', cada um com linha de exemplo concreta do que muda.",
-        "Ao alterar e salvar, exibe confirmação em português (ex.: 'Idioma das histórias alterado para Português') com botão 'Desfazer' que restaura o estado anterior e atualiza a frase do topo.",
-        "Hierarquia clara entre botão primário 'Salvar' e secundário 'Fechar'."
+        "Ao alterar um campo, a mudança vale na hora (sem botão 'Salvar') e exibe confirmação em português (ex.: 'Idioma das histórias alterado para Português') com botão 'Desfazer' que restaura o estado anterior e atualiza a frase do topo.",
+        "Sem botão 'Salvar': depois da confirmação, basta 'Fechar' a janela (HTA Cenário 3: 2.3 > 2.4 > 2.5)."
       ]
     },
     "tela_3_leitura_desktop": {
@@ -58,7 +58,7 @@
         "Barra inferior fixa de largura total com player completo desde o início do Cap. 1 e do Cap. 2 (40 parágrafos + opção de história em inglês).",
         "Ordem fixa dos 5 controles: Reproduzir/Pausar, Voltar parágrafo, Avançar parágrafo, Velocidade, Progresso.",
         "Rótulo 'Ouvir', ícone de fone, selo de idioma antes do player e tooltip 'Ouvir com leitura em voz alta (voz automática)'.",
-        "Atalhos Alt+P, Alt+↑ e Alt+↓ exibidos nas tooltips, além de suporte a tecla de mídia / simulador de headset.",
+        "Atalhos Alt+P, Alt+↑ e Alt+↓ exibidos nas tooltips, além de suporte a tecla de mídia (simulada pelo painel do avaliador, fora da interface).",
         "Velocidade salva como preferência (1,75x Renata / 1,25x Adriana / 1,0x padrão) e mantida no Cap. 2.",
         "NVDA (aria-live='polite') anuncia apenas 'Reproduzindo'/'Pausado' no play/pause e 'Parágrafo X de 40' somente ao acionar Voltar/Avançar parágrafo ou focar Progresso, sem anúncios automáticos por parágrafo.",
         "Alto Contraste Escuro + Lupa 200% acompanhando o foco, contraste >= 4,5:1 texto / >= 3:1 ícones, e estado nunca comunicado só por cor."
@@ -69,9 +69,9 @@
       "funcionalidades": ["W22", "W01"],
       "cenarios": ["Cenario 2"],
       "hta_nos": [
-        "Cenario 2: 1 (1.1-1.3), 2 (2.1-2.4), 3 (3.1-3.4), 4 (4.1-4.4), 6 (6.1-6.3)"
+        "Cenario 2: 1 (1.1-1.3), 2 (2.1-2.4), 3 (3.1-3.5), 4 (4.1-4.4), 6 (6.1-6.3)"
       ],
-      "requisitos_ids": ["R8", "R11", "R12", "R13", "R14", "R15", "R16"],
+      "requisitos_ids": ["R11", "R12", "R13", "R14", "R15", "R16"],
       "criterios_aceite": [
         "Header exibe status 'Rascunho • 1.240 palavras • Salvo' e ações de publicação 100% em PT-BR (sem 'Type your text' ou 'Adicionar uma enquente').",
         "Barra de formatação fixa permanente no topo da área de escrita, visível sem seleção e navegável por Tab/setas, dividida em 2 grupos com divisor.",
@@ -91,7 +91,7 @@
       ],
       "requisitos_ids": ["R1", "R2", "R3", "R6", "R19"],
       "criterios_aceite": [
-        "Viewport dedicado 390×844 sem sobreposição do player sobre o texto do Cap. 9.",
+        "Simulador 390×844 no computador e tela inteira no celular real, sem sobreposição do player sobre o texto do Cap. 9.",
         "Barra inferior fixa ao alcance do polegar com alvos >= 48×48px (48×48dp), gap >= 8px e retorno visual imediato ao toque.",
         "Linha fina de progresso apenas indicativa no topo da barra.",
         "Ordem fixa: Reproduzir/Pausar, Voltar parágrafo, Avançar parágrafo, Velocidade (exibindo '1,25x' mantida).",
@@ -99,7 +99,7 @@
       ]
     },
     "tela_6_editor_mobile": {
-      "titulo": "Editor de Capítulo Mobile com Teclado Virtual (390×844)",
+      "titulo": "Editor de Capítulo Mobile (simulador 390×844 ou celular real)",
       "funcionalidades": ["W22", "W10"],
       "cenarios": ["Cenario 4"],
       "hta_nos": [
@@ -107,7 +107,7 @@
       ],
       "requisitos_ids": ["R19", "R20"],
       "criterios_aceite": [
-        "Teclado virtual simulado inclui entrada por digitação e Ditado por voz aplicando a formatação ativa (ex.: Itálico).",
+        "No celular real, o texto é editável com o teclado do aparelho e o ditado por voz dele; no simulador, um teclado desenhado faz o mesmo papel. Nos dois, o texto entra com a formatação ativa (ex.: Itálico).",
         "Barra de formatação ancorada logo acima do teclado com Negrito, Itálico, Sublinhado e Alinhamento (alvos >= 48×48px, rótulos curtos PT-BR, destaque de estado ativo e rolagem horizontal quando exceder largura).",
         "Player recolhido em ícone compacto que se expande para conferência do áudio sem fechar o teclado virtual.",
         "Botão 'Salvar' persiste thought em itálico e '***' centralizado no Cap. 9 e retorna à Tela 5 com player completo e velocidade 1,25x preservada."
@@ -204,11 +204,11 @@
       "titulo": "Nome único 'Ouvir', lang declarado e voz no idioma da história",
       "funcionalidade": "W01/W10",
       "origem": "Renata",
-      "reforcado_por": ["Adriana", "Leonardo"],
+      "reforcado_por": ["Adriana"],
       "prioridade": "Essencial",
       "resumo": "Mesmo nome do recurso em todas as telas ('Ouvir', dica 'Ouvir com leitura em voz alta (voz automática)'), idioma marcado no código (lang) e voz TTS no idioma da história.",
-      "telas": ["tela_3_leitura_desktop", "tela_4_editor_desktop"],
-      "cenarios": ["Cenario 1", "Cenario 2", "Cenario 3"],
+      "telas": ["tela_3_leitura_desktop"],
+      "cenarios": ["Cenario 1", "Cenario 3"],
       "criterio_aceite": "Substitui 'Listen with text to speech'; atributo lang='pt-BR' no documento e voz selecionada corresponde ao idioma da história."
     },
     "R9": {
@@ -233,7 +233,7 @@
       "resumo": "Configurações de idioma com dois campos curtos ('Idioma do site (menus e botões)' e 'Idioma das histórias recomendadas'), cada um com linha de exemplo do que muda e confirmação.",
       "telas": ["tela_2_idioma"],
       "cenarios": ["Cenario 2", "Cenario 3"],
-      "criterio_aceite": "Cada campo traz exemplo concreto do impacto (menus/botões vs. histórias/listas) e confirmação clara ao salvar."
+      "criterio_aceite": "Cada campo traz exemplo concreto do impacto (menus/botões vs. histórias/listas) e confirmação clara assim que o campo muda."
     },
     "R11": {
       "id": "R11",
@@ -304,7 +304,7 @@
       "prioridade": "Essencial",
       "resumo": "Rótulos curtos em linguagem simples sempre acompanhados de ícone, com explicação completa na dica/tooltip.",
       "telas": ["tela_1_home", "tela_2_idioma", "tela_3_leitura_desktop", "tela_4_editor_desktop"],
-      "cenarios": ["Cenario 2", "Cenario 3"],
+      "cenarios": ["Cenario 2", "Cenario 3", "Cenario 4"],
       "criterio_aceite": "Controles de player, barra de editor e configurações exibem ícone + rótulo curto em PT-BR e tooltip explicativa."
     },
     "R17": {
@@ -348,7 +348,7 @@
       "titulo": "Barra de formatação mobile acima do teclado virtual",
       "funcionalidade": "W22",
       "origem": "Sansão",
-      "reforcado_por": ["Leonardo"],
+      "reforcado_por": [],
       "prioridade": "Essencial",
       "resumo": "Barra com Negrito, Itálico, Sublinhado e Alinhamento ancorada logo acima do teclado virtual, com destaque de estado ativo e rolagem horizontal quando necessário.",
       "telas": ["tela_6_editor_mobile"],

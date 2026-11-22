@@ -2,7 +2,7 @@
  * @fileoverview Tela 5 — Leitura de Capítulo com Player Mobile (`390 × 844 px`).
  * Apresenta o Cap. 9 de Sansão com barra inferior fixa na zona do polegar contendo alvos
  * de toque `>= 48 × 48 px` (`R19`), player completo desde o início (`R1`, `R2`), ordem fixa
- * Reproduzir/Pausar, Voltar, Avançar e Velocidade (`R3`), persistência da velocidade `1,25x`
+ * Reproduzir/Pausar, Voltar parágrafo, Avançar parágrafo e Velocidade (`R3`), persistência da velocidade `1,25x`
  * (`R6`) e transição direta para edição na Tela 6 (Cenário 4).
  */
 import React, { useEffect, useRef } from 'react';
@@ -20,6 +20,7 @@ import { LanguageBadge } from '../../components/shared/LanguageBadge';
 import { useTranslation } from '../../i18n/useTranslation';
 import { usePrototype } from '../../state/PrototypeContext';
 import { SiteLanguage } from '../../types/prototype';
+import { IS_PHONE_DEVICE } from './deviceMode';
 import { formatLocalizedRate, MobileFrame } from './MobileFrame';
 import { useSansaoAudio } from './useSansaoAudio';
 import './MobileScreens.css';
@@ -106,14 +107,17 @@ export const MobileReaderScreen: React.FC = () => {
   return (
     <MobileFrame screenLabel={extra.screenLabel}>
       <header className="mobile-header">
-        <button
-          type="button"
-          className="mobile-touch-btn mobile-touch-btn--icon-only"
-          aria-label={t.mobile.backHomeAria}
-          onClick={() => navigateTo('tela_1_home')}
-        >
-          <ChevronLeftIcon size={20} />
-        </button>
+        {/* No celular real não existe página inicial mobile no protótipo */}
+        {!IS_PHONE_DEVICE && (
+          <button
+            type="button"
+            className="mobile-touch-btn mobile-touch-btn--icon-only"
+            aria-label={t.mobile.backHomeAria}
+            onClick={() => navigateTo('tela_1_home')}
+          >
+            <ChevronLeftIcon size={20} />
+          </button>
+        )}
 
         <div className="mobile-header-titles">
           <span className="mobile-header-story">{sansaoChapter.storyTitle}</span>
