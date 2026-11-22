@@ -11,6 +11,9 @@ coverage/
 *.local
 *.tsbuildinfo
 
+# Motor TTS neural local (binário Piper, modelos ONNX e cache WAV)
+.tts/
+
 # Logs
 logs/
 *.log

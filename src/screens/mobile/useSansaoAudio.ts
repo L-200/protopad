@@ -5,6 +5,11 @@
  * com fallback temporizado para ambientes sem vozes TTS instaladas.
  */
 import { useCallback, useEffect, useRef } from 'react';
+import {
+  prefetchParagraphAudio,
+  speakParagraph,
+  TtsPlaybackHandle,
+} from '../../audio/ttsEngine';
 import { usePrototype } from '../../state/PrototypeContext';
 import { MobileBlock, PlaybackRate } from '../../types/prototype';
 
@@ -24,7 +29,8 @@ export function formatPlaybackRate(rate: PlaybackRate): string {
 }
 
 /**
- * Controla a narração por blocos do Cap. 9 no fluxo mobile.
+ * Controla a narração por blocos do Cap. 9 no fluxo mobile usando o motor unificado
+ * (Piper TTS neural local offline com fallback automático para Web Speech / timer).
  * Quando o editor mobile está em andamento, recebe `blocksOverride` para permitir
  * conferência de áudio ao vivo sem exigir salvamento prévio (`R19`).
  *
@@ -47,23 +53,33 @@ export function useSansaoAudio(blocksOverride?: MobileBlock[]) {
   );
   const isPlaying = sansaoChapter.isPlaying;
 
-  const fallbackTimerRef = useRef<number | null>(null);
-  const utteranceStartRef = useRef<number>(0);
+  const ttsHandleRef = useRef<TtsPlaybackHandle | null>(null);
+  const playbackRateRef = useRef<PlaybackRate>(playbackRate);
+  playbackRateRef.current = playbackRate;
 
-  /** Cancela qualquer síntese de voz ativa e limpa o timer de fallback pendente. */
+  /** Interrompe imediatamente qualquer áudio ou timer pendente. */
   const stopSpeechAndTimers = useCallback(() => {
-    if (fallbackTimerRef.current !== null) {
-      window.clearTimeout(fallbackTimerRef.current);
-      fallbackTimerRef.current = null;
-    }
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      try {
-        window.speechSynthesis.cancel();
-      } catch {
-        // Ignora ambientes sem suporte completo a speechSynthesis
-      }
+    if (ttsHandleRef.current) {
+      ttsHandleRef.current.stop();
+      ttsHandleRef.current = null;
     }
   }, []);
+
+  // Ajusta a velocidade ao vivo sem reiniciar o parágrafo atual
+  useEffect(() => {
+    ttsHandleRef.current?.setRate(playbackRate);
+  }, [playbackRate]);
+
+  // Pré-aquece o parágrafo atual no Piper local para início instantâneo ao tocar em Reproduzir
+  useEffect(() => {
+    const block = blocks[currentParagraph - 1];
+    if (!block) return;
+    const text =
+      block.isSeparator || block.text.trim() === '***'
+        ? 'Transição de cena.'
+        : block.text;
+    prefetchParagraphAudio(text, 'pt-BR');
+  }, [blocks, currentParagraph]);
 
   useEffect(() => {
     if (!isPlaying) {
@@ -84,53 +100,26 @@ export function useSansaoAudio(blocksOverride?: MobileBlock[]) {
       block.isSeparator || block.text.trim() === '***'
         ? 'Transição de cena.'
         : block.text;
-    const words = Math.max(2, textToSpeak.trim().split(/\s+/).length);
-    const estimatedMs = block.isSeparator
-      ? Math.max(900, Math.round(1300 / playbackRate))
-      : Math.max(2000, Math.round(((words / 2.6) * 1000) / playbackRate));
+    const nextBlock = blocks[activeIndex + 1];
+    const nextTextToSpeak = nextBlock
+      ? nextBlock.isSeparator || nextBlock.text.trim() === '***'
+        ? 'Transição de cena.'
+        : nextBlock.text
+      : undefined;
 
-    let advanced = false;
-    const advanceNext = () => {
-      if (advanced) return;
-      advanced = true;
-      if (currentParagraph < totalParagraphs) {
-        setSansaoPlayback({ currentParagraph: currentParagraph + 1 });
-      } else {
-        setSansaoPlayback({ isPlaying: false });
-      }
-    };
-
-    // Fallback temporizado garante avanço mesmo sem vozes TTS instaladas
-    fallbackTimerRef.current = window.setTimeout(advanceNext, estimatedMs);
-
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      try {
-        const utterance = new SpeechSynthesisUtterance(textToSpeak);
-        utterance.lang = 'pt-BR';
-        utterance.rate = playbackRate;
-        utteranceStartRef.current = Date.now();
-
-        utterance.onend = () => {
-          const elapsed = Date.now() - utteranceStartRef.current;
-          // Se onend disparou instantaneamente por falta de voz local, mantém o fallback
-          if (elapsed > 350) {
-            if (fallbackTimerRef.current !== null) {
-              window.clearTimeout(fallbackTimerRef.current);
-              fallbackTimerRef.current = null;
-            }
-            advanceNext();
-          }
-        };
-
-        utterance.onerror = () => {
-          // Mantém o fallback temporizado ativo
-        };
-
-        window.speechSynthesis.speak(utterance);
-      } catch {
-        // Fallback temporizado já está agendado
-      }
-    }
+    ttsHandleRef.current = speakParagraph({
+      text: textToSpeak,
+      lang: 'pt-BR',
+      rate: playbackRateRef.current,
+      nextText: nextTextToSpeak,
+      onEnded: () => {
+        if (currentParagraph < totalParagraphs) {
+          setSansaoPlayback({ currentParagraph: currentParagraph + 1 });
+        } else {
+          setSansaoPlayback({ isPlaying: false });
+        }
+      },
+    });
 
     return () => {
       stopSpeechAndTimers();
@@ -139,7 +128,6 @@ export function useSansaoAudio(blocksOverride?: MobileBlock[]) {
     isPlaying,
     currentParagraph,
     totalParagraphs,
-    playbackRate,
     blocks,
     setSansaoPlayback,
     stopSpeechAndTimers,

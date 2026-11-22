@@ -20,7 +20,10 @@ cd prototipo/app
 # 2. Instale as dependências
 npm install
 
-# 3. Inicie o servidor de desenvolvimento (Vite)
+# 3. (Opcional, recomendado no Linux) Baixe o motor neural offline Piper TTS (PT-BR e EN-US)
+npm run setup:tts
+
+# 4. Inicie o servidor de desenvolvimento (Vite)
 npm run dev
 ```
 
@@ -28,9 +31,10 @@ npm run dev
 
 | Comando | Descrição |
 | :--- | :--- |
-| `npm run dev` | Sobe o servidor local com HMR para navegação e demonstração interativa. |
+| `npm run dev` | Sobe o servidor local com HMR e endpoint `/api/tts` (Piper neural offline quando instalado). |
+| `npm run setup:tts` | Instala localmente o binário Piper TTS (Linux x86_64) e as vozes neurais `pt_BR-faber-medium` e `en_US-lessac-medium` em `.tts/` (ignorado pelo Git). |
 | `npm run build` | Executa verificação estrita de tipos (`tsc --noEmit`) e gera o bundle otimizado em `dist/`. |
-| `npm run preview` | Serve localmente o build de produção gerado em `dist/`. |
+| `npm run preview` | Serve localmente o build de produção gerado em `dist/` (com suporte a `/api/tts`). |
 
 ---
 

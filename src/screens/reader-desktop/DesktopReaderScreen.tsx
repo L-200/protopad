@@ -9,6 +9,11 @@
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  prefetchParagraphAudio,
+  speakParagraph,
+  TtsPlaybackHandle,
+} from '../../audio/ttsEngine';
+import {
   CheckIcon,
   ContrastIcon,
   HeadphonesIcon,
@@ -229,7 +234,9 @@ export const DesktopReaderScreen: React.FC = () => {
   const screenRootRef = useRef<HTMLDivElement | null>(null);
   const playerRegionRef = useRef<HTMLElement>(null);
   const paragraphRefs = useRef<Array<HTMLParagraphElement | null>>([]);
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const ttsHandleRef = useRef<TtsPlaybackHandle | null>(null);
+  const playbackRateRef = useRef<PlaybackRate>(playbackRate);
+  playbackRateRef.current = playbackRate;
   const hasUserNavigatedParagraphRef = useRef(false);
 
   const chapters = useMemo(
@@ -450,20 +457,30 @@ export const DesktopReaderScreen: React.FC = () => {
     t,
   ]);
 
-  // Motor de Reprodução: Web Speech API + Fallback Temporizado (R21: avanço automático silencioso)
+  // Ajusta a velocidade de reprodução ao vivo sem reiniciar o parágrafo em andamento (R6)
   useEffect(() => {
-    const hasSpeechApi =
-      typeof window !== 'undefined' &&
-      'speechSynthesis' in window &&
-      typeof SpeechSynthesisUtterance !== 'undefined';
+    ttsHandleRef.current?.setRate(playbackRate);
+  }, [playbackRate]);
 
+  // Pré-aquece o parágrafo atual no Piper TTS local para resposta instantânea ao dar Play
+  useEffect(() => {
+    const text = activeChapter.paragraphs[currentParagraph - 1];
+    if (!text) return;
+    const targetLang =
+      activeStory.language === 'en'
+        ? 'en-US'
+        : activeStory.language === 'es'
+        ? 'es-ES'
+        : 'pt-BR';
+    prefetchParagraphAudio(text, targetLang);
+  }, [activeChapter.paragraphs, currentParagraph, activeStory.language]);
+
+  // Motor de Reprodução: Piper TTS Neural Local + Fallback Web Speech/Temporizado (R21: avanço silencioso)
+  useEffect(() => {
     if (!isPlaying) {
-      if (hasSpeechApi) {
-        try {
-          window.speechSynthesis.cancel();
-        } catch {
-          // Ignora erro de cancelamento
-        }
+      if (ttsHandleRef.current) {
+        ttsHandleRef.current.stop();
+        ttsHandleRef.current = null;
       }
       return;
     }
@@ -474,138 +491,41 @@ export const DesktopReaderScreen: React.FC = () => {
       return;
     }
 
-    let cancelled = false;
-    let watchdogTimer: number | null = null;
-    let fallbackTimer: number | null = null;
-    let safetyTimer: number | null = null;
-    let speechStarted = false;
+    const nextText = activeChapter.paragraphs[currentParagraph];
+    // R8: seleciona idioma e voz compatíveis com o idioma da história (não do site)
+    const targetLang =
+      activeStory.language === 'en'
+        ? 'en-US'
+        : activeStory.language === 'es'
+        ? 'es-ES'
+        : 'pt-BR';
 
-    // Estima duração mínima/máxima proporcional à contagem de palavras e playbackRate
-    const words = Math.max(6, text.trim().split(/\s+/).length);
-    const baseMs = Math.min(5200, Math.max(2400, words * 155));
-    const totalFallbackMs = Math.max(850, Math.round(baseMs / playbackRate));
-
-    const advanceToNext = () => {
-      if (cancelled) return;
-      if (currentParagraph < totalParagraphs) {
-        hasUserNavigatedParagraphRef.current = true;
-        // R21: Avanço automático contínuo NUNCA anuncia no NVDA
-        setCurrentParagraph(currentParagraph + 1);
-      } else {
-        setIsPlaying(false);
-      }
-    };
-
-    const startFallbackTimer = (delayMs: number) => {
-      if (cancelled || fallbackTimer !== null) return;
-      fallbackTimer = window.setTimeout(() => {
-        advanceToNext();
-      }, delayMs);
-    };
-
-    if (hasSpeechApi) {
-      try {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        // R8: seleciona idioma e voz compatíveis com o idioma da história (não do site)
-        const targetLang =
-          activeStory.language === 'en'
-            ? 'en-US'
-            : activeStory.language === 'es'
-            ? 'es-ES'
-            : 'pt-BR';
-        utterance.lang = targetLang;
-        utterance.rate = playbackRate;
-
-        const voices = window.speechSynthesis.getVoices();
-        const shortLang = targetLang.slice(0, 2).toLowerCase();
-        const matchedVoice =
-          voices.find(
-            (v) => v.lang.toLowerCase() === targetLang.toLowerCase()
-          ) ?? voices.find((v) => v.lang.toLowerCase().startsWith(shortLang));
-
-        if (matchedVoice) {
-          utterance.voice = matchedVoice;
+    const handle = speakParagraph({
+      text,
+      lang: targetLang,
+      rate: playbackRateRef.current,
+      nextText,
+      onEnded: () => {
+        if (currentParagraph < totalParagraphs) {
+          hasUserNavigatedParagraphRef.current = true;
+          // R21: Avanço automático contínuo NUNCA anuncia no NVDA
+          setCurrentParagraph(currentParagraph + 1);
+        } else {
+          setIsPlaying(false);
         }
-
-        utterance.onstart = () => {
-          if (cancelled) return;
-          speechStarted = true;
-          if (watchdogTimer !== null) {
-            window.clearTimeout(watchdogTimer);
-            watchdogTimer = null;
-          }
-          // Timer de segurança evita travamento caso o navegador não dispare onend
-          const maxSpeechMs = Math.max(
-            16000,
-            Math.round((words * 1100) / playbackRate)
-          );
-          safetyTimer = window.setTimeout(() => {
-            if (!cancelled) {
-              try {
-                window.speechSynthesis.cancel();
-              } catch {
-                // Ignora
-              }
-              advanceToNext();
-            }
-          }, maxSpeechMs);
-        };
-
-        utterance.onend = () => {
-          if (cancelled) return;
-          if (watchdogTimer !== null) window.clearTimeout(watchdogTimer);
-          if (fallbackTimer !== null) window.clearTimeout(fallbackTimer);
-          if (safetyTimer !== null) window.clearTimeout(safetyTimer);
-          advanceToNext();
-        };
-
-        utterance.onerror = () => {
-          if (cancelled) return;
-          if (!speechStarted && fallbackTimer === null) {
-            startFallbackTimer(Math.max(700, totalFallbackMs - 300));
-          }
-        };
-
-        utteranceRef.current = utterance;
-        window.speechSynthesis.speak(utterance);
-
-        // Fallback automático caso o ambiente Linux/headless não tenha vozes TTS ativas
-        watchdogTimer = window.setTimeout(() => {
-          if (!cancelled && !speechStarted) {
-            try {
-              window.speechSynthesis.cancel();
-            } catch {
-              // Ignora
-            }
-            startFallbackTimer(Math.max(700, totalFallbackMs - 450));
-          }
-        }, 420);
-      } catch {
-        startFallbackTimer(totalFallbackMs);
-      }
-    } else {
-      startFallbackTimer(totalFallbackMs);
-    }
+      },
+    });
+    ttsHandleRef.current = handle;
 
     return () => {
-      cancelled = true;
-      if (watchdogTimer !== null) window.clearTimeout(watchdogTimer);
-      if (fallbackTimer !== null) window.clearTimeout(fallbackTimer);
-      if (safetyTimer !== null) window.clearTimeout(safetyTimer);
-      utteranceRef.current = null;
-      if (hasSpeechApi) {
-        try {
-          window.speechSynthesis.cancel();
-        } catch {
-          // Ignora
-        }
+      handle.stop();
+      if (ttsHandleRef.current === handle) {
+        ttsHandleRef.current = null;
       }
     };
   }, [
     isPlaying,
     currentParagraph,
-    playbackRate,
     activeChapter.id,
     activeChapter.paragraphs,
     activeStory.language,
