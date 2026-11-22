@@ -54,6 +54,7 @@ const READER_EXTRA: Record<
   {
     storySelectAria: string;
     removeFromListAria: string;
+    addToListShort: string;
     inListText: string;
     byWord: string;
     currentParagraphLabel: string;
@@ -79,6 +80,7 @@ const READER_EXTRA: Record<
   'pt-BR': {
     storySelectAria: 'Selecionar história',
     removeFromListAria: 'Remover história da lista de leitura',
+    addToListShort: 'Lista',
     inListText: 'Na lista',
     byWord: 'por',
     currentParagraphLabel: 'Parágrafo atual',
@@ -105,6 +107,7 @@ const READER_EXTRA: Record<
   'en-US': {
     storySelectAria: 'Select story',
     removeFromListAria: 'Remove story from reading list',
+    addToListShort: 'List',
     inListText: 'In list',
     byWord: 'by',
     currentParagraphLabel: 'Current paragraph',
@@ -131,6 +134,7 @@ const READER_EXTRA: Record<
   'es-ES': {
     storySelectAria: 'Seleccionar historia',
     removeFromListAria: 'Quitar historia de la lista de lectura',
+    addToListShort: 'Lista',
     inListText: 'En lista',
     byWord: 'por',
     currentParagraphLabel: 'Párrafo actual',
@@ -259,6 +263,27 @@ export const DesktopReaderScreen: React.FC = () => {
   const hasNextChapter = activeChapterIndex < chapters.length - 1;
   const nextChapter = hasNextChapter ? chapters[activeChapterIndex + 1] : null;
 
+  // Atualiza --reader-player-height quando o player quebra linha em zoom 200% / <= 960px
+  useEffect(() => {
+    const el = playerRegionRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+
+    const updateHeight = () => {
+      const h = Math.ceil(el.getBoundingClientRect().height);
+      if (h > 0) {
+        document.documentElement.style.setProperty('--reader-player-height', `${h}px`);
+      }
+    };
+
+    updateHeight();
+    const ro = new ResizeObserver(updateHeight);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      document.documentElement.style.removeProperty('--reader-player-height');
+    };
+  }, []);
+
   // Reseta flag de scroll ao trocar história ou capítulo para abrir sempre em scrollY = 0 (R1/R2)
   useEffect(() => {
     hasUserNavigatedParagraphRef.current = false;
@@ -344,6 +369,19 @@ export const DesktopReaderScreen: React.FC = () => {
   // Atalhos de teclado globais: D (Landmark Ouvir), Alt+P, Alt+↑, Alt+↓ (R4, R5, R21)
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      const targetEl = event.target instanceof HTMLElement ? event.target : null;
+      const activeEl =
+        document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null;
+      if (
+        document.querySelector('[role="dialog"][aria-modal="true"]') ||
+        targetEl?.closest('[role="dialog"], [role="listbox"]') ||
+        activeEl?.closest('[role="dialog"], [role="listbox"]')
+      ) {
+        return;
+      }
+
       // Tecla D: simula atalho de landmark do NVDA -> foca #audio-player-region SEM iniciar/pausar áudio
       if (
         !event.repeat &&
@@ -659,7 +697,7 @@ export const DesktopReaderScreen: React.FC = () => {
               }
             >
               {addedToList ? <CheckIcon size={16} /> : <PlusIcon size={16} />}
-              <span>{addedToList ? extra.inListText : '+'}</span>
+              <span>{addedToList ? extra.inListText : extra.addToListShort}</span>
             </button>
 
             <button

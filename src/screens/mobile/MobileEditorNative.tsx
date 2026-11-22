@@ -23,7 +23,13 @@ import {
 } from '../../components/shared/Icons';
 import { useTranslation } from '../../i18n/useTranslation';
 import { usePrototype } from '../../state/PrototypeContext';
-import { MobileBlock, MobileTextSegment, SiteLanguage, TextAlign } from '../../types/prototype';
+import {
+  MobileBlock,
+  MobileTextSegment,
+  SiteLanguage,
+  StoryLanguage,
+  TextAlign,
+} from '../../types/prototype';
 import { MobileCompactPlayer } from './MobileCompactPlayer';
 import { MobileFrame } from './MobileFrame';
 import { useSansaoAudio } from './useSansaoAudio';
@@ -46,17 +52,29 @@ const INITIAL_STATE: ActiveState = {
 };
 
 /** Caractere invisível que segura o cursor dentro de um estilo recém-ligado. */
-const ZWSP = '​';
+const ZWSP = '\u200B';
 
 const STYLE_TAG: Record<StyleKey, string> = { bold: 'b', italic: 'i', underline: 'u' };
+
+function storyLangToHtmlLang(language: StoryLanguage): string {
+  switch (language) {
+    case 'en':
+      return 'en-US';
+    case 'es':
+      return 'es-ES';
+    default:
+      return 'pt-BR';
+  }
+}
 
 const NATIVE_STRINGS: Record<
   SiteLanguage,
   {
     screenLabel: string;
     kicker: string;
+    editChapterTitle: (num: number) => string;
     hint: string;
-    docAria: string;
+    docAria: (num: number) => string;
     toolbarAria: string;
     cancelAria: string;
     saveAria: string;
@@ -65,8 +83,9 @@ const NATIVE_STRINGS: Record<
   'pt-BR': {
     screenLabel: 'Tela 6 — Editor Mobile',
     kicker: 'Modo Edição',
+    editChapterTitle: (num) => `Editar Cap. ${num}`,
     hint: 'Toque no texto para escrever. Para ditar, use o microfone do teclado.',
-    docAria: 'Texto do Capítulo 9 em edição',
+    docAria: (num) => `Texto do Capítulo ${num} em edição`,
     toolbarAria: 'Formatação do texto',
     cancelAria: 'Cancelar edição e voltar à leitura',
     saveAria: 'Salvar alterações do capítulo',
@@ -74,8 +93,9 @@ const NATIVE_STRINGS: Record<
   'en-US': {
     screenLabel: 'Screen 6 — Mobile Editor',
     kicker: 'Edit mode',
+    editChapterTitle: (num) => `Edit Ch. ${num}`,
     hint: 'Tap the text to write. To dictate, use the keyboard microphone.',
-    docAria: 'Chapter 9 text being edited',
+    docAria: (num) => `Chapter ${num} text being edited`,
     toolbarAria: 'Text formatting',
     cancelAria: 'Cancel editing and return to reading',
     saveAria: 'Save chapter changes',
@@ -83,8 +103,9 @@ const NATIVE_STRINGS: Record<
   'es-ES': {
     screenLabel: 'Pantalla 6 — Editor Móvil',
     kicker: 'Modo edición',
+    editChapterTitle: (num) => `Editar Cap. ${num}`,
     hint: 'Toca el texto para escribir. Para dictar, usa el micrófono del teclado.',
-    docAria: 'Texto del Capítulo 9 en edición',
+    docAria: (num) => `Texto del Capítulo ${num} en edición`,
     toolbarAria: 'Formato del texto',
     cancelAria: 'Cancelar edición y volver a la lectura',
     saveAria: 'Guardar cambios del capítulo',
@@ -176,7 +197,10 @@ function htmlToBlocks(root: HTMLElement): MobileBlock[] {
     const segments: MobileTextSegment[] = [];
     const walk = (node: Node, style: Record<StyleKey, boolean>) => {
       if (node.nodeType === Node.TEXT_NODE) {
-        const text = (node.textContent ?? '').split(ZWSP).join('');
+        const text = (node.textContent ?? '')
+          .split(ZWSP)
+          .join('')
+          .replace(/\u00A0/g, ' ');
         if (!text) return;
         const last = segments[segments.length - 1];
         if (
@@ -238,11 +262,203 @@ function htmlToBlocks(root: HTMLElement): MobileBlock[] {
    -------------------------------------------------------------------------- */
 
 function paragraphOf(root: HTMLElement, node: Node | null): HTMLElement | null {
+  if (!node) return null;
+  if (node === root) {
+    const last = root.lastElementChild;
+    return last instanceof HTMLElement && last.tagName !== 'BR' ? last : null;
+  }
   let current: Node | null = node;
   while (current && current.parentNode !== root) {
     current = current.parentNode;
   }
-  return current instanceof HTMLElement ? current : null;
+  return current instanceof HTMLElement && current.tagName !== 'BR' ? current : null;
+}
+
+/**
+ * Garante que um nó solto na raiz (ex.: Text node direto em `docRef` ou `docRef` vazio)
+ * esteja encapsulado em `<p>`, preservando exatamente a posição do cursor/seleção.
+ */
+function resolveOrNormalizeParagraph(
+  root: HTMLElement,
+  range: Range
+): HTMLElement | null {
+  const existing = paragraphOf(root, range.startContainer);
+  if (existing && range.startContainer !== root) {
+    return existing;
+  }
+
+  // Caso 1: Texto solto diretamente sob `root` -> envolve em <p> mantendo offsets
+  if (
+    range.startContainer.nodeType === Node.TEXT_NODE &&
+    range.startContainer.parentNode === root
+  ) {
+    const textNode = range.startContainer as Text;
+    const startOff = range.startOffset;
+    const endIsSame = range.endContainer === textNode;
+    const endOff = range.endOffset;
+    const p = document.createElement('p');
+    p.style.textAlign = 'left';
+    root.insertBefore(p, textNode);
+    p.appendChild(textNode);
+
+    const sel = window.getSelection();
+    if (sel) {
+      const nextRange = document.createRange();
+      nextRange.setStart(textNode, startOff);
+      if (endIsSame) {
+        nextRange.setEnd(textNode, endOff);
+      } else {
+        nextRange.collapse(true);
+      }
+      sel.removeAllRanges();
+      sel.addRange(nextRange);
+      range.setStart(nextRange.startContainer, nextRange.startOffset);
+      range.setEnd(nextRange.endContainer, nextRange.endOffset);
+    }
+    return p;
+  }
+
+  // Caso 1b: Cursor direto em um <br> solto na raiz -> substitui por <p><br></p>
+  if (
+    range.startContainer instanceof HTMLBRElement &&
+    range.startContainer.parentNode === root
+  ) {
+    const p = document.createElement('p');
+    p.style.textAlign = 'left';
+    p.appendChild(document.createElement('br'));
+    range.startContainer.replaceWith(p);
+    const next = placeCaret(p, 0);
+    if (next) {
+      range.setStart(next.startContainer, next.startOffset);
+      range.collapse(true);
+    }
+    return p;
+  }
+
+  // Caso 2: `root` vazio ou cursor direto em `root`
+  if (range.startContainer === root) {
+    const idx = Math.max(
+      0,
+      Math.min(range.startOffset, Math.max(0, root.childNodes.length - 1))
+    );
+    const candidate = root.childNodes[idx] ?? root.lastChild;
+    if (candidate instanceof HTMLElement && candidate.tagName !== 'BR') {
+      return candidate;
+    }
+    if (candidate instanceof HTMLBRElement) {
+      const p = document.createElement('p');
+      p.style.textAlign = 'left';
+      p.appendChild(document.createElement('br'));
+      candidate.replaceWith(p);
+      const next = placeCaret(p, 0);
+      if (next) {
+        range.setStart(next.startContainer, next.startOffset);
+        range.collapse(true);
+      }
+      return p;
+    }
+    if (candidate && candidate.nodeType === Node.TEXT_NODE) {
+      const p = document.createElement('p');
+      p.style.textAlign = 'left';
+      root.insertBefore(p, candidate);
+      p.appendChild(candidate);
+      const next = placeCaret(candidate, (candidate.textContent ?? '').length);
+      if (next) {
+        range.setStart(next.startContainer, next.startOffset);
+        range.collapse(true);
+      }
+      return p;
+    }
+  }
+
+  const p = document.createElement('p');
+  p.style.textAlign = 'left';
+  p.appendChild(document.createElement('br'));
+  root.appendChild(p);
+  const next = placeCaret(p, 0);
+  if (next) {
+    range.setStart(next.startContainer, next.startOffset);
+    range.collapse(true);
+  }
+  return p;
+}
+
+function findAnchorParagraph(root: HTMLElement): HTMLElement | null {
+  const children = Array.from(root.children).filter(
+    (el): el is HTMLElement => el instanceof HTMLElement
+  );
+  if (children.length === 0) return null;
+  const forestIdx = children.findIndex((el) =>
+    (el.textContent ?? '').toLowerCase().includes('floresta')
+  );
+  if (forestIdx > 0) {
+    return children[forestIdx - 1];
+  }
+  return children[children.length - 1];
+}
+
+function findLastTextNode(el: HTMLElement): Text | null {
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  let last: Text | null = null;
+  while (walker.nextNode()) {
+    last = walker.currentNode as Text;
+  }
+  return last;
+}
+
+/** Remove marcadores `ZWSP` que já receberam texto real e tags de estilo vazias. */
+function cleanupZwspInRoot(root: HTMLElement): void {
+  const sel = window.getSelection();
+  const activeRange =
+    sel && sel.rangeCount > 0 && root.contains(sel.getRangeAt(0).startContainer)
+      ? sel.getRangeAt(0)
+      : null;
+
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodesToClean: Text[] = [];
+  while (walker.nextNode()) {
+    const node = walker.currentNode as Text;
+    if (node.data.includes(ZWSP) && node.data.split(ZWSP).join('').length > 0) {
+      nodesToClean.push(node);
+    }
+  }
+
+  for (const node of nodesToClean) {
+    const isStart = activeRange?.startContainer === node;
+    const isEnd = activeRange?.endContainer === node;
+    const oldStart = activeRange?.startOffset ?? 0;
+    const oldEnd = activeRange?.endOffset ?? 0;
+
+    const countBefore = (limit: number) =>
+      (node.data.slice(0, limit).match(/\u200B/g) ?? []).length;
+
+    const startShift = isStart ? countBefore(oldStart) : 0;
+    const endShift = isEnd ? countBefore(oldEnd) : 0;
+
+    node.data = node.data.split(ZWSP).join('');
+
+    if (sel && activeRange && (isStart || isEnd)) {
+      const updated = activeRange.cloneRange();
+      if (isStart) {
+        updated.setStart(node, Math.max(0, Math.min(oldStart - startShift, node.data.length)));
+      }
+      if (isEnd) {
+        updated.setEnd(node, Math.max(0, Math.min(oldEnd - endShift, node.data.length)));
+      }
+      sel.removeAllRanges();
+      sel.addRange(updated);
+    }
+  }
+
+  // Remove tags de estilo órfãs vazias que não seguram o cursor atual
+  const caretNode =
+    sel && sel.rangeCount > 0 ? sel.getRangeAt(0).startContainer : null;
+  root.querySelectorAll('b, strong, i, em, u').forEach((el) => {
+    if (caretNode && el.contains(caretNode)) return;
+    if ((el.textContent ?? '').length === 0 && !el.querySelector('br')) {
+      el.remove();
+    }
+  });
 }
 
 /** Elemento de estilo (`<i>`, `<b>`…) mais próximo do cursor dentro do parágrafo. */
@@ -276,14 +492,16 @@ function styleChainBetween(node: Node, stop: HTMLElement): HTMLElement[] {
   return chain;
 }
 
-function placeCaret(node: Node, offset: number) {
+function placeCaret(node: Node, offset: number): Range | null {
   const sel = window.getSelection();
-  if (!sel) return;
   const range = document.createRange();
   range.setStart(node, offset);
   range.collapse(true);
-  sel.removeAllRanges();
-  sel.addRange(range);
+  if (sel) {
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+  return range;
 }
 
 function selectionInside(root: HTMLElement): Range | null {
@@ -298,29 +516,39 @@ function selectionInside(root: HTMLElement): Range | null {
 export const MobileEditorNative: React.FC = () => {
   const { t, siteLanguage } = useTranslation();
   const extra = NATIVE_STRINGS[siteLanguage];
-  const { sansaoChapter, updateSansaoChapter, navigateTo } = usePrototype();
+  const {
+    activeMobileChapter,
+    updateSansaoChapter,
+    navigateTo,
+  } = usePrototype();
 
   const docRef = useRef<HTMLDivElement | null>(null);
   const scrollRef = useRef<HTMLElement | null>(null);
   const lastRangeRef = useRef<Range | null>(null);
+  const isComposingRef = useRef<boolean>(false);
 
   const [active, setActive] = useState<ActiveState>(INITIAL_STATE);
   const [isPlayerOpen, setIsPlayerOpen] = useState(false);
-  const [playerBlocks, setPlayerBlocks] = useState<MobileBlock[]>(sansaoChapter.blocks);
+  const [playerBlocks, setPlayerBlocks] = useState<MobileBlock[]>(
+    activeMobileChapter.blocks
+  );
   const audio = useSansaoAudio(playerBlocks);
 
-  // Monta o texto uma única vez; depois o DOM editável é dono do conteúdo.
+  // Monta o texto ao abrir o editor (ou ao trocar o capítulo ativo); depois o DOM editável é dono do conteúdo.
   useLayoutEffect(() => {
     const root = docRef.current;
     if (!root) return;
-    root.innerHTML = blocksToHtml(sansaoChapter.blocks);
+    root.innerHTML = blocksToHtml(activeMobileChapter.blocks);
+    setPlayerBlocks(activeMobileChapter.blocks);
+    lastRangeRef.current = null;
+    setActive(INITIAL_STATE);
     try {
       document.execCommand('defaultParagraphSeparator', false, 'p');
       document.execCommand('styleWithCSS', false, 'false');
     } catch {
       /* navegadores sem suporte simplesmente ignoram */
     }
-  }, []);
+  }, [activeMobileChapter.id]);
 
   /** Atualiza o destaque dos botões conforme o ponto do cursor (`R13` no celular, `R20`). */
   const refreshActive = useCallback(() => {
@@ -396,19 +624,52 @@ export const MobileEditorNative: React.FC = () => {
     };
   }, []);
 
-  /** Devolve a seleção atual do texto (ou a última conhecida, se o foco saiu). */
+  /**
+   * Devolve a seleção atual do texto, restaura a última conhecida se o foco saiu,
+   * ou inicializa o cursor ao final do parágrafo-âncora se o usuário ainda não tocou no texto.
+   */
   const ensureRange = (): Range | null => {
     const root = docRef.current;
     if (!root) return null;
     const current = selectionInside(root);
     if (current) return current;
+
     const saved = lastRangeRef.current;
-    if (!saved || !root.contains(saved.commonAncestorContainer)) return null;
+    if (saved && root.contains(saved.commonAncestorContainer)) {
+      root.focus({ preventScroll: true });
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(saved);
+      return saved;
+    }
+
+    // Sem seleção prévia: inicializa no fim do parágrafo-âncora (ou cria um se vazio)
+    let anchor = findAnchorParagraph(root);
+    if (!anchor) {
+      // Caso haja texto solto direto sob `root`, normaliza antes de posicionar
+      const bareText = Array.from(root.childNodes).find(
+        (n): n is Text => n.nodeType === Node.TEXT_NODE && Boolean(n.textContent?.trim())
+      );
+      anchor = document.createElement('p');
+      anchor.style.textAlign = 'left';
+      if (bareText) {
+        root.insertBefore(anchor, bareText);
+        anchor.appendChild(bareText);
+      } else {
+        anchor.appendChild(document.createElement('br'));
+        root.appendChild(anchor);
+      }
+    }
+
     root.focus({ preventScroll: true });
-    const sel = window.getSelection();
-    sel?.removeAllRanges();
-    sel?.addRange(saved);
-    return saved;
+    const lastText = findLastTextNode(anchor);
+    const initialized = lastText
+      ? placeCaret(lastText, lastText.data.length)
+      : placeCaret(anchor, anchor.childNodes.length);
+    if (initialized) {
+      lastRangeRef.current = initialized.cloneRange();
+    }
+    return initialized;
   };
 
   const handleToggleStyle = (key: StyleKey) => {
@@ -423,25 +684,32 @@ export const MobileEditorNative: React.FC = () => {
       return;
     }
 
-    const para = paragraphOf(root, range.startContainer);
+    const para = resolveOrNormalizeParagraph(root, range);
     if (!para) return;
-    const ancestor = styleAncestor(range.startContainer, key, para);
+    const activeRange = selectionInside(root) ?? range;
+    const ancestor = styleAncestor(activeRange.startContainer, key, para);
 
     if (!ancestor) {
       // Liga o estilo: o que vier a seguir (digitado ou ditado) entra dentro dele.
       const el = document.createElement(STYLE_TAG[key]);
       const holder = document.createTextNode(ZWSP);
       el.appendChild(holder);
-      range.insertNode(el);
-      placeCaret(holder, 1);
+
+      if (
+        activeRange.startContainer.nodeType === Node.TEXT_NODE &&
+        activeRange.startContainer.textContent === ZWSP
+      ) {
+        (activeRange.startContainer as Text).replaceWith(el);
+      } else {
+        activeRange.insertNode(el);
+      }
+      const next = placeCaret(holder, 1);
+      if (next) lastRangeRef.current = next.cloneRange();
     } else {
-      // Desliga o estilo: divide o elemento no cursor e continua fora dele,
-      // mantendo os outros estilos que estavam ativos por dentro.
-      const inner = styleChainBetween(range.startContainer, ancestor);
-      const rest = document.createRange();
-      rest.setStart(range.startContainer, range.startOffset);
-      rest.setEndAfter(ancestor);
-      const restFragment = rest.extractContents();
+      // Desliga o estilo: se nada foi digitado ainda dentro da tag, apenas desembrulha sem deixar lixo.
+      const inner = styleChainBetween(activeRange.startContainer, ancestor);
+      const ancestorHasRealText =
+        (ancestor.textContent ?? '').split(ZWSP).join('').length > 0;
 
       const holder = document.createTextNode(ZWSP);
       let wrapper: ChildNode = holder;
@@ -451,12 +719,22 @@ export const MobileEditorNative: React.FC = () => {
         wrapper = clone;
       }
 
-      ancestor.after(wrapper);
-      const restText = (restFragment.textContent ?? '').split(ZWSP).join('');
-      if (restText) {
-        wrapper.after(restFragment);
+      if (!ancestorHasRealText) {
+        ancestor.replaceWith(wrapper);
+      } else {
+        const rest = document.createRange();
+        rest.setStart(activeRange.startContainer, activeRange.startOffset);
+        rest.setEndAfter(ancestor);
+        const restFragment = rest.extractContents();
+
+        ancestor.after(wrapper);
+        const restText = (restFragment.textContent ?? '').split(ZWSP).join('');
+        if (restText) {
+          wrapper.after(restFragment);
+        }
       }
-      placeCaret(holder, 1);
+      const next = placeCaret(holder, 1);
+      if (next) lastRangeRef.current = next.cloneRange();
     }
     refreshActive();
   };
@@ -465,8 +743,13 @@ export const MobileEditorNative: React.FC = () => {
     const root = docRef.current;
     const range = ensureRange();
     if (!root || !range) return;
+    const para = resolveOrNormalizeParagraph(root, range);
+    const activeRange = selectionInside(root) ?? range;
+    if (para) {
+      para.style.textAlign = align;
+    }
     Array.from(root.children).forEach((child) => {
-      if (child instanceof HTMLElement && range.intersectsNode(child)) {
+      if (child instanceof HTMLElement && activeRange.intersectsNode(child)) {
         child.style.textAlign = align;
       }
     });
@@ -479,7 +762,7 @@ export const MobileEditorNative: React.FC = () => {
     const range = ensureRange();
     if (!root) return;
     const para =
-      (range && paragraphOf(root, range.startContainer)) ||
+      (range && resolveOrNormalizeParagraph(root, range)) ||
       (root.lastElementChild as HTMLElement | null);
 
     const sep = document.createElement('p');
@@ -499,7 +782,8 @@ export const MobileEditorNative: React.FC = () => {
     } else {
       root.append(sep, next);
     }
-    placeCaret(next, 0);
+    const caret = placeCaret(next, 0);
+    if (caret) lastRangeRef.current = caret.cloneRange();
     refreshActive();
   };
 
@@ -514,7 +798,21 @@ export const MobileEditorNative: React.FC = () => {
   const handleSave = () => {
     const root = docRef.current;
     if (!root) return;
-    const finalBlocks = htmlToBlocks(root);
+    const parsedBlocks = htmlToBlocks(root);
+    const finalBlocks: MobileBlock[] =
+      parsedBlocks.length > 0
+        ? parsedBlocks
+        : [
+            {
+              id: `mob-blk-${Date.now()}-empty`,
+              text: ' ',
+              bold: false,
+              italic: false,
+              underline: false,
+              align: 'left',
+              isSeparator: false,
+            },
+          ];
     root.blur();
     updateSansaoChapter((prev) => ({
       ...prev,
@@ -524,6 +822,53 @@ export const MobileEditorNative: React.FC = () => {
       currentParagraph: Math.max(1, Math.min(prev.currentParagraph, finalBlocks.length)),
     }));
     navigateTo('tela_5_leitura_mobile');
+  };
+
+  const handleDocInput = () => {
+    if (isComposingRef.current) return;
+    const root = docRef.current;
+    if (root) {
+      const range = selectionInside(root);
+      if (range) {
+        resolveOrNormalizeParagraph(root, range);
+      }
+      // Remove <br> solto diretamente sob root se houver parágrafos ou normaliza em <p>
+      Array.from(root.childNodes).forEach((child) => {
+        if (child instanceof HTMLBRElement) {
+          if (root.querySelector('p')) {
+            child.remove();
+          } else {
+            const p = document.createElement('p');
+            p.style.textAlign = 'left';
+            p.appendChild(document.createElement('br'));
+            child.replaceWith(p);
+            const caret = placeCaret(p, 0);
+            if (caret) lastRangeRef.current = caret.cloneRange();
+          }
+        }
+      });
+      // Remove classe mobile-native-sep clonada por Enter ao sair de um separador ***
+      root.querySelectorAll('p').forEach((p) => {
+        const cleanText = (p.textContent ?? '').split(ZWSP).join('').trim();
+        if (p.classList.contains('mobile-native-sep') && cleanText !== '***') {
+          p.classList.remove('mobile-native-sep');
+          if (p.style.textAlign === 'center') {
+            p.style.textAlign = 'left';
+          }
+        }
+      });
+      cleanupZwspInRoot(root);
+    }
+    refreshActive();
+  };
+
+  const handleCompositionStart = () => {
+    isComposingRef.current = true;
+  };
+
+  const handleCompositionEnd = () => {
+    isComposingRef.current = false;
+    handleDocInput();
   };
 
   /** Os botões da barra não podem roubar o foco do texto, senão o teclado fecha. */
@@ -549,6 +894,11 @@ export const MobileEditorNative: React.FC = () => {
     </button>
   );
 
+  const chapterHeaderTitle =
+    activeMobileChapter.chapterNumber === 9
+      ? t.mobile.editorTitle
+      : extra.editChapterTitle(activeMobileChapter.chapterNumber);
+
   return (
     <MobileFrame screenLabel={extra.screenLabel}>
       <header className="mobile-header">
@@ -564,7 +914,7 @@ export const MobileEditorNative: React.FC = () => {
 
         <div className="mobile-header-titles">
           <span className="mobile-header-story">{extra.kicker}</span>
-          <span className="mobile-header-chapter">{t.mobile.editorTitle}</span>
+          <span className="mobile-header-chapter">{chapterHeaderTitle}</span>
         </div>
 
         <button
@@ -609,11 +959,13 @@ export const MobileEditorNative: React.FC = () => {
           suppressContentEditableWarning
           role="textbox"
           aria-multiline="true"
-          aria-label={extra.docAria}
-          lang="pt-BR"
+          aria-label={extra.docAria(activeMobileChapter.chapterNumber)}
+          lang={storyLangToHtmlLang(activeMobileChapter.language)}
           spellCheck
           autoCapitalize="sentences"
-          onInput={refreshActive}
+          onCompositionStart={handleCompositionStart}
+          onCompositionEnd={handleCompositionEnd}
+          onInput={handleDocInput}
           onKeyUp={refreshActive}
         />
       </main>

@@ -14,6 +14,7 @@ import {
 } from '../../components/shared/Icons';
 import { LanguageBadge } from '../../components/shared/LanguageBadge';
 import { useTranslation } from '../../i18n/useTranslation';
+import { usePrototype } from '../../state/PrototypeContext';
 import { formatLocalizedRate } from './MobileFrame';
 import { useSansaoAudio } from './useSansaoAudio';
 
@@ -53,6 +54,7 @@ export const MobileCompactPlayer: React.FC<MobileCompactPlayerProps> = ({
   keepFocus = false,
 }) => {
   const { t, siteLanguage } = useTranslation();
+  const { activeMobileChapter } = usePrototype();
   const extra = COMPACT_STRINGS[siteLanguage];
   const localizedRate = formatLocalizedRate(audio.playbackRate, siteLanguage);
   const preventBlur = keepFocus
@@ -73,7 +75,7 @@ export const MobileCompactPlayer: React.FC<MobileCompactPlayerProps> = ({
 
       <div className="mobile-compact-player-header">
         <div className="mobile-audio-meta-left">
-          <LanguageBadge language="pt" showIcon={false} />
+          <LanguageBadge language={activeMobileChapter.language} showIcon={false} />
           <span className="mobile-audio-counter">
             {t.mobile.paragraphOf(audio.currentParagraph, audio.totalParagraphs)}
           </span>

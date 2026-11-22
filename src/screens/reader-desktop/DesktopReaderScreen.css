@@ -8,7 +8,7 @@
   min-height: calc(100vh - var(--header-height));
   background-color: var(--bg-page);
   color: var(--text-primary);
-  padding-bottom: 120px;
+  padding-bottom: calc(var(--reader-player-height, 84px) + 44px);
 }
 
 /* ==========================================================================
@@ -16,7 +16,7 @@
    ========================================================================== */
 .reader-funbar {
   position: sticky;
-  top: var(--header-height);
+  top: var(--header-height-live, var(--header-height));
   z-index: 850;
   background-color: var(--bg-elevated);
   border-bottom: 1px solid var(--divider);
@@ -259,7 +259,7 @@
   cursor: pointer;
   scroll-margin-top: 148px;
   scroll-margin-bottom: 120px;
-  transition: background-color 0.16s ease, border-color 0.16s ease;
+  transition: border-color 0.16s ease;
 }
 
 .reader-paragraph:hover {
@@ -363,14 +363,14 @@
 }
 
 /* ==========================================================================
-   Barra Fixa do Player (#audio-player-region, z-index: 1020, R1–R8, R16, R17)
+   Barra Fixa do Player (#audio-player-region, z-index: 1160, R1–R8, R16, R17)
    ========================================================================== */
 .desktop-player-bar {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 1020;
+  z-index: 1160;
   background-color: var(--bg-elevated);
   border-top: 2px solid var(--divider);
   box-shadow: var(--shadow-sticky-footer);
@@ -588,16 +588,36 @@
   font-variant-numeric: tabular-nums;
 }
 
+@media (max-width: 1024px) {
+  .reader-funbar {
+    top: 0;
+  }
+}
+
 @media (max-width: 960px) {
   .reader-desktop {
-    padding-bottom: 160px;
+    padding-bottom: calc(var(--reader-player-height, 148px) + 48px);
   }
 
   .desktop-player-bar__inner {
     justify-content: center;
+    padding: 8px 12px;
+    gap: 8px;
   }
 
   .desktop-player-controls {
     justify-content: center;
+    gap: 8px;
+  }
+
+  .player-btn {
+    padding: 0 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .reader-funbar {
+    position: relative;
+    top: auto;
   }
 }

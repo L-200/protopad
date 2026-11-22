@@ -33,7 +33,10 @@ export interface VisualViewportBox {
 function readViewport(): VisualViewportBox {
   const vv = window.visualViewport;
   return vv
-    ? { height: vv.height, offsetTop: vv.offsetTop }
+    ? {
+        height: Math.min(vv.height, window.innerHeight || vv.height),
+        offsetTop: vv.offsetTop,
+      }
     : { height: window.innerHeight, offsetTop: 0 };
 }
 

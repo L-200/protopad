@@ -98,10 +98,11 @@ const MOBILE_EDITOR_STRINGS: Record<
     cancelBackAria: string;
     editModeKicker: string;
     saveAria: string;
+    editChapterTitle: (num: number) => string;
     collapseLabel: string;
     playNarrationAria: string;
     pauseNarrationAria: string;
-    mainAria: string;
+    mainAria: (num: number) => string;
     contextHint: string;
     blocksCount: (n: number) => string;
     editParagraphAria: (n: number) => string;
@@ -129,10 +130,11 @@ const MOBILE_EDITOR_STRINGS: Record<
     cancelBackAria: 'Cancelar edição e voltar à leitura',
     editModeKicker: 'Modo Edição',
     saveAria: 'Salvar alterações do capítulo',
+    editChapterTitle: (num) => `Editar Cap. ${num}`,
     collapseLabel: 'Recolher',
     playNarrationAria: 'Reproduzir narração',
     pauseNarrationAria: 'Pausar narração',
-    mainAria: 'Área de edição do Capítulo 9',
+    mainAria: (num) => `Área de edição do Capítulo ${num}`,
     contextHint: 'Toque em um parágrafo para editar ou escreva no cursor abaixo',
     blocksCount: (n) => `${n} blocos`,
     editParagraphAria: (n) => `Editar parágrafo ${n}`,
@@ -164,10 +166,11 @@ const MOBILE_EDITOR_STRINGS: Record<
     cancelBackAria: 'Cancel editing and return to reader',
     editModeKicker: 'Edit Mode',
     saveAria: 'Save chapter changes',
+    editChapterTitle: (num) => `Edit Ch. ${num}`,
     collapseLabel: 'Collapse',
     playNarrationAria: 'Play narration',
     pauseNarrationAria: 'Pause narration',
-    mainAria: 'Chapter 9 editing area',
+    mainAria: (num) => `Chapter ${num} editing area`,
     contextHint: 'Tap a paragraph to edit or type at the cursor below',
     blocksCount: (n) => `${n} blocks`,
     editParagraphAria: (n) => `Edit paragraph ${n}`,
@@ -199,10 +202,11 @@ const MOBILE_EDITOR_STRINGS: Record<
     cancelBackAria: 'Cancelar edición y volver a la lectura',
     editModeKicker: 'Modo Edición',
     saveAria: 'Guardar cambios del capítulo',
+    editChapterTitle: (num) => `Editar Cap. ${num}`,
     collapseLabel: 'Contraer',
     playNarrationAria: 'Reproducir narración',
     pauseNarrationAria: 'Pausar narración',
-    mainAria: 'Área de edición del Capítulo 9',
+    mainAria: (num) => `Área de edición del Capítulo ${num}`,
     contextHint: 'Toca un párrafo para editar o escribe en el cursor debajo',
     blocksCount: (n) => `${n} bloques`,
     editParagraphAria: (n) => `Editar párrafo ${n}`,
@@ -228,6 +232,42 @@ const MOBILE_EDITOR_STRINGS: Record<
     commaAria: 'Coma',
     periodAria: 'Punto',
     confirmLineAria: 'Confirmar párrafo y nueva línea',
+  },
+};
+
+const READ_ONLY_EDITOR_STRINGS: Record<
+  SiteLanguage,
+  {
+    screenLabel: string;
+    backAria: string;
+    title: string;
+    description: string;
+    returnBtn: string;
+  }
+> = {
+  'pt-BR': {
+    screenLabel: 'Tela 6 — Capítulo somente leitura',
+    backAria: 'Voltar para a leitura do capítulo',
+    title: 'Capítulo somente leitura',
+    description:
+      'Esta história pertence a outro autor e não pode ser editada. Volte à leitura para ouvir o capítulo.',
+    returnBtn: 'Voltar para leitura',
+  },
+  'en-US': {
+    screenLabel: 'Screen 6 — Read-only chapter',
+    backAria: 'Return to chapter reader',
+    title: 'Read-only chapter',
+    description:
+      'This story belongs to another author and cannot be edited. Return to the reader to listen to the chapter.',
+    returnBtn: 'Back to reader',
+  },
+  'es-ES': {
+    screenLabel: 'Pantalla 6 — Capítulo de solo lectura',
+    backAria: 'Volver a la lectura del capítulo',
+    title: 'Capítulo de solo lectura',
+    description:
+      'Esta historia pertenece a otro autor y no se puede editar. Vuelve a la lectura para escuchar el capítulo.',
+    returnBtn: 'Volver a lectura',
   },
 };
 
@@ -556,14 +596,67 @@ function renderInlineSegments(
  * Editor mobile do Cap. 9 com suporte a formatação inline por trecho na mesma linha,
  * tecla Shift/Caps Lock no teclado virtual e ditado por voz contínuo.
  */
-export const MobileEditorScreen: React.FC = () =>
-  IS_PHONE_DEVICE ? <MobileEditorNative /> : <MobileEditorSimulated />;
+export const MobileEditorScreen: React.FC = () => {
+  const { activeMobileChapter, navigateTo } = usePrototype();
+  const { t, siteLanguage } = useTranslation();
+
+  if (!activeMobileChapter.editable) {
+    const copy = READ_ONLY_EDITOR_STRINGS[siteLanguage];
+    return (
+      <MobileFrame screenLabel={copy.screenLabel}>
+        <header className="mobile-header">
+          <button
+            type="button"
+            className="mobile-touch-btn"
+            aria-label={copy.backAria}
+            onClick={() => navigateTo('tela_5_leitura_mobile')}
+          >
+            <ChevronLeftIcon size={18} />
+            <span>{t.mobile.backToReader}</span>
+          </button>
+
+          <div className="mobile-header-titles">
+            <span className="mobile-header-story">
+              {activeMobileChapter.storyTitle}
+            </span>
+            <span className="mobile-header-chapter">
+              {activeMobileChapter.chapterTitle}
+            </span>
+          </div>
+        </header>
+
+        <main className="mobile-editor-scroll">
+          <div className="mobile-readonly-guard" role="status">
+            <p>
+              <strong>{copy.title}</strong>
+            </p>
+            <p>{copy.description}</p>
+            <button
+              type="button"
+              className="mobile-touch-btn mobile-touch-btn--primary"
+              onClick={() => navigateTo('tela_5_leitura_mobile')}
+            >
+              {copy.returnBtn}
+            </button>
+          </div>
+        </main>
+      </MobileFrame>
+    );
+  }
+
+  return IS_PHONE_DEVICE ? <MobileEditorNative /> : <MobileEditorSimulated />;
+};
 
 /** Editor do simulador 390×844 (computador), com teclado virtual desenhado na tela. */
 const MobileEditorSimulated: React.FC = () => {
   const { t, siteLanguage } = useTranslation();
   const extra = MOBILE_EDITOR_STRINGS[siteLanguage];
-  const { sansaoChapter, updateSansaoChapter, navigateTo } = usePrototype();
+  const {
+    sansaoChapter,
+    activeMobileChapter,
+    updateSansaoChapter,
+    navigateTo,
+  } = usePrototype();
 
   const [draftBlocks, setDraftBlocks] = useState<MobileBlock[]>(() =>
     sansaoChapter.blocks.map((b) => ({
@@ -594,6 +687,7 @@ const MobileEditorSimulated: React.FC = () => {
 
   const composerBoxRef = useRef<HTMLDivElement | null>(null);
   const toolbarWrapRef = useRef<HTMLDivElement | null>(null);
+  const keyboardRef = useRef<HTMLElement | null>(null);
   const segmentRootRefs = useRef<Record<string, HTMLSpanElement | null>>({});
   const segmentRootCallbacksRef = useRef<
     Record<string, (el: HTMLSpanElement | null) => void>
@@ -700,11 +794,12 @@ const MobileEditorSimulated: React.FC = () => {
         return;
       }
 
-      // Se o foco moveu por teclado para a barra de formatação, mantém a última seleção salva
+      // Se o foco moveu por teclado para a barra ou teclado virtual, mantém a última seleção salva
+      const activeEl = document.activeElement;
       if (
-        toolbarWrapRef.current &&
-        document.activeElement &&
-        toolbarWrapRef.current.contains(document.activeElement)
+        activeEl &&
+        (toolbarWrapRef.current?.contains(activeEl) ||
+          keyboardRef.current?.contains(activeEl))
       ) {
         return;
       }
@@ -742,7 +837,7 @@ const MobileEditorSimulated: React.FC = () => {
     sel.addRange(nextRange);
   }, [restoreSelectionTick]);
 
-  // Sincroniza quando o usuário clica em "Restaurar Cap. 9 inicial" no painel lateral
+  // Sincroniza quando o capítulo muda ou o usuário clica em "Restaurar Cap. 9 inicial" no painel lateral
   useEffect(() => {
     if (!sansaoChapter.edited) {
       setDraftBlocks(
@@ -761,7 +856,7 @@ const MobileEditorSimulated: React.FC = () => {
       setDictationCount(0);
       setDictationState('idle');
     }
-  }, [sansaoChapter.edited, sansaoChapter.blocks]);
+  }, [activeMobileChapter.id, sansaoChapter.edited, sansaoChapter.blocks]);
 
   useEffect(() => {
     return () => {
@@ -1005,9 +1100,12 @@ const MobileEditorSimulated: React.FC = () => {
 
     const activeTargetKey = editingBlockId ?? 'composer';
     const liveSlices = readLiveSelectionSlices();
+    const candidateSlices =
+      liveSlices.length > 0 ? liveSlices : savedSelectionRef.current;
     const activeSlice =
-      liveSlices.length === 1 && liveSlices[0].targetKey === activeTargetKey
-        ? liveSlices[0]
+      candidateSlices.length === 1 &&
+      candidateSlices[0].targetKey === activeTargetKey
+        ? candidateSlices[0]
         : null;
 
     if (activeSlice) {
@@ -1117,9 +1215,12 @@ const MobileEditorSimulated: React.FC = () => {
         : composerPlainText;
       const activeTargetKey = editingBlockId ?? 'composer';
       const liveSlices = readLiveSelectionSlices();
+      const candidateSlices =
+        liveSlices.length > 0 ? liveSlices : savedSelectionRef.current;
       const activeSlice =
-        liveSlices.length === 1 && liveSlices[0].targetKey === activeTargetKey
-          ? liveSlices[0]
+        candidateSlices.length === 1 &&
+        candidateSlices[0].targetKey === activeTargetKey
+          ? candidateSlices[0]
           : null;
       const prefixText = activeSlice
         ? currentPlain.slice(0, activeSlice.start)
@@ -1163,9 +1264,12 @@ const MobileEditorSimulated: React.FC = () => {
   const handleBackspace = () => {
     const activeTargetKey = editingBlockId ?? 'composer';
     const liveSlices = readLiveSelectionSlices();
+    const candidateSlices =
+      liveSlices.length > 0 ? liveSlices : savedSelectionRef.current;
     const activeSlice =
-      liveSlices.length === 1 && liveSlices[0].targetKey === activeTargetKey
-        ? liveSlices[0]
+      candidateSlices.length === 1 &&
+      candidateSlices[0].targetKey === activeTargetKey
+        ? candidateSlices[0]
         : null;
 
     if (activeSlice) {
@@ -1301,10 +1405,24 @@ const MobileEditorSimulated: React.FC = () => {
     if (composerPlainText.trim()) {
       finalBlocks = commitComposerBlock(composerSegments, false);
     }
+    if (finalBlocks.length === 0) {
+      finalBlocks = [
+        {
+          id: `mob-blk-${Date.now()}-empty`,
+          text: ' ',
+          bold: false,
+          italic: false,
+          underline: false,
+          align: 'left',
+          isSeparator: false,
+        },
+      ];
+    }
     updateSansaoChapter((prev) => ({
       ...prev,
       blocks: finalBlocks,
       edited: true,
+      isPlaying: false,
       currentParagraph: Math.max(
         1,
         Math.min(prev.currentParagraph, finalBlocks.length)
@@ -1350,6 +1468,11 @@ const MobileEditorSimulated: React.FC = () => {
   /** Impede que o clique nos botões da barra limpe o trecho destacado no texto. */
   const keepSelectionOnMouseDown = (e: React.MouseEvent) => e.preventDefault();
 
+  const chapterHeaderTitle =
+    activeMobileChapter.chapterNumber === 9
+      ? t.mobile.editorTitle
+      : extra.editChapterTitle(activeMobileChapter.chapterNumber);
+
   return (
     <MobileFrame screenLabel={extra.screenLabel}>
       <header className="mobile-header">
@@ -1365,7 +1488,7 @@ const MobileEditorSimulated: React.FC = () => {
 
         <div className="mobile-header-titles">
           <span className="mobile-header-story">{extra.editModeKicker}</span>
-          <span className="mobile-header-chapter">{t.mobile.editorTitle}</span>
+          <span className="mobile-header-chapter">{chapterHeaderTitle}</span>
         </div>
 
         <button
@@ -1379,6 +1502,7 @@ const MobileEditorSimulated: React.FC = () => {
               ? t.mobile.collapsePlayerAria
               : t.mobile.expandPlayerAria
           }
+          onMouseDown={keepSelectionOnMouseDown}
           onClick={() => setIsCompactPlayerExpanded((open) => !open)}
         >
           <HeadphonesIcon size={18} />
@@ -1400,12 +1524,13 @@ const MobileEditorSimulated: React.FC = () => {
         <MobileCompactPlayer
           audio={audio}
           onClose={() => setIsCompactPlayerExpanded(false)}
+          keepFocus
         />
       )}
 
       <main
         className="mobile-editor-scroll"
-        aria-label={extra.mainAria}
+        aria-label={extra.mainAria(activeMobileChapter.chapterNumber)}
         onKeyDown={handleMainKeyDown}
       >
         <div className="mobile-editor-context-hint">
@@ -1469,7 +1594,7 @@ const MobileEditorSimulated: React.FC = () => {
                     <button
                       type="button"
                       className="mobile-kbd-action-btn"
-                      style={{ minHeight: '40px', padding: '0 12px' }}
+                      style={{ padding: '0 12px' }}
                       onClick={() => {
                         setEditingBlockId(null);
                         setInsertAfterIndex(index);
@@ -1523,8 +1648,7 @@ const MobileEditorSimulated: React.FC = () => {
                   <div className="mobile-editor-composer-top">
                     <span>
                       {extra.cursorAfterLabel} {index + 1}
-                      {(index === 3 ||
-                        block.text.toLowerCase().includes('estalajadeiro')) &&
+                      {block.text.toLowerCase().includes('estalajadeiro') &&
                         ` ${t.mobile.tavernaEndTag}`}
                     </span>
                     <span className="mobile-style-chips">
@@ -1591,6 +1715,75 @@ const MobileEditorSimulated: React.FC = () => {
             </React.Fragment>
           );
         })}
+
+        {draftBlocks.length === 0 && !editingBlockId && (
+          <div
+            className="mobile-editor-composer"
+            aria-label={extra.composerAria}
+          >
+            <div className="mobile-editor-composer-top">
+              <span>{extra.cursorAfterLabel} 0</span>
+              <span className="mobile-style-chips">
+                {activeStyleLabels.map((lbl) => (
+                  <span key={lbl} className="mobile-style-chip">
+                    {lbl}
+                  </span>
+                ))}
+              </span>
+            </div>
+
+            <div
+              ref={composerBoxRef}
+              tabIndex={0}
+              role="textbox"
+              aria-multiline="true"
+              aria-label={extra.composerTextAria}
+              className="mobile-composer-rich-box"
+              style={{ textAlign: activeStyle.align }}
+              onKeyDown={handlePhysicalKeyDown}
+              onClick={() => {
+                const sel = window.getSelection();
+                if (sel && !sel.isCollapsed && sel.toString().length > 0) {
+                  return;
+                }
+                composerBoxRef.current?.focus();
+              }}
+            >
+              {composerSegments.length > 0 ? (
+                <>
+                  <span ref={registerSegmentRoot('composer')}>
+                    {renderInlineSegments(composerSegments, 'composer')}
+                  </span>
+                  <span
+                    className="mobile-caret-indicator"
+                    aria-hidden="true"
+                  />
+                </>
+              ) : (
+                <>
+                  <span
+                    className="mobile-caret-indicator"
+                    aria-hidden="true"
+                  />
+                  <span className="mobile-composer-placeholder">
+                    {extra.composerPlaceholder}
+                  </span>
+                </>
+              )}
+            </div>
+
+            {dictationState !== 'idle' && (
+              <div className="mobile-dictation-status" role="status">
+                <MicIcon size={14} />
+                <span>
+                  {dictationState === 'listening'
+                    ? extra.dictationListeningMsg
+                    : extra.dictationDoneMsg}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
       </main>
 
       {/* Barra de formatação horizontal ancorada acima do teclado virtual (R20) */}
@@ -1691,7 +1884,11 @@ const MobileEditorSimulated: React.FC = () => {
       </div>
 
       {/* Teclado virtual simulado sempre aberto na edição */}
-      <section className="mobile-keyboard" aria-label={extra.keyboardAria}>
+      <section
+        ref={keyboardRef}
+        className="mobile-keyboard"
+        aria-label={extra.keyboardAria}
+      >
         <div className="mobile-keyboard-actions">
           <button
             type="button"
@@ -1700,6 +1897,7 @@ const MobileEditorSimulated: React.FC = () => {
                 ? 'mobile-dictate-btn--listening'
                 : ''
             }`.trim()}
+            onMouseDown={keepSelectionOnMouseDown}
             onClick={handleDictate}
           >
             <MicIcon size={18} />
@@ -1714,6 +1912,7 @@ const MobileEditorSimulated: React.FC = () => {
             type="button"
             className="mobile-kbd-action-btn"
             aria-label={t.mobile.newLineBtn}
+            onMouseDown={keepSelectionOnMouseDown}
             onClick={handleNewLine}
           >
             <span>↵ {t.mobile.newLineBtn}</span>
@@ -1723,6 +1922,7 @@ const MobileEditorSimulated: React.FC = () => {
             type="button"
             className="mobile-kbd-action-btn"
             aria-label={extra.insertAsterisksAria}
+            onMouseDown={keepSelectionOnMouseDown}
             onClick={handleInsertSeparator}
           >
             <span>{t.mobile.separatorShort}</span>
@@ -1737,6 +1937,7 @@ const MobileEditorSimulated: React.FC = () => {
                 key={key}
                 type="button"
                 className="mobile-kbd-key"
+                onMouseDown={keepSelectionOnMouseDown}
                 onClick={() => handleVirtualKey(key)}
               >
                 {label}
@@ -1753,6 +1954,7 @@ const MobileEditorSimulated: React.FC = () => {
                 key={key}
                 type="button"
                 className="mobile-kbd-key"
+                onMouseDown={keepSelectionOnMouseDown}
                 onClick={() => handleVirtualKey(key)}
               >
                 {label}
@@ -1774,6 +1976,7 @@ const MobileEditorSimulated: React.FC = () => {
             aria-pressed={shiftMode !== 'lower'}
             aria-label={extra.shiftAria(shiftMode)}
             title={extra.shiftAria(shiftMode)}
+            onMouseDown={keepSelectionOnMouseDown}
             onClick={handleToggleShift}
           >
             <span>{shiftMode === 'caps' ? '⇪' : '⇧'}</span>
@@ -1786,6 +1989,7 @@ const MobileEditorSimulated: React.FC = () => {
                 key={key}
                 type="button"
                 className="mobile-kbd-key"
+                onMouseDown={keepSelectionOnMouseDown}
                 onClick={() => handleVirtualKey(key)}
               >
                 {label}
@@ -1797,17 +2001,19 @@ const MobileEditorSimulated: React.FC = () => {
             type="button"
             className="mobile-kbd-key mobile-kbd-key--wide"
             aria-label={extra.deleteCharAria}
+            onMouseDown={keepSelectionOnMouseDown}
             onClick={handleBackspace}
           >
             ⌫
           </button>
         </div>
 
-        <div className="mobile-kbd-row">
+        <div className="mobile-kbd-row mobile-kbd-row--bottom">
           <button
             type="button"
-            className="mobile-kbd-key"
+            className="mobile-kbd-key mobile-kbd-key--wide"
             aria-label={extra.commaAria}
+            onMouseDown={keepSelectionOnMouseDown}
             onClick={() => handleVirtualPunctuation(', ')}
           >
             ,
@@ -1815,14 +2021,16 @@ const MobileEditorSimulated: React.FC = () => {
           <button
             type="button"
             className="mobile-kbd-key mobile-kbd-key--space"
+            onMouseDown={keepSelectionOnMouseDown}
             onClick={() => handleVirtualPunctuation(' ')}
           >
             {t.mobile.spaceKey}
           </button>
           <button
             type="button"
-            className="mobile-kbd-key"
+            className="mobile-kbd-key mobile-kbd-key--wide"
             aria-label={extra.periodAria}
+            onMouseDown={keepSelectionOnMouseDown}
             onClick={() => handleVirtualPunctuation('.')}
           >
             .
@@ -1831,6 +2039,7 @@ const MobileEditorSimulated: React.FC = () => {
             type="button"
             className="mobile-kbd-key mobile-kbd-key--wide"
             aria-label={extra.confirmLineAria}
+            onMouseDown={keepSelectionOnMouseDown}
             onClick={handleNewLine}
           >
             ↵

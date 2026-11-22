@@ -14,18 +14,21 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { stopAllAudioPlayback } from '../audio/ttsEngine';
 import { TRANSLATIONS } from '../i18n/translations';
 import {
   buildCarousels,
   computeLeonardoWordCount,
   createInitialLeonardoDraft,
-  createInitialSansaoChapter,
+  createInitialMobileChapters,
   MOCK_STORIES,
 } from '../data/mockStories';
 import {
   ChapterData,
   LanguageConfirmation,
   LeonardoDraft,
+  MobileBlock,
+  MobileStoryChapter,
   NvdaLogEntry,
   NvdaLogSource,
   PersonaPresetId,
@@ -135,16 +138,23 @@ export const PrototypeProvider: React.FC<{ children: React.ReactNode }> = ({
     createInitialLeonardoDraft()
   );
 
-  // Mobile — Sansão (W10 / W22)
-  const [sansaoChapter, setSansaoChapter] = useState<SansaoChapter>(() =>
-    createInitialSansaoChapter()
+  // Mobile — Sansão (W10 / W22, múltiplos capítulos para Tarefas A, B e C)
+  const [mobileChapters, setMobileChapters] = useState<MobileStoryChapter[]>(() =>
+    createInitialMobileChapters()
   );
+  const [activeMobileChapterId, setActiveMobileChapterId] =
+    useState<string>('sansao-cap-9');
+  const [mobileCurrentParagraph, setMobileCurrentParagraph] =
+    useState<number>(1);
+  const [mobileIsPlaying, setMobileIsPlaying] = useState<boolean>(false);
 
   // Preset Ativo
   const [activePreset, setActivePreset] = useState<PersonaPresetId>('adriana');
 
   const saveTimerRef = useRef<number | null>(null);
   const liveReplayTimerRef = useRef<number | null>(null);
+  const siteLanguageRef = useRef<SiteLanguage>(siteLanguage);
+  siteLanguageRef.current = siteLanguage;
 
   // Sincronizar lang no <html> e data-theme no root (R8 e R22)
   useEffect(() => {
@@ -191,6 +201,25 @@ export const PrototypeProvider: React.FC<{ children: React.ReactNode }> = ({
     );
     return chapters[safeIndex];
   }, [activeStory, activeChapterIndex, stories]);
+
+  const activeMobileChapter: MobileStoryChapter = useMemo(() => {
+    return (
+      mobileChapters.find((c) => c.id === activeMobileChapterId) ??
+      mobileChapters[0]
+    );
+  }, [mobileChapters, activeMobileChapterId]);
+
+  const sansaoChapter: SansaoChapter = useMemo(() => {
+    const total = Math.max(1, activeMobileChapter.blocks.length);
+    return {
+      storyTitle: activeMobileChapter.storyTitle,
+      chapterTitle: activeMobileChapter.chapterTitle,
+      blocks: activeMobileChapter.blocks,
+      currentParagraph: Math.max(1, Math.min(mobileCurrentParagraph, total)),
+      isPlaying: mobileIsPlaying,
+      edited: Boolean(activeMobileChapter.edited),
+    };
+  }, [activeMobileChapter, mobileCurrentParagraph, mobileIsPlaying]);
 
   // NVDA Live Announcer (R21)
   /**
@@ -250,14 +279,11 @@ export const PrototypeProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsLanguageModalOpen(false);
       }
       if (screen !== 'tela_3_leitura_desktop') {
-        setIsPlaying(false);
         setMagnifierEnabled(false);
       }
-      if (screen !== 'tela_5_leitura_mobile' && screen !== 'tela_6_editor_mobile') {
-        setSansaoChapter((prev) =>
-          prev.isPlaying ? { ...prev, isPlaying: false } : prev
-        );
-      }
+      setIsPlaying(false);
+      setMobileIsPlaying(false);
+      stopAllAudioPlayback();
       window.scrollTo({ top: 0, behavior: 'auto' });
     },
     []
@@ -358,6 +384,7 @@ export const PrototypeProvider: React.FC<{ children: React.ReactNode }> = ({
       setActiveChapterIndex(clampedIdx);
       setCurrentParagraphState(1);
       setIsPlaying(false);
+      stopAllAudioPlayback();
     },
     [stories]
   );
@@ -374,6 +401,7 @@ export const PrototypeProvider: React.FC<{ children: React.ReactNode }> = ({
       setActiveChapterIndex(clampedIdx);
       setCurrentParagraphState(1);
       setIsPlaying(false);
+      stopAllAudioPlayback();
     },
     [activeStory]
   );
@@ -390,12 +418,13 @@ export const PrototypeProvider: React.FC<{ children: React.ReactNode }> = ({
 
   /** Alterna entre o tema claro padrão e o Modo Alto Contraste Escuro (R22) com anúncio acessível. */
   const toggleHighContrast = useCallback(() => {
+    const sharedCopy = TRANSLATIONS[siteLanguageRef.current].shared;
     setTheme((prev) => {
       const next: ThemeMode = prev === 'light' ? 'high-contrast' : 'light';
       announceNvda(
         next === 'high-contrast'
-          ? 'Modo Alto Contraste Escuro ativado.'
-          : 'Tema claro padrão ativado.',
+          ? sharedCopy.highContrastOnNvda
+          : sharedCopy.highContrastOffNvda,
         'system'
       );
       return next;
@@ -435,12 +464,13 @@ export const PrototypeProvider: React.FC<{ children: React.ReactNode }> = ({
     []
   );
 
-  /** Publica o Capítulo 3 do Leonardo com carimbo de horário e feedback acessível em PT-BR (R15). */
+  /** Publica o Capítulo 3 do Leonardo com carimbo de horário e feedback acessível localizado (R15). */
   const publishLeonardoChapter = useCallback(() => {
     if (saveTimerRef.current !== null) {
       window.clearTimeout(saveTimerRef.current);
     }
-    const nowTime = new Date().toLocaleTimeString('pt-BR', {
+    const loc = TRANSLATIONS[siteLanguageRef.current];
+    const nowTime = new Date().toLocaleTimeString(loc.locale, {
       hour: '2-digit',
       minute: '2-digit',
     });
@@ -450,7 +480,7 @@ export const PrototypeProvider: React.FC<{ children: React.ReactNode }> = ({
       published: true,
       publishedAt: nowTime,
     }));
-    announceNvda('Capítulo publicado com sucesso.', 'editor');
+    announceNvda(loc.editor.nvdaPublished, 'editor');
   }, [announceNvda]);
 
   /** Restaura o rascunho inicial de Leonardo (1.240 palavras) cancelando timers pendentes. */
@@ -467,16 +497,105 @@ export const PrototypeProvider: React.FC<{ children: React.ReactNode }> = ({
     [leonardoDraft]
   );
 
-  /** Atualiza o estado do Capítulo 9 compartilhado entre leitura e edição mobile (Telas 5 e 6). */
+  const mobileChaptersRef = useRef(mobileChapters);
+  mobileChaptersRef.current = mobileChapters;
+  const activeMobileChapterIdRef = useRef(activeMobileChapterId);
+  activeMobileChapterIdRef.current = activeMobileChapterId;
+  const mobileCurrentParagraphRef = useRef(mobileCurrentParagraph);
+  mobileCurrentParagraphRef.current = mobileCurrentParagraph;
+  const mobileIsPlayingRef = useRef(mobileIsPlaying);
+  mobileIsPlayingRef.current = mobileIsPlaying;
+
+  /** Seleciona um capítulo do catálogo mobile preservando a velocidade de leitura (R6). */
+  const selectMobileChapter = useCallback((chapterId: string) => {
+    const exists = mobileChaptersRef.current.some((c) => c.id === chapterId);
+    if (!exists) return;
+    setActiveMobileChapterId(chapterId);
+    setMobileCurrentParagraph(1);
+    setMobileIsPlaying(false);
+    stopAllAudioPlayback();
+  }, []);
+
+  /** Atualiza os blocos de um capítulo mobile específico por ID. */
+  const updateMobileChapterBlocks = useCallback(
+    (chapterId: string, blocks: MobileBlock[], markEdited = true) => {
+      setMobileChapters((prev) =>
+        prev.map((ch) =>
+          ch.id === chapterId ? { ...ch, blocks, edited: markEdited } : ch
+        )
+      );
+      if (chapterId === activeMobileChapterIdRef.current) {
+        const total = Math.max(1, blocks.length);
+        setMobileCurrentParagraph((p) => Math.max(1, Math.min(p, total)));
+      }
+    },
+    []
+  );
+
+  /** Atalho compatível para atualizar os blocos do capítulo mobile ativo. */
+  const updateSansaoChapterBlocks = useCallback(
+    (blocks: MobileBlock[], markEdited = true) => {
+      updateMobileChapterBlocks(
+        activeMobileChapterIdRef.current,
+        blocks,
+        markEdited
+      );
+    },
+    [updateMobileChapterBlocks]
+  );
+
+  /** Atualiza o estado do capítulo mobile ativo compartilhado entre leitura e edição (Telas 5 e 6). */
   const updateSansaoChapter = useCallback(
     (
       updater:
         | Partial<SansaoChapter>
         | ((prev: SansaoChapter) => SansaoChapter)
     ) => {
-      setSansaoChapter((prev) =>
-        typeof updater === 'function' ? updater(prev) : { ...prev, ...updater }
+      const targetId = activeMobileChapterIdRef.current;
+      const targetCh =
+        mobileChaptersRef.current.find((c) => c.id === targetId) ??
+        mobileChaptersRef.current[0];
+      if (!targetCh) return;
+
+      const currentProjection: SansaoChapter = {
+        storyTitle: targetCh.storyTitle,
+        chapterTitle: targetCh.chapterTitle,
+        blocks: targetCh.blocks,
+        currentParagraph: Math.max(
+          1,
+          Math.min(
+            mobileCurrentParagraphRef.current,
+            Math.max(1, targetCh.blocks.length)
+          )
+        ),
+        isPlaying: mobileIsPlayingRef.current,
+        edited: Boolean(targetCh.edited),
+      };
+
+      const next =
+        typeof updater === 'function'
+          ? updater(currentProjection)
+          : { ...currentProjection, ...updater };
+
+      setMobileChapters((prevChapters) =>
+        prevChapters.map((ch) =>
+          ch.id === targetId
+            ? {
+                ...ch,
+                storyTitle: next.storyTitle,
+                chapterTitle: next.chapterTitle,
+                blocks: next.blocks,
+                edited: next.edited,
+              }
+            : ch
+        )
       );
+
+      const total = Math.max(1, next.blocks.length);
+      setMobileCurrentParagraph(
+        Math.max(1, Math.min(next.currentParagraph, total))
+      );
+      setMobileIsPlaying(next.isPlaying);
     },
     []
   );
@@ -484,26 +603,30 @@ export const PrototypeProvider: React.FC<{ children: React.ReactNode }> = ({
   /** Atualiza reprodução e parágrafo atual do player mobile garantindo limites válidos. */
   const setSansaoPlayback = useCallback(
     (updates: { isPlaying?: boolean; currentParagraph?: number }) => {
-      setSansaoChapter((prev) => {
-        const total = Math.max(1, prev.blocks.length);
-        const nextParagraph =
-          updates.currentParagraph !== undefined
-            ? Math.max(1, Math.min(updates.currentParagraph, total))
-            : prev.currentParagraph;
-        return {
-          ...prev,
-          isPlaying:
-            updates.isPlaying !== undefined ? updates.isPlaying : prev.isPlaying,
-          currentParagraph: nextParagraph,
-        };
-      });
+      if (updates.isPlaying !== undefined) {
+        setMobileIsPlaying(updates.isPlaying);
+      }
+      if (updates.currentParagraph !== undefined) {
+        const targetCh =
+          mobileChaptersRef.current.find(
+            (c) => c.id === activeMobileChapterIdRef.current
+          ) ?? mobileChaptersRef.current[0];
+        const total = Math.max(1, targetCh?.blocks.length ?? 1);
+        setMobileCurrentParagraph(
+          Math.max(1, Math.min(updates.currentParagraph, total))
+        );
+      }
     },
     []
   );
 
-  /** Restaura o Capítulo 9 de Sansão ao estado inicial da taverna/floresta. */
+  /** Restaura o catálogo mobile e retorna ao Capítulo 9 inicial da taverna/floresta. */
   const resetSansaoChapter = useCallback(() => {
-    setSansaoChapter(createInitialSansaoChapter());
+    setMobileChapters(createInitialMobileChapters());
+    setActiveMobileChapterId('sansao-cap-9');
+    setMobileCurrentParagraph(1);
+    setMobileIsPlaying(false);
+    stopAllAudioPlayback();
   }, []);
 
   /**
@@ -517,6 +640,9 @@ export const PrototypeProvider: React.FC<{ children: React.ReactNode }> = ({
       setIsLanguageModalOpen(false);
       setLanguageConfirmation(null);
       setSearchQuery('');
+      setIsPlaying(false);
+      setMobileIsPlaying(false);
+      stopAllAudioPlayback();
 
       if (saveTimerRef.current !== null) {
         window.clearTimeout(saveTimerRef.current);
@@ -546,11 +672,7 @@ export const PrototypeProvider: React.FC<{ children: React.ReactNode }> = ({
           ]);
           setNvdaLiveMessage('');
           // Permite que o próximo Tab foque imediatamente o skip link "Ir para o player" (R4)
-          window.setTimeout(() => {
-            if (document.activeElement instanceof HTMLElement) {
-              document.activeElement.blur();
-            }
-          }, 0);
+          document.querySelector<HTMLElement>('.app-shell')?.focus({ preventScroll: true });
           break;
         }
         case 'leonardo': {
@@ -591,7 +713,10 @@ export const PrototypeProvider: React.FC<{ children: React.ReactNode }> = ({
           setSiteLanguage('pt-BR');
           setStoriesLanguage('pt');
           setPlaybackRate(1.25);
-          setSansaoChapter(createInitialSansaoChapter());
+          setMobileChapters(createInitialMobileChapters());
+          setActiveMobileChapterId('sansao-cap-9');
+          setMobileCurrentParagraph(1);
+          setMobileIsPlaying(false);
           setPreviousScreen(null);
           setActiveScreen('tela_5_leitura_mobile');
           setNvdaLog([]);
@@ -660,8 +785,14 @@ export const PrototypeProvider: React.FC<{ children: React.ReactNode }> = ({
 
     sansaoChapter,
     updateSansaoChapter,
+    updateSansaoChapterBlocks,
     setSansaoPlayback,
     resetSansaoChapter,
+    mobileChapters,
+    activeMobileChapterId,
+    activeMobileChapter,
+    selectMobileChapter,
+    updateMobileChapterBlocks,
 
     activePreset,
     applyPersonaPreset,

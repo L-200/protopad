@@ -163,6 +163,19 @@ export interface SansaoChapter {
   edited: boolean;
 }
 
+/** Capítulo do catálogo mobile (Tarefas A, B e C de Sansão — Telas 5 e 6). */
+export interface MobileStoryChapter {
+  id: string;
+  storyId: string;
+  storyTitle: string;
+  chapterNumber: number;
+  chapterTitle: string;
+  language: StoryLanguage;
+  editable: boolean;
+  blocks: MobileBlock[];
+  edited?: boolean;
+}
+
 /** Origem de um anúncio emitido para a região viva e monitor NVDA (R21). */
 export type NvdaLogSource = 'control' | 'progress' | 'editor' | 'system';
 
@@ -261,11 +274,24 @@ export interface PrototypeContextValue {
       | Partial<SansaoChapter>
       | ((prev: SansaoChapter) => SansaoChapter)
   ) => void;
+  updateSansaoChapterBlocks: (
+    blocks: MobileBlock[],
+    markEdited?: boolean
+  ) => void;
   setSansaoPlayback: (updates: {
     isPlaying?: boolean;
     currentParagraph?: number;
   }) => void;
   resetSansaoChapter: () => void;
+  mobileChapters: MobileStoryChapter[];
+  activeMobileChapterId: string;
+  activeMobileChapter: MobileStoryChapter;
+  selectMobileChapter: (chapterId: string) => void;
+  updateMobileChapterBlocks: (
+    chapterId: string,
+    blocks: MobileBlock[],
+    markEdited?: boolean
+  ) => void;
 
   // Presets de Cenários
   activePreset: PersonaPresetId;

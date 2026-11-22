@@ -13,9 +13,31 @@ import {
   TtsPlaybackHandle,
 } from '../../audio/ttsEngine';
 import { usePrototype } from '../../state/PrototypeContext';
-import { MobileBlock, PlaybackRate } from '../../types/prototype';
+import { MobileBlock, PlaybackRate, StoryLanguage } from '../../types/prototype';
 
 const PLAYBACK_RATES: PlaybackRate[] = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
+
+function storyLangToTtsLang(language: StoryLanguage): string {
+  switch (language) {
+    case 'en':
+      return 'en-US';
+    case 'es':
+      return 'es-ES';
+    default:
+      return 'pt-BR';
+  }
+}
+
+function separatorSpokenText(language: StoryLanguage): string {
+  switch (language) {
+    case 'en':
+      return 'Scene break.';
+    case 'es':
+      return 'Cambio de escena.';
+    default:
+      return 'Transição de cena.';
+  }
+}
 
 /**
  * Formata a velocidade de reprodução com vírgula decimal para exibição nos botões (`1,25x`).
@@ -31,7 +53,7 @@ export function formatPlaybackRate(rate: PlaybackRate): string {
 }
 
 /**
- * Controla a narração por blocos do Cap. 9 no fluxo mobile usando o motor unificado
+ * Controla a narração por blocos do capítulo mobile ativo usando o motor unificado
  * (Piper TTS neural local offline com fallback automático para Web Speech / timer).
  * Suporta pausa e retomada real no meio do parágrafo e ajuste de velocidade em tempo real.
  *
@@ -41,12 +63,15 @@ export function formatPlaybackRate(rate: PlaybackRate): string {
 export function useSansaoAudio(blocksOverride?: MobileBlock[]) {
   const {
     sansaoChapter,
+    activeMobileChapter,
     playbackRate,
     setPlaybackRate,
     setSansaoPlayback,
   } = usePrototype();
 
-  const blocks = blocksOverride ?? sansaoChapter.blocks;
+  const blocks = blocksOverride ?? activeMobileChapter.blocks;
+  const ttsLang = storyLangToTtsLang(activeMobileChapter.language);
+  const sepText = separatorSpokenText(activeMobileChapter.language);
   const totalParagraphs = Math.max(1, blocks.length);
   const currentParagraph = Math.max(
     1,
@@ -58,14 +83,19 @@ export function useSansaoAudio(blocksOverride?: MobileBlock[]) {
   const playbackRateRef = useRef<PlaybackRate>(playbackRate);
   playbackRateRef.current = playbackRate;
   const prevParagraphRef = useRef<number>(currentParagraph);
+  const prevChapterIdRef = useRef<string>(activeMobileChapter.id);
 
-  // Ao trocar de parágrafo, limpa o offset de pausa para que o novo parágrafo inicie do começo
+  // Ao trocar de parágrafo ou de capítulo, limpa o offset de pausa para que o novo trecho inicie do começo
   useEffect(() => {
-    if (prevParagraphRef.current !== currentParagraph) {
+    if (
+      prevParagraphRef.current !== currentParagraph ||
+      prevChapterIdRef.current !== activeMobileChapter.id
+    ) {
       prevParagraphRef.current = currentParagraph;
+      prevChapterIdRef.current = activeMobileChapter.id;
       resetParagraphProgress();
     }
-  }, [currentParagraph]);
+  }, [currentParagraph, activeMobileChapter.id]);
 
   // Ajusta a velocidade ao vivo (tanto no Piper quanto na Web Speech API) sem reiniciar o parágrafo
   useEffect(() => {
@@ -77,11 +107,9 @@ export function useSansaoAudio(blocksOverride?: MobileBlock[]) {
     const block = blocks[currentParagraph - 1];
     if (!block) return;
     const text =
-      block.isSeparator || block.text.trim() === '***'
-        ? 'Transição de cena.'
-        : block.text;
-    prefetchParagraphAudio(text, 'pt-BR');
-  }, [blocks, currentParagraph]);
+      block.isSeparator || block.text.trim() === '***' ? sepText : block.text;
+    prefetchParagraphAudio(text, ttsLang);
+  }, [blocks, currentParagraph, sepText, ttsLang]);
 
   useEffect(() => {
     if (!isPlaying) {
@@ -106,19 +134,17 @@ export function useSansaoAudio(blocksOverride?: MobileBlock[]) {
     }
 
     const textToSpeak =
-      block.isSeparator || block.text.trim() === '***'
-        ? 'Transição de cena.'
-        : block.text;
+      block.isSeparator || block.text.trim() === '***' ? sepText : block.text;
     const nextBlock = blocks[activeIndex + 1];
     const nextTextToSpeak = nextBlock
       ? nextBlock.isSeparator || nextBlock.text.trim() === '***'
-        ? 'Transição de cena.'
+        ? sepText
         : nextBlock.text
       : undefined;
 
     const handle = speakParagraph({
       text: textToSpeak,
-      lang: 'pt-BR',
+      lang: ttsLang,
       rate: playbackRateRef.current,
       nextText: nextTextToSpeak,
       onEnded: () => {
@@ -144,6 +170,8 @@ export function useSansaoAudio(blocksOverride?: MobileBlock[]) {
     currentParagraph,
     totalParagraphs,
     blocks,
+    ttsLang,
+    sepText,
     setSansaoPlayback,
   ]);
 

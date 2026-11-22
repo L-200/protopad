@@ -12,7 +12,7 @@
  * 3. **Acompanhamento da Leitura em Áudio**: Quando o áudio avança para um novo parágrafo,
  *    a lupa atualiza automaticamente para exibir o parágrafo ativo ampliado em 200%.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../i18n/useTranslation';
 import { usePrototype } from '../../state/PrototypeContext';
 import { PlaybackRate, SiteLanguage } from '../../types/prototype';
@@ -177,94 +177,19 @@ export const FocusMagnifier: React.FC = () => {
   const { t, siteLanguage } = useTranslation();
   const labels = MAGNIFIER_LABELS[siteLanguage];
   const [snapshot, setSnapshot] = useState<MagnifierSnapshot | null>(null);
+  const lensRef = useRef<HTMLDivElement | null>(null);
+  const anchorElRef = useRef<HTMLElement | null>(null);
+  const prevParagraphKeyRef = useRef<string>('');
+  const [measuredHeight, setMeasuredHeight] = useState<number>(190);
+  const [, setViewportTick] = useState<number>(0);
 
   const totalParagraphs = Math.max(1, activeChapter.paragraphs.length);
 
   const isReaderDesktop = activeScreen === 'tela_3_leitura_desktop';
   const isActive = magnifierEnabled && isReaderDesktop;
 
-  // Atualiza automaticamente para o parágrafo ativo quando a lupa é ligada ou o parágrafo muda
-  useEffect(() => {
-    if (!isActive) {
-      setSnapshot(null);
-      return;
-    }
-
-    const activeParagraphEl = document.querySelector<HTMLElement>(
-      `[data-paragraph-number="${currentParagraph}"]`
-    );
-    const paragraphText = activeChapter.paragraphs[currentParagraph - 1];
-    if (activeParagraphEl && paragraphText) {
-      const rect = activeParagraphEl.getBoundingClientRect();
-      setSnapshot({
-        kind: 'paragraph',
-        context: t.reader.paragraphOf(currentParagraph, totalParagraphs),
-        label: paragraphText,
-        stateText: `${isPlaying ? t.reader.nvdaPlaying : t.reader.nvdaPaused} · ${formatPlaybackRate(
-          playbackRate,
-          siteLanguage
-        )}`,
-        rect: {
-          top: rect.top,
-          left: rect.left,
-          width: rect.width,
-          height: rect.height,
-          bottom: rect.bottom,
-        },
-      });
-    }
-  }, [
-    isActive,
-    currentParagraph,
-    activeChapter.id,
-    activeChapter.paragraphs,
-    totalParagraphs,
-    isPlaying,
-    playbackRate,
-    siteLanguage,
-    t,
-  ]);
-
-  useEffect(() => {
-    if (!isActive) {
-      return;
-    }
-
-    const buildParagraphSnapshot = (
-      paragraphEl: HTMLElement
-    ): MagnifierSnapshot | null => {
-      const numAttr = paragraphEl.getAttribute('data-paragraph-number');
-      const pNum = numAttr ? parseInt(numAttr, 10) : currentParagraph;
-      const rawText =
-        activeChapter.paragraphs[pNum - 1] ||
-        paragraphEl.querySelector('.reader-paragraph__text')?.textContent?.trim() ||
-        paragraphEl.textContent?.trim() ||
-        '';
-      if (!rawText) return null;
-
-      const rect = paragraphEl.getBoundingClientRect();
-      return {
-        kind: 'paragraph',
-        context: t.reader.paragraphOf(pNum, totalParagraphs),
-        label: rawText,
-        stateText: `${
-          pNum === currentParagraph
-            ? isPlaying
-              ? t.reader.nvdaPlaying
-              : t.reader.nvdaPaused
-            : labels.hintText
-        } · ${formatPlaybackRate(playbackRate, siteLanguage)}`,
-        rect: {
-          top: rect.top,
-          left: rect.left,
-          width: rect.width,
-          height: rect.height,
-          bottom: rect.bottom,
-        },
-      };
-    };
-
-    const buildControlSnapshot = (el: HTMLElement): MagnifierSnapshot => {
+  const buildControlSnapshot = useCallback(
+    (el: HTMLElement): MagnifierSnapshot => {
       const rect = el.getBoundingClientRect();
       const inPlayer =
         el.id === 'audio-player-region' ||
@@ -306,6 +231,142 @@ export const FocusMagnifier: React.FC = () => {
           bottom: rect.bottom,
         },
       };
+    },
+    [isPlaying, playbackRate, siteLanguage, t, labels]
+  );
+
+  // Atualiza coordenadas quando a janela redimensiona/rola ou quando EvaluatorHub/player mudam de tamanho
+  useEffect(() => {
+    if (!isActive) return;
+    const bump = () => setViewportTick((n) => (n + 1) % 100000);
+
+    window.addEventListener('resize', bump);
+    window.addEventListener('scroll', bump, { passive: true });
+
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(bump);
+      const hubEl = document.querySelector('[data-evaluator-hub="true"]');
+      const playerEl = document.getElementById('audio-player-region');
+      const funbarEl = document.getElementById('funbar');
+      if (hubEl) ro.observe(hubEl);
+      if (playerEl) ro.observe(playerEl);
+      if (funbarEl) ro.observe(funbarEl);
+    }
+
+    return () => {
+      window.removeEventListener('resize', bump);
+      window.removeEventListener('scroll', bump);
+      ro?.disconnect();
+    };
+  }, [isActive]);
+
+  useLayoutEffect(() => {
+    if (!isActive || !lensRef.current) return;
+    const h = Math.ceil(lensRef.current.getBoundingClientRect().height);
+    if (h > 0 && Math.abs(h - measuredHeight) > 2) {
+      setMeasuredHeight(h);
+    }
+  }, [isActive, snapshot, currentParagraph, activeChapter.id, measuredHeight]);
+
+  // Atualiza automaticamente para o parágrafo ativo quando a lupa é ligada ou o parágrafo muda
+  useEffect(() => {
+    if (!isActive) {
+      prevParagraphKeyRef.current = '';
+      anchorElRef.current = null;
+      setSnapshot(null);
+      return;
+    }
+
+    const nextKey = `${activeChapter.id}|${currentParagraph}`;
+    const paragraphChanged = prevParagraphKeyRef.current !== nextKey;
+    prevParagraphKeyRef.current = nextKey;
+
+    if (
+      !paragraphChanged &&
+      anchorElRef.current &&
+      document.contains(anchorElRef.current) &&
+      !anchorElRef.current.hasAttribute('data-paragraph-number')
+    ) {
+      setSnapshot(buildControlSnapshot(anchorElRef.current));
+      return;
+    }
+
+    const activeParagraphEl = document.querySelector<HTMLElement>(
+      `[data-paragraph-number="${currentParagraph}"]`
+    );
+    const paragraphText = activeChapter.paragraphs[currentParagraph - 1];
+    if (activeParagraphEl && paragraphText) {
+      anchorElRef.current = activeParagraphEl;
+      const rect = activeParagraphEl.getBoundingClientRect();
+      setSnapshot({
+        kind: 'paragraph',
+        context: t.reader.paragraphOf(currentParagraph, totalParagraphs),
+        label: paragraphText,
+        stateText: `${isPlaying ? t.reader.nvdaPlaying : t.reader.nvdaPaused} · ${formatPlaybackRate(
+          playbackRate,
+          siteLanguage
+        )}`,
+        rect: {
+          top: rect.top,
+          left: rect.left,
+          width: rect.width,
+          height: rect.height,
+          bottom: rect.bottom,
+        },
+      });
+    }
+  }, [
+    isActive,
+    currentParagraph,
+    activeChapter.id,
+    activeChapter.paragraphs,
+    totalParagraphs,
+    isPlaying,
+    playbackRate,
+    siteLanguage,
+    t,
+    buildControlSnapshot,
+  ]);
+
+  useEffect(() => {
+    if (!isActive) {
+      return;
+    }
+
+    const buildParagraphSnapshot = (
+      paragraphEl: HTMLElement
+    ): MagnifierSnapshot | null => {
+      const numAttr = paragraphEl.getAttribute('data-paragraph-number');
+      const pNum = numAttr ? parseInt(numAttr, 10) : currentParagraph;
+      const rawText =
+        activeChapter.paragraphs[pNum - 1] ||
+        paragraphEl.querySelector('.reader-paragraph__text')?.textContent?.trim() ||
+        paragraphEl.textContent?.trim() ||
+        '';
+      if (!rawText) return null;
+
+      anchorElRef.current = paragraphEl;
+      const rect = paragraphEl.getBoundingClientRect();
+      return {
+        kind: 'paragraph',
+        context: t.reader.paragraphOf(pNum, totalParagraphs),
+        label: rawText,
+        stateText: `${
+          pNum === currentParagraph
+            ? isPlaying
+              ? t.reader.nvdaPlaying
+              : t.reader.nvdaPaused
+            : labels.hintText
+        } · ${formatPlaybackRate(playbackRate, siteLanguage)}`,
+        rect: {
+          top: rect.top,
+          left: rect.left,
+          width: rect.width,
+          height: rect.height,
+          bottom: rect.bottom,
+        },
+      };
     };
 
     const inspectTarget = (target: EventTarget | null) => {
@@ -327,6 +388,7 @@ export const FocusMagnifier: React.FC = () => {
         if (controlEl.getAttribute('data-magnifier-toggle') === 'true') {
           return;
         }
+        anchorElRef.current = controlEl;
         setSnapshot(buildControlSnapshot(controlEl));
       }
     };
@@ -352,6 +414,7 @@ export const FocusMagnifier: React.FC = () => {
         '#audio-player-region button, #audio-player-region input'
       );
       if (inPlayerControl) {
+        anchorElRef.current = inPlayerControl;
         setSnapshot(buildControlSnapshot(inPlayerControl));
       }
     };
@@ -376,6 +439,7 @@ export const FocusMagnifier: React.FC = () => {
     siteLanguage,
     t,
     labels,
+    buildControlSnapshot,
   ]);
 
   if (!isActive) return null;
@@ -384,37 +448,114 @@ export const FocusMagnifier: React.FC = () => {
   const lensWidth = isParagraphLens ? 460 : 380;
   const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1280;
   const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
+  const actualWidth = Math.min(lensWidth, Math.max(240, viewportWidth - 32));
+  const estHeight = Math.min(measuredHeight || (isParagraphLens ? 190 : 140), viewportHeight - 32);
 
-  const positionStyle: React.CSSProperties = {
-    right: '20px',
-    bottom: '88px',
-  };
+  const hubRect =
+    typeof document !== 'undefined'
+      ? document.querySelector<HTMLElement>('[data-evaluator-hub="true"]')?.getBoundingClientRect() ?? null
+      : null;
+  const funbarRect =
+    typeof document !== 'undefined'
+      ? document.getElementById('funbar')?.getBoundingClientRect() ?? null
+      : null;
+  const playerRect =
+    typeof document !== 'undefined'
+      ? document.getElementById('audio-player-region')?.getBoundingClientRect() ?? null
+      : null;
+
+  const clampVal = (val: number, min: number, max: number) =>
+    Math.max(min, Math.min(Math.max(min, max), val));
+
+  const rectsOverlap = (
+    a: { left: number; top: number; right: number; bottom: number },
+    b: DOMRect,
+    pad = 12
+  ) =>
+    !(
+      a.right + pad <= b.left ||
+      a.left - pad >= b.right ||
+      a.bottom + pad <= b.top ||
+      a.top - pad >= b.bottom
+    );
+
+  let lensLeft = Math.max(16, viewportWidth - actualWidth - 20);
+  let lensTop = 144;
 
   if (snapshot && snapshot.kind === 'control') {
-    delete positionStyle.right;
-    delete positionStyle.bottom;
-    const lensLeft = Math.max(
+    const liveControlRect =
+      anchorElRef.current && document.contains(anchorElRef.current)
+        ? anchorElRef.current.getBoundingClientRect()
+        : snapshot.rect;
+
+    lensLeft = clampVal(
+      liveControlRect.left + liveControlRect.width / 2 - actualWidth / 2,
       16,
-      Math.min(
-        viewportWidth - lensWidth - 16,
-        snapshot.rect.left + snapshot.rect.width / 2 - lensWidth / 2
-      )
+      viewportWidth - actualWidth - 16
     );
-    const isBottomHalf = snapshot.rect.top > viewportHeight * 0.52;
+    const isBottomHalf = liveControlRect.top > viewportHeight * 0.52;
 
     if (isBottomHalf) {
-      positionStyle.bottom = `${Math.max(82, viewportHeight - snapshot.rect.top + 12)}px`;
+      const anchorTop =
+        playerRect && liveControlRect.top >= playerRect.top
+          ? playerRect.top
+          : liveControlRect.top;
+      lensTop = clampVal(
+        anchorTop - estHeight - 12,
+        16,
+        viewportHeight - estHeight - 16
+      );
     } else {
-      positionStyle.top = `${Math.min(
-        viewportHeight - 160,
-        Math.max(76, snapshot.rect.bottom + 12)
-      )}px`;
+      lensTop = clampVal(
+        liveControlRect.bottom + 12,
+        16,
+        viewportHeight - estHeight - 16
+      );
     }
-    positionStyle.left = `${lensLeft}px`;
+  } else {
+    const minTop =
+      funbarRect && funbarRect.bottom > 0
+        ? Math.max(16, funbarRect.bottom + 12)
+        : 144;
+    const maxBottomTop = playerRect
+      ? Math.max(16, playerRect.top - estHeight - 12)
+      : Math.max(16, viewportHeight - estHeight - 100);
+    lensTop = Math.min(minTop, maxBottomTop);
   }
+
+  // Garante que a Lupa 200% nunca colida com o EvaluatorHub (fechado ou aberto)
+  if (
+    hubRect &&
+    hubRect.width > 0 &&
+    hubRect.height > 0 &&
+    rectsOverlap(
+      {
+        left: lensLeft,
+        top: lensTop,
+        right: lensLeft + actualWidth,
+        bottom: lensTop + estHeight,
+      },
+      hubRect,
+      12
+    )
+  ) {
+    const aboveHubTop = hubRect.top - estHeight - 12;
+    const leftOfHub = hubRect.left - actualWidth - 12;
+    if (aboveHubTop >= 16) {
+      lensTop = aboveHubTop;
+    } else if (leftOfHub >= 16) {
+      lensLeft = leftOfHub;
+    }
+  }
+
+  const positionStyle: React.CSSProperties = {
+    top: `${Math.round(lensTop)}px`,
+    left: `${Math.round(lensLeft)}px`,
+  };
 
   return (
     <div
+      ref={lensRef}
       aria-hidden="true"
       data-magnifier-overlay="true"
       style={{

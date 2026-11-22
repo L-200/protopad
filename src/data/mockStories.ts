@@ -12,6 +12,7 @@ import {
   EditorBlock,
   LeonardoDraft,
   MobileBlock,
+  MobileStoryChapter,
   SansaoChapter,
   StoryItem,
 } from '../types/prototype';
@@ -735,4 +736,149 @@ export function createInitialSansaoChapter(): SansaoChapter {
     isPlaying: false,
     edited: false,
   };
+}
+
+/**
+ * Catálogo de capítulos disponíveis no modo mobile (Tarefas A, B e C de Sansão):
+ * - `'sansao-cap-9'`: Capítulo 9 próprio (padrão do Cenário 4 / Tarefa C, editável)
+ * - `'sansao-cap-7'`: Capítulo 7 próprio (Tarefa B, editável, com pensamento sem itálico e `***` à esquerda)
+ * - `'task-a-cap-1'`: Capítulo 1 de história nova em PT-BR (Tarefa A, somente leitura, >= 12 parágrafos)
+ * - `'task-a-en-cap-1'`: Capítulo 1 em inglês (suporte a selo de idioma e voz EN no mobile — R8/R17)
+ */
+export function createInitialMobileChapters(): MobileStoryChapter[] {
+  const cap9 = createInitialSansaoChapter();
+
+  const cap7Blocks: MobileBlock[] = [
+    {
+      id: 'san7-b1',
+      text: 'A neblina cobria as pedras soltas do desfiladeiro quando Caio puxou as rédeas antes da curva fechada.',
+      bold: false,
+      italic: false,
+      underline: false,
+      align: 'left',
+    },
+    {
+      id: 'san7-b2',
+      text: 'Se a patrulha fechou a ponte sul antes do amanhecer, não terei como atravessar sem ser visto, pensou Caio apertando o punho da lâmina.',
+      bold: false,
+      italic: false,
+      underline: false,
+      align: 'left',
+    },
+    {
+      id: 'san7-b3',
+      text: '***',
+      bold: false,
+      italic: false,
+      underline: false,
+      align: 'left',
+      isSeparator: true,
+    },
+    {
+      id: 'san7-b4',
+      text: 'No alto da torre de vigia, duas tochas foram acesas em sequência para marcar a troca de turno da guarnição.',
+      bold: false,
+      italic: false,
+      underline: false,
+      align: 'left',
+    },
+    {
+      id: 'san7-b5',
+      text: 'Ele desmontou em silêncio, conduziu o cavalo pela trilha estreita junto ao paredão e aguardou o eco dos passos sumir no vale.',
+      bold: false,
+      italic: false,
+      underline: false,
+      align: 'left',
+    },
+    {
+      id: 'san7-b6',
+      text: 'Antes que a chuva voltasse a cair com força, Caio já havia cruzado o marco de pedra rumo ao antigo entreposto.',
+      bold: false,
+      italic: false,
+      underline: false,
+      align: 'left',
+    },
+  ];
+
+  const taskACap1Paragraphs: string[] = [
+    'O ônibus intermunicipal sacolejava na serra quando Júlia apoiou os fones de ouvido e abriu o primeiro capítulo da história recém-salva.',
+    'Logo após a segunda curva fechada, o asfalto deu lugar a um trecho estreito de terra batida cercado por eucaliptos altos.',
+    'O motorista reduziu a marcha diante da placa amarela que anunciava obras na pista pelos próximos doze quilômetros.',
+    'No banco ao lado, um passageiro fechou a janela para conter a poeira avermelhada que subia do acostamento.',
+    'Mesmo com o balanço constante do veículo, a narração seguia em ritmo confortável, acompanhando cada curva da estrada sinuosa.',
+    'Do lado de fora, a neblina da manhã começava a se abrir sobre o vale, revelando telhados antigos e uma pequena estação ferroviária desativada.',
+    'Júlia conferiu o marcador de viagem no celular e percebeu que ainda restavam quarenta minutos até a parada central da cidade.',
+    'Quando o ônibus passou sobre a ponte de madeira, um estalo forte nos alto-falantes da rodoviária distante interrompeu sua atenção por alguns segundos.',
+    'Sem precisar olhar para o alto da página, bastou um toque no botão inferior para recuar um parágrafo e retomar exatamente a frase perdida.',
+    'A história continuou narrando a chegada de Marcos ao quilômetro zero, onde um poste torto sustentava um mapa apagado pela chuva.',
+    'Em frente à venda fechada, um cachorro caramelo dormia sob a varanda de zinco, alheio ao ronco dos caminhões que subiam a ladeira.',
+    'Marcos ajeitou a mochila nas costas, conferiu o endereço rabiscado no verso da passagem e decidiu seguir a pé até a vila.',
+    'A cada passo no cascalho solto, o cheiro de café recém-coado se misturava ao vento frio que descia das montanhas.',
+    'Quando alcançou o portão da antiga hospedaria, o sino de latão tocou uma única vez antes mesmo que ele estendesse a mão.',
+  ];
+
+  const taskACap1Blocks: MobileBlock[] = taskACap1Paragraphs.map((text, idx) => ({
+    id: `taska-b${idx + 1}`,
+    text,
+    bold: false,
+    italic: false,
+    underline: false,
+    align: 'left',
+  }));
+
+  const taskAEnBlocks: MobileBlock[] = EN_CAP_1_PARAGRAPHS.map((text, idx) => ({
+    id: `taska-en-b${idx + 1}`,
+    text,
+    bold: false,
+    italic: false,
+    underline: false,
+    align: 'left',
+  }));
+
+  return [
+    {
+      id: 'sansao-cap-9',
+      storyId: 'laminas-da-fronteira',
+      storyTitle: cap9.storyTitle,
+      chapterNumber: 9,
+      chapterTitle: cap9.chapterTitle,
+      language: 'pt',
+      editable: true,
+      blocks: cap9.blocks,
+      edited: false,
+    },
+    {
+      id: 'sansao-cap-7',
+      storyId: 'laminas-da-fronteira',
+      storyTitle: 'Lâminas da Fronteira',
+      chapterNumber: 7,
+      chapterTitle: 'Capítulo 7 — A travessia do desfiladeiro',
+      language: 'pt',
+      editable: true,
+      blocks: cap7Blocks,
+      edited: false,
+    },
+    {
+      id: 'task-a-cap-1',
+      storyId: 'estrada-sinuosa',
+      storyTitle: 'Estrada Sinuosa (Bumpy Road)',
+      chapterNumber: 1,
+      chapterTitle: 'Capítulo 1 — Quilômetro zero',
+      language: 'pt',
+      editable: false,
+      blocks: taskACap1Blocks,
+      edited: false,
+    },
+    {
+      id: 'task-a-en-cap-1',
+      storyId: 'echoes-beyond-the-harbor',
+      storyTitle: 'Echoes Beyond the Harbor',
+      chapterNumber: 1,
+      chapterTitle: 'Chapter 1 — Morning Fog',
+      language: 'en',
+      editable: false,
+      blocks: taskAEnBlocks,
+      edited: false,
+    },
+  ];
 }

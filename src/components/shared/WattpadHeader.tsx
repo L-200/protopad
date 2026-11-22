@@ -27,15 +27,24 @@ interface HeaderCopy {
   write: string;
   searchPlaceholder: string;
   searchLabel: string;
+  searchApplied: (query: string) => string;
+  logoAria: string;
+  mainNavAria: string;
   premium: string;
+  premiumNvda: string;
+  premiumNotice: string;
+  siteWord: string;
   siteShort: string;
   storiesShort: string;
+  currentStatePrefix: string;
   languageSettingsModal: string;
   languageSettingsPage: string;
   desktopReader: string;
   desktopEditor: string;
   toggleContrast: string;
   menuLabel: string;
+  statusOn: string;
+  statusOff: string;
 }
 
 const HEADER_COPY: Record<SiteLanguage, HeaderCopy> = {
@@ -45,15 +54,25 @@ const HEADER_COPY: Record<SiteLanguage, HeaderCopy> = {
     write: 'Escrever',
     searchPlaceholder: 'Pesquisar',
     searchLabel: 'Pesquisar histórias e autores',
+    searchApplied: (query) => `Busca aplicada para ${query}`,
+    logoAria: 'Wattpad — Ir para a página inicial',
+    mainNavAria: 'Navegação principal',
     premium: 'Experimente o Premium',
+    premiumNvda: 'Informações do Wattpad Premium exibidas.',
+    premiumNotice:
+      'Leitura sem anúncios e histórias bônus incluídas no plano Premium.',
+    siteWord: 'Site',
     siteShort: 'PT (BR)',
     storiesShort: 'Histórias',
+    currentStatePrefix: 'Estado atual:',
     languageSettingsModal: 'Configurações de idioma',
     languageSettingsPage: 'Abrir página de idioma',
     desktopReader: 'Leitura de capítulo (Áudio)',
     desktopEditor: 'Editor de capítulos',
     toggleContrast: 'Alto Contraste Escuro',
     menuLabel: 'Menu do perfil e idioma',
+    statusOn: 'Ativo',
+    statusOff: 'Desligado',
   },
   'en-US': {
     explore: 'Browse',
@@ -61,15 +80,25 @@ const HEADER_COPY: Record<SiteLanguage, HeaderCopy> = {
     write: 'Write',
     searchPlaceholder: 'Search',
     searchLabel: 'Search stories and authors',
+    searchApplied: (query) => `Search applied for ${query}`,
+    logoAria: 'Wattpad — Go to home page',
+    mainNavAria: 'Main navigation',
     premium: 'Try Premium',
+    premiumNvda: 'Wattpad Premium information displayed.',
+    premiumNotice:
+      'Ad-free reading and bonus stories included in the Premium plan.',
+    siteWord: 'Site',
     siteShort: 'EN (US)',
     storiesShort: 'Stories',
+    currentStatePrefix: 'Current status:',
     languageSettingsModal: 'Language settings',
     languageSettingsPage: 'Open language page',
     desktopReader: 'Chapter reader (Audio)',
     desktopEditor: 'Chapter editor',
     toggleContrast: 'High Contrast Dark',
     menuLabel: 'Profile and language menu',
+    statusOn: 'On',
+    statusOff: 'Off',
   },
   'es-ES': {
     explore: 'Explorar',
@@ -77,15 +106,25 @@ const HEADER_COPY: Record<SiteLanguage, HeaderCopy> = {
     write: 'Escribir',
     searchPlaceholder: 'Buscar',
     searchLabel: 'Buscar historias y autores',
+    searchApplied: (query) => `Búsqueda aplicada para ${query}`,
+    logoAria: 'Wattpad — Ir a la página de inicio',
+    mainNavAria: 'Navegación principal',
     premium: 'Prueba Premium',
+    premiumNvda: 'Información de Wattpad Premium mostrada.',
+    premiumNotice:
+      'Lectura sin anuncios e historias extra incluidas en el plan Premium.',
+    siteWord: 'Sitio',
     siteShort: 'ES',
     storiesShort: 'Historias',
+    currentStatePrefix: 'Estado actual:',
     languageSettingsModal: 'Configuración de idioma',
     languageSettingsPage: 'Abrir página de idioma',
     desktopReader: 'Lectura de capítulo (Audio)',
     desktopEditor: 'Editor de capítulos',
     toggleContrast: 'Alto Contraste Oscuro',
     menuLabel: 'Menú de perfil e idioma',
+    statusOn: 'Activo',
+    statusOff: 'Desactivado',
   },
 };
 
@@ -130,7 +169,30 @@ export const WattpadHeader: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [premiumNotice, setPremiumNotice] = useState(false);
   const menuContainerRef = useRef<HTMLDivElement | null>(null);
+  const profileMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const headerRef = useRef<HTMLElement | null>(null);
   const t = HEADER_COPY[siteLanguage];
+
+  // Mantém --header-height-live atualizado quando o header quebra em múltiplas linhas no zoom 200%
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+
+    const updateHeight = () => {
+      const h = Math.ceil(el.getBoundingClientRect().height);
+      if (h > 0) {
+        document.documentElement.style.setProperty('--header-height-live', `${h}px`);
+      }
+    };
+
+    updateHeight();
+    const ro = new ResizeObserver(updateHeight);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      document.documentElement.style.removeProperty('--header-height-live');
+    };
+  }, []);
 
   // Fecha o menu dropdown ao clicar fora ou pressionar Escape para navegação previsível por teclado
   useEffect(() => {
@@ -148,6 +210,7 @@ export const WattpadHeader: React.FC = () => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setMenuOpen(false);
+        profileMenuTriggerRef.current?.focus();
       }
     };
 
@@ -170,20 +233,19 @@ export const WattpadHeader: React.FC = () => {
       navigateTo('tela_1_home');
     }
     if (searchQuery.trim()) {
-      announceNvda(`Busca aplicada para ${searchQuery.trim()}`, 'system');
+      announceNvda(t.searchApplied(searchQuery.trim()), 'system');
     }
   };
 
-  const dualCompact = `Site: ${t.siteShort} · ${t.storiesShort}: ${STORY_LANG_SHORT[storiesLanguage]}`;
-  const dualFull = `Site: ${SITE_LANG_FULL[siteLanguage]} · Histórias: ${STORY_LANG_FULL[storiesLanguage]}`;
+  const dualCompact = `${t.siteWord}: ${t.siteShort} · ${t.storiesShort}: ${STORY_LANG_SHORT[storiesLanguage]}`;
+  const dualFull = `${t.siteWord}: ${SITE_LANG_FULL[siteLanguage]} · ${t.storiesShort}: ${STORY_LANG_FULL[storiesLanguage]}`;
 
   return (
     <header
+      ref={headerRef}
       role="banner"
+      className="wattpad-header"
       style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 1100,
         minHeight: 'var(--header-height)',
         backgroundColor: 'var(--bg-page)',
         borderBottom: '1px solid var(--divider)',
@@ -200,7 +262,7 @@ export const WattpadHeader: React.FC = () => {
         <button
           type="button"
           onClick={() => navigateTo('tela_1_home')}
-          aria-label="Wattpad — Ir para a página inicial"
+          aria-label={t.logoAria}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -223,7 +285,7 @@ export const WattpadHeader: React.FC = () => {
           </span>
         </button>
 
-        <nav aria-label="Navegação principal" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <nav aria-label={t.mainNavAria} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <button
             type="button"
             onClick={() => navigateTo('tela_1_home')}
@@ -332,7 +394,7 @@ export const WattpadHeader: React.FC = () => {
           className="btn-pill-premium"
           onClick={() => {
             setPremiumNotice((prev) => !prev);
-            announceNvda('Informações do Wattpad Premium exibidas.', 'system');
+            announceNvda(t.premiumNvda, 'system');
           }}
         >
           <SparklesIcon size={16} />
@@ -357,14 +419,15 @@ export const WattpadHeader: React.FC = () => {
               boxShadow: 'var(--shadow-elevated)',
             }}
           >
-            Leitura sem anúncios e histórias bônus incluídas no plano Premium.
+            {t.premiumNotice}
           </div>
         )}
 
         <div ref={menuContainerRef} style={{ position: 'relative' }}>
           <button
+            ref={profileMenuTriggerRef}
             type="button"
-            aria-label={`${t.menuLabel}. Estado atual: ${dualFull}`}
+            aria-label={`${t.menuLabel}. ${t.currentStatePrefix} ${dualFull}`}
             aria-haspopup="menu"
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((prev) => !prev)}
@@ -438,6 +501,7 @@ export const WattpadHeader: React.FC = () => {
                 type="button"
                 role="menuitem"
                 onClick={() => {
+                  profileMenuTriggerRef.current?.focus();
                   setMenuOpen(false);
                   openLanguageModal();
                 }}
@@ -566,7 +630,7 @@ export const WattpadHeader: React.FC = () => {
                     border: '1px solid var(--border-input-aa)',
                   }}
                 >
-                  {theme === 'high-contrast' ? 'Ativo' : 'Desligado'}
+                  {theme === 'high-contrast' ? t.statusOn : t.statusOff}
                 </span>
               </button>
             </div>

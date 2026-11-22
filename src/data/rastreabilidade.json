@@ -84,18 +84,18 @@
     },
     "tela_5_leitura_mobile": {
       "titulo": "Leitura de Capítulo com Player Mobile (390×844)",
-      "funcionalidades": ["W10"],
+      "funcionalidades": ["W10", "W01"],
       "cenarios": ["Cenario 4"],
       "hta_nos": [
         "Cenario 4: 1 (1.1-1.6), 6 (6.1-6.3)"
       ],
-      "requisitos_ids": ["R1", "R2", "R3", "R6", "R19"],
+      "requisitos_ids": ["R1", "R2", "R3", "R6", "R8", "R17", "R19"],
       "criterios_aceite": [
-        "Simulador 390×844 no computador e tela inteira no celular real, sem sobreposição do player sobre o texto do Cap. 9.",
+        "Simulador 390×844 no computador e tela inteira no celular real, sem sobreposição do player sobre o texto dos capítulos.",
         "Barra inferior fixa ao alcance do polegar com alvos >= 48×48px (48×48dp), gap >= 8px e retorno visual imediato ao toque.",
         "Linha fina de progresso apenas indicativa no topo da barra.",
         "Ordem fixa: Reproduzir/Pausar, Voltar parágrafo, Avançar parágrafo, Velocidade (exibindo '1,25x' mantida).",
-        "Cap. 9 inicia com cena na taverna colada à cena na floresta; botão de edição permite transição à Tela 6."
+        "Cap. 9 (padrão do Cenário 4 / Tarefa C) inicia com cena na taverna colada à cena na floresta; seletor mobile também permite abrir Cap. 1 de história nova (Tarefa A), Cap. 7 próprio (Tarefa B) e capítulo em inglês (R8/R17), preservando velocidade e derivando selo de idioma e voz TTS do capítulo ativo."
       ]
     },
     "tela_6_editor_mobile": {
@@ -110,7 +110,7 @@
         "No celular real, o texto é editável com o teclado do aparelho e o ditado por voz dele; no simulador, um teclado desenhado faz o mesmo papel. Nos dois, o texto entra com a formatação ativa (ex.: Itálico).",
         "Barra de formatação ancorada logo acima do teclado com Negrito, Itálico, Sublinhado e Alinhamento (alvos >= 48×48px, rótulos curtos PT-BR, destaque de estado ativo e rolagem horizontal quando exceder largura).",
         "Player recolhido em ícone compacto que se expande para conferência do áudio sem fechar o teclado virtual.",
-        "Botão 'Salvar' persiste thought em itálico e '***' centralizado no Cap. 9 e retorna à Tela 5 com player completo e velocidade 1,25x preservada."
+        "Botão 'Salvar' persiste alterações (como pensamento em itálico e '***' centralizado no Cap. 9 ou correções do Cap. 7) no capítulo ativo e retorna à Tela 5 com player completo e velocidade 1,25x preservada."
       ]
     }
   },
@@ -207,8 +207,8 @@
       "reforcado_por": ["Adriana"],
       "prioridade": "Essencial",
       "resumo": "Mesmo nome do recurso em todas as telas ('Ouvir', dica 'Ouvir com leitura em voz alta (voz automática)'), idioma marcado no código (lang) e voz TTS no idioma da história.",
-      "telas": ["tela_3_leitura_desktop"],
-      "cenarios": ["Cenario 1", "Cenario 3"],
+      "telas": ["tela_3_leitura_desktop", "tela_5_leitura_mobile"],
+      "cenarios": ["Cenario 1", "Cenario 3", "Cenario 4"],
       "criterio_aceite": "Substitui 'Listen with text to speech'; atributo lang='pt-BR' no documento e voz selecionada corresponde ao idioma da história."
     },
     "R9": {
@@ -315,8 +315,8 @@
       "reforcado_por": [],
       "prioridade": "Simular",
       "resumo": "Selo curto indicando o idioma em cada história e lista da Home, e na tela de leitura antes do botão/player Ouvir para informar o idioma da voz.",
-      "telas": ["tela_1_home", "tela_3_leitura_desktop"],
-      "cenarios": ["Cenario 3"],
+      "telas": ["tela_1_home", "tela_3_leitura_desktop", "tela_5_leitura_mobile"],
+      "cenarios": ["Cenario 3", "Cenario 4"],
       "criterio_aceite": "Usuário identifica listas/histórias em 'English' ou 'Português' antes de abrir e visualiza o selo do idioma da voz antes de reproduzir."
     },
     "R18": {

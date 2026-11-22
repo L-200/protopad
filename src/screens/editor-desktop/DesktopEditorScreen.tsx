@@ -500,6 +500,9 @@ export const DesktopEditorScreen: React.FC = () => {
 
       if (selectionInBlock && targetBlock) {
         captureCurrentRange(targetBlock.id);
+        if (sel && sel.rangeCount > 0 && !sel.getRangeAt(0).collapsed) {
+          pendingFormatsRef.current = null;
+        }
       }
 
       const pending = pendingFormatsRef.current;
@@ -747,8 +750,15 @@ export const DesktopEditorScreen: React.FC = () => {
   );
 
   const handleMouseDownBlock = useCallback((blockId: string) => {
-    // Clicar em nova posição encerra modo toggle pendente sem seleção
-    pendingFormatsRef.current = null;
+    // Se o foco estava fora dos blocos editáveis (ex.: botão da barra acionado por teclado),
+    // preserva os formatos pendentes até o usuário digitar ou fazer uma seleção real (R13).
+    const activeEl = document.activeElement;
+    const isFocusInsideEditableBlock = Object.values(blockRefs.current).some(
+      (el) => Boolean(el && activeEl && el.contains(activeEl))
+    );
+    if (isFocusInsideEditableBlock) {
+      pendingFormatsRef.current = null;
+    }
     setFocusedBlockId(blockId);
   }, []);
 
@@ -819,11 +829,8 @@ export const DesktopEditorScreen: React.FC = () => {
       }
 
       // Se tecla de navegação é pressionada, limpa formato pendente de toggle
-      if (
-        ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(
-          e.key
-        )
-      ) {
+      // (Home/End mantêm o formato pendente ao posicionar o cursor no início/fim da linha)
+      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
         pendingFormatsRef.current = null;
         return;
       }

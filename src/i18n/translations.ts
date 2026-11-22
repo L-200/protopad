@@ -275,6 +275,8 @@ export interface UITranslations {
     nvdaPolicyNote: string;
     magnifierTitle: string;
     magnifierWaiting: string;
+    highContrastOnNvda: string;
+    highContrastOffNvda: string;
   };
 }
 
@@ -595,6 +597,8 @@ export const TRANSLATIONS: Record<SiteLanguage, UITranslations> = {
         'R21: sem anúncios automáticos na troca contínua de parágrafos.',
       magnifierTitle: 'Lupa 200%',
       magnifierWaiting: 'Use Tab ou clique em um controle para ampliar o foco.',
+      highContrastOnNvda: 'Modo Alto Contraste Escuro ativado.',
+      highContrastOffNvda: 'Tema claro padrão ativado.',
     },
   },
 
@@ -873,6 +877,8 @@ export const TRANSLATIONS: Record<SiteLanguage, UITranslations> = {
         'R21: no automatic announcements during continuous paragraph playback.',
       magnifierTitle: '200% Magnifier',
       magnifierWaiting: 'Press Tab or click a control to magnify focus.',
+      highContrastOnNvda: 'High Contrast Dark mode enabled.',
+      highContrastOffNvda: 'Default light theme enabled.',
     },
   },
 
@@ -1153,6 +1159,8 @@ export const TRANSLATIONS: Record<SiteLanguage, UITranslations> = {
         'R21: sin anuncios automáticos al avanzar de párrafo continuamente.',
       magnifierTitle: 'Lupa 200%',
       magnifierWaiting: 'Usa Tab o haz clic en un control para ampliar el foco.',
+      highContrastOnNvda: 'Modo Alto Contraste Oscuro activado.',
+      highContrastOffNvda: 'Tema claro predeterminado activado.',
     },
   },
 };

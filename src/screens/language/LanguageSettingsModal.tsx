@@ -56,8 +56,18 @@ export const LanguageSettingsModal: React.FC = () => {
     document.addEventListener('keydown', onKeyDown);
     return () => {
       document.removeEventListener('keydown', onKeyDown);
-      if (previouslyFocused && typeof previouslyFocused.focus === 'function') {
+      if (
+        previouslyFocused &&
+        previouslyFocused !== document.body &&
+        document.contains(previouslyFocused) &&
+        typeof previouslyFocused.focus === 'function'
+      ) {
         previouslyFocused.focus();
+      } else {
+        const fallback = document.querySelector<HTMLElement>(
+          'header[role="banner"] button[aria-haspopup="menu"], main button, button, [href], input, select'
+        );
+        fallback?.focus();
       }
     };
   }, [closeLanguageModal]);

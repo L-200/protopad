@@ -4,7 +4,7 @@
  * o modal global de idioma (R10, R18), o cabeçalho desktop, o monitor NVDA (R21), a lupa de foco (R22)
  * e a ordem rigorosa do primeiro foco na Tela 3 via skip link (R4).
  */
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { EvaluatorHub } from './components/shared/EvaluatorHub';
 import { FocusMagnifier } from './components/shared/FocusMagnifier';
 import { NvdaAnnouncer } from './components/shared/NvdaAnnouncer';
@@ -29,11 +29,19 @@ const PrototypeShell: React.FC = () => {
   const { activeScreen, isLanguageModalOpen, siteLanguage, applyPersonaPreset } =
     usePrototype();
   const t = TRANSLATIONS[siteLanguage];
+  const shellRef = useRef<HTMLDivElement | null>(null);
 
   // No celular, o protótipo abre direto no Cenário 4 (Sansão), em tela inteira.
   useEffect(() => {
     if (IS_PHONE_DEVICE) applyPersonaPreset('sansao');
   }, [applyPersonaPreset]);
+
+  // Garante que ao entrar na Tela 3 o primeiro Tab atinja imediatamente o skip link (R4).
+  useEffect(() => {
+    if (activeScreen === 'tela_3_leitura_desktop') {
+      shellRef.current?.focus({ preventScroll: true });
+    }
+  }, [activeScreen]);
 
   const isMobileScreen =
     activeScreen === 'tela_5_leitura_mobile' ||
@@ -78,7 +86,7 @@ const PrototypeShell: React.FC = () => {
   };
 
   return (
-    <div className="app-shell">
+    <div ref={shellRef} className="app-shell" tabIndex={-1}>
       {/* R4: Primeiro elemento focável da Tela 3 é rigorosamente o skip link "Ir para o player" */}
       {activeScreen === 'tela_3_leitura_desktop' && (
         <a

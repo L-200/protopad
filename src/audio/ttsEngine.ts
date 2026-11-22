@@ -49,6 +49,9 @@ interface PausedParagraphState {
   charIndex: number;
 }
 
+/** WAV silencioso PCM 8kHz mono 16-bit (10 ms) para destravar HTMLAudioElement no gesto do usuário. */
+const SILENT_WAV_DATA_URI =
+  'data:audio/wav;base64,UklGRsQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
 /** Cache em memória de ObjectURLs (WAV já sintetizados nesta sessão). */
 const memoryAudioCache = new Map<string, string>();
 /** Cache de promessas em andamento para evitar chamadas duplicadas ao Piper. */
@@ -59,6 +62,10 @@ let localPiperAvailable: boolean | null = null;
 let statusProbePromise: Promise<boolean> | null = null;
 /** Singleton `HTMLAudioElement` reutilizado entre todos os parágrafos, capítulos e histórias. */
 let sharedAudio: HTMLAudioElement | null = null;
+/** Indica se `sharedAudio` já foi destravado dentro de um gesto de usuário nesta sessão. */
+let audioUnlocked = false;
+/** Indica se `sharedAudio` está temporariamente carregando o WAV silencioso de destravamento. */
+let isPrimingAudio = false;
 /** Identificador incremental de sessão de fala para invalidar callbacks antigos. */
 let activeSessionId = 0;
 /** Progresso pausado do parágrafo atual para retomada exata. */
@@ -75,6 +82,48 @@ function getSharedAudio(): HTMLAudioElement | null {
   return sharedAudio;
 }
 
+/**
+ * Destrava sincronamente o singleton `sharedAudio` dentro da janela de ativação por
+ * gesto do usuário antes de aguardar rede (`/api/tts`), evitando `NotAllowedError` em
+ * navegadores mobile sobre HTTP LAN.
+ */
+function primeSharedAudio(audioEl: HTMLAudioElement): void {
+  if (audioUnlocked) return;
+  try {
+    audioEl.onended = null;
+    audioEl.onerror = null;
+    audioEl.muted = true;
+    isPrimingAudio = true;
+    audioEl.src = SILENT_WAV_DATA_URI;
+    const playResult = audioEl.play();
+    if (playResult && typeof playResult.then === 'function') {
+      playResult.then(
+        () => {
+          audioUnlocked = true;
+          if (isPrimingAudio) {
+            isPrimingAudio = false;
+            try {
+              audioEl.pause();
+            } catch {
+              // Ignora erro ao pausar WAV de destravamento
+            }
+          }
+        },
+        () => {
+          if (isPrimingAudio) {
+            isPrimingAudio = false;
+          }
+        }
+      );
+    } else {
+      audioUnlocked = true;
+      isPrimingAudio = false;
+    }
+  } catch {
+    isPrimingAudio = false;
+  }
+}
+
 function buildCacheKey(lang: string, text: string): string {
   return `${lang}::${text.trim()}`;
 }
@@ -85,11 +134,39 @@ function buildCacheKey(lang: string, text: string): string {
  */
 export function resetParagraphProgress(): void {
   pausedState = null;
-  if (sharedAudio) {
+  if (sharedAudio && !isPrimingAudio) {
     try {
       sharedAudio.currentTime = 0;
     } catch {
       // Ignora caso src ainda não esteja carregado
+    }
+  }
+}
+
+/**
+ * Interrompe imediatamente qualquer reprodução em andamento (Piper HTMLAudioElement
+ * ou Web Speech API), invalida sessões assíncronas pendentes e limpa o estado de pausa.
+ */
+export function stopAllAudioPlayback(): void {
+  activeSessionId++;
+  pausedState = null;
+  isPrimingAudio = false;
+  if (sharedAudio) {
+    try {
+      sharedAudio.onended = null;
+      sharedAudio.onerror = null;
+      sharedAudio.pause();
+      sharedAudio.muted = false;
+      sharedAudio.currentTime = 0;
+    } catch {
+      // Ignora erro ao parar elemento de áudio
+    }
+  }
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    try {
+      window.speechSynthesis.cancel();
+    } catch {
+      // Ignora erro de cancelamento
     }
   }
 }
@@ -106,8 +183,17 @@ async function checkLocalPiperStatus(): Promise<boolean> {
     return statusProbePromise;
   }
   statusProbePromise = (async () => {
+    const controller =
+      typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeoutId =
+      controller !== null
+        ? window.setTimeout(() => controller.abort(), 3000)
+        : null;
     try {
-      const res = await fetch('/api/tts/status', { method: 'GET' });
+      const res = await fetch('/api/tts/status', {
+        method: 'GET',
+        signal: controller?.signal,
+      });
       if (!res.ok) {
         localPiperAvailable = false;
         return false;
@@ -119,6 +205,9 @@ async function checkLocalPiperStatus(): Promise<boolean> {
       localPiperAvailable = false;
       return false;
     } finally {
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
       statusProbePromise = null;
     }
   })();
@@ -147,11 +236,18 @@ async function fetchLocalPiperAudioUrl(
   if (existing) return existing;
 
   const requestPromise = (async () => {
+    const controller =
+      typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeoutId =
+      controller !== null
+        ? window.setTimeout(() => controller.abort(), 10000)
+        : null;
     try {
       const response = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: clean, lang }),
+        signal: controller?.signal,
       });
 
       if (response.status === 503 || response.status === 404) {
@@ -180,6 +276,9 @@ async function fetchLocalPiperAudioUrl(
     } catch {
       return null;
     } finally {
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
       inflightRequests.delete(key);
     }
   })();
@@ -274,6 +373,7 @@ export function speakParagraph(options: SpeakOptions): TtsPlaybackHandle {
 
   let stopped = false;
   let usingWebSpeech = false;
+  let usingTimedFallback = false;
   let fallbackTimer: number | null = null;
   let watchdogTimer: number | null = null;
   let safetyTimer: number | null = null;
@@ -297,6 +397,8 @@ export function speakParagraph(options: SpeakOptions): TtsPlaybackHandle {
       audioEl.onended = null;
       audioEl.onerror = null;
       audioEl.pause();
+      audioEl.muted = false;
+      isPrimingAudio = false;
     } catch {
       // Ignora erro ao pausar
     }
@@ -330,7 +432,7 @@ export function speakParagraph(options: SpeakOptions): TtsPlaybackHandle {
       elapsedSec * BASE_CHARS_PER_SEC * currentRate
     );
     const timeBasedOffset = Math.min(
-      cleanText.length - 1,
+      Math.max(0, cleanText.length - 1),
       segmentStartCharOffset + estimatedAdvance
     );
     // Usa o maior entre o último onboundary confirmado e a estimativa temporal
@@ -343,14 +445,18 @@ export function speakParagraph(options: SpeakOptions): TtsPlaybackHandle {
     stopped = true;
     clearTimers();
 
-    if (usingWebSpeech) {
+    if (usingWebSpeech || usingTimedFallback) {
       const savedChar = estimateCurrentCharOffset();
       pausedState = {
         key: paragraphKey,
         audioTime: 0,
         charIndex: savedChar < cleanText.length - 3 ? savedChar : 0,
       };
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      if (
+        usingWebSpeech &&
+        typeof window !== 'undefined' &&
+        'speechSynthesis' in window
+      ) {
         try {
           window.speechSynthesis.cancel();
         } catch {
@@ -362,17 +468,22 @@ export function speakParagraph(options: SpeakOptions): TtsPlaybackHandle {
 
     if (audioEl && sessionId === activeSessionId) {
       try {
+        const wasPriming = isPrimingAudio;
+        isPrimingAudio = false;
         const currentTime = audioEl.currentTime || 0;
         const duration = audioEl.duration || 0;
         audioEl.onended = null;
         audioEl.onerror = null;
         audioEl.pause();
-        pausedState = {
-          key: paragraphKey,
-          audioTime:
-            duration > 0 && currentTime >= duration - 0.15 ? 0 : currentTime,
-          charIndex: 0,
-        };
+        audioEl.muted = false;
+        pausedState = wasPriming
+          ? null
+          : {
+              key: paragraphKey,
+              audioTime:
+                duration > 0 && currentTime >= duration - 0.15 ? 0 : currentTime,
+              charIndex: 0,
+            };
       } catch {
         // Ignora erro
       }
@@ -387,9 +498,11 @@ export function speakParagraph(options: SpeakOptions): TtsPlaybackHandle {
 
     if (audioEl && sessionId === activeSessionId) {
       try {
+        isPrimingAudio = false;
         audioEl.onended = null;
         audioEl.onerror = null;
         audioEl.pause();
+        audioEl.muted = false;
         audioEl.currentTime = 0;
       } catch {
         // Ignora erro ao parar elemento de áudio
@@ -413,13 +526,23 @@ export function speakParagraph(options: SpeakOptions): TtsPlaybackHandle {
     onEnded();
   };
 
-  const startTimedOnlyFallback = (fromCharOffset = 0) => {
+  const startTimedOnlyFallback = (
+    fromCharOffset = 0,
+    overrideDelayMs?: number
+  ) => {
     if (!isCurrentSession()) return;
     clearTimers();
-    const remainingText = cleanText.slice(fromCharOffset).trim() || cleanText;
+    usingTimedFallback = true;
+    usingWebSpeech = false;
+    const safeOffset = snapToWordStart(cleanText, fromCharOffset);
+    currentCharOffset = safeOffset;
+    segmentStartCharOffset = safeOffset;
+    segmentStartTimestamp = Date.now();
+    const remainingText = cleanText.slice(safeOffset).trim() || cleanText;
     const words = Math.max(2, remainingText.split(/\s+/).length);
     const baseMs = Math.min(5400, Math.max(1400, words * 165));
-    const estimatedMs = Math.max(600, Math.round(baseMs / currentRate));
+    const estimatedMs =
+      overrideDelayMs ?? Math.max(600, Math.round(baseMs / currentRate));
     fallbackTimer = window.setTimeout(finishOnce, estimatedMs);
   };
 
@@ -430,13 +553,9 @@ export function speakParagraph(options: SpeakOptions): TtsPlaybackHandle {
   const speakWebSpeechFromOffset = (fromCharOffset: number) => {
     if (!isCurrentSession()) return;
     clearTimers();
-
-    if (localPiperAvailable === true) {
-      startTimedOnlyFallback(fromCharOffset);
-      return;
-    }
-
+    usingTimedFallback = false;
     usingWebSpeech = true;
+
     const safeOffset = snapToWordStart(cleanText, fromCharOffset);
     const remainingText = cleanText.slice(safeOffset).trim();
     if (!remainingText) {
@@ -452,18 +571,13 @@ export function speakParagraph(options: SpeakOptions): TtsPlaybackHandle {
     const baseMs = Math.min(5400, Math.max(1500, words * 165));
     const estimatedMs = Math.max(650, Math.round(baseMs / currentRate));
 
-    const startFallbackTimer = (delayMs: number) => {
-      if (!isCurrentSession() || fallbackTimer !== null) return;
-      fallbackTimer = window.setTimeout(finishOnce, delayMs);
-    };
-
     const hasSpeechApi =
       typeof window !== 'undefined' &&
       'speechSynthesis' in window &&
       typeof SpeechSynthesisUtterance !== 'undefined';
 
     if (!hasSpeechApi) {
-      startFallbackTimer(estimatedMs);
+      startTimedOnlyFallback(safeOffset, estimatedMs);
       return;
     }
 
@@ -509,7 +623,7 @@ export function speakParagraph(options: SpeakOptions): TtsPlaybackHandle {
 
       utterance.onerror = () => {
         if (!isCurrentSession()) return;
-        startFallbackTimer(estimatedMs);
+        startTimedOnlyFallback(estimateCurrentCharOffset(), estimatedMs);
       };
 
       window.speechSynthesis.speak(utterance);
@@ -521,11 +635,14 @@ export function speakParagraph(options: SpeakOptions): TtsPlaybackHandle {
           } catch {
             // Ignora erro
           }
-          startFallbackTimer(Math.max(600, estimatedMs - 450));
+          startTimedOnlyFallback(
+            safeOffset,
+            Math.max(600, estimatedMs - 450)
+          );
         }
       }, 450);
     } catch {
-      startFallbackTimer(estimatedMs);
+      startTimedOnlyFallback(safeOffset, estimatedMs);
     }
   };
 
@@ -534,6 +651,12 @@ export function speakParagraph(options: SpeakOptions): TtsPlaybackHandle {
     currentRate = nextRate;
     if (!isCurrentSession()) return;
 
+    if (usingTimedFallback) {
+      const resumeOffset = estimateCurrentCharOffset();
+      startTimedOnlyFallback(resumeOffset);
+      return;
+    }
+
     if (usingWebSpeech) {
       // Na Web Speech API, reinicia imediatamente da palavra atual com a nova velocidade
       const resumeOffset = estimateCurrentCharOffset();
@@ -541,24 +664,20 @@ export function speakParagraph(options: SpeakOptions): TtsPlaybackHandle {
       return;
     }
 
-    if (audioEl) {
+    if (audioEl && !isPrimingAudio) {
       audioEl.playbackRate = nextRate;
     }
   };
 
-  void (async () => {
-    const audioUrl = await fetchLocalPiperAudioUrl(cleanText, lang);
-    if (!isCurrentSession()) return;
-
-    if (!audioUrl || !audioEl) {
-      speakWebSpeechFromOffset(currentCharOffset);
-      return;
-    }
-
+  const playAudioUrl = async (audioUrl: string): Promise<void> => {
+    if (!isCurrentSession() || !audioEl) return;
     try {
       usingWebSpeech = false;
+      usingTimedFallback = false;
+      isPrimingAudio = false;
       audioEl.onended = null;
       audioEl.onerror = null;
+      audioEl.muted = false;
 
       if (audioEl.src !== audioUrl) {
         audioEl.src = audioUrl;
@@ -574,7 +693,10 @@ export function speakParagraph(options: SpeakOptions): TtsPlaybackHandle {
             'loadedmetadata',
             () => {
               try {
-                if (isCurrentSession() && resumeTime < (audioEl.duration || Infinity)) {
+                if (
+                  isCurrentSession() &&
+                  resumeTime < (audioEl.duration || Infinity)
+                ) {
                   audioEl.currentTime = resumeTime;
                 }
               } catch {
@@ -585,7 +707,11 @@ export function speakParagraph(options: SpeakOptions): TtsPlaybackHandle {
           );
         }
       } else {
-        audioEl.currentTime = 0;
+        try {
+          audioEl.currentTime = 0;
+        } catch {
+          // Ignora erro caso metadata ainda não esteja pronta
+        }
       }
 
       audioEl.playbackRate = currentRate;
@@ -599,18 +725,54 @@ export function speakParagraph(options: SpeakOptions): TtsPlaybackHandle {
 
       audioEl.onerror = () => {
         if (!isCurrentSession()) return;
-        startTimedOnlyFallback();
+        speakWebSpeechFromOffset(currentCharOffset);
       };
 
-      await audioEl.play();
+      const playPromise = audioEl.play();
+      if (playPromise && typeof playPromise.then === 'function') {
+        await playPromise;
+      }
+      audioUnlocked = true;
       if (isCurrentSession()) {
         audioEl.playbackRate = currentRate;
       }
     } catch {
       if (isCurrentSession()) {
-        startTimedOnlyFallback();
+        speakWebSpeechFromOffset(currentCharOffset);
       }
     }
+  };
+
+  if (!cleanText) {
+    fallbackTimer = window.setTimeout(finishOnce, 50);
+    return { pause, stop, setRate };
+  }
+
+  const cachedUrl = memoryAudioCache.get(paragraphKey);
+  if (cachedUrl && audioEl) {
+    void playAudioUrl(cachedUrl);
+    return { pause, stop, setRate };
+  }
+
+  if (localPiperAvailable === false || !audioEl) {
+    speakWebSpeechFromOffset(currentCharOffset);
+    return { pause, stop, setRate };
+  }
+
+  // Destrava sincronamente o singleton HTMLAudioElement dentro do gesto de usuário
+  // antes da chamada de rede ao `/api/tts`, evitando bloqueio de autoplay no celular.
+  primeSharedAudio(audioEl);
+
+  void (async () => {
+    const audioUrl = await fetchLocalPiperAudioUrl(cleanText, lang);
+    if (!isCurrentSession()) return;
+
+    if (!audioUrl) {
+      speakWebSpeechFromOffset(currentCharOffset);
+      return;
+    }
+
+    await playAudioUrl(audioUrl);
   })();
 
   return { pause, stop, setRate };

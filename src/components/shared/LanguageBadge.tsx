@@ -4,7 +4,8 @@
  * (contraste >= 4,5:1 e distinção não dependente apenas de cor, com ícone + texto).
  */
 import React from 'react';
-import { StoryLanguage } from '../../types/prototype';
+import { useTranslation } from '../../i18n/useTranslation';
+import { SiteLanguage, StoryLanguage } from '../../types/prototype';
 import { GlobeIcon } from './Icons';
 
 /**
@@ -13,7 +14,7 @@ import { GlobeIcon } from './Icons';
 interface LanguageBadgeProps {
   /** Código do idioma da história ou lista (`'pt'`, `'en'` ou `'es'`). */
   language: StoryLanguage;
-  /** Rótulo acessível customizado; quando omitido, usa `"Conteúdo em <idioma>"`. */
+  /** Rótulo acessível customizado; quando omitido, usa rótulo localizado equivalente a `"Conteúdo em <idioma>"`. */
   ariaLabel?: string;
   /** Classes CSS adicionais aplicadas ao selo. */
   className?: string;
@@ -25,6 +26,12 @@ const LANG_DISPLAY: Record<StoryLanguage, string> = {
   pt: 'Português',
   en: 'English',
   es: 'Español',
+};
+
+const CONTENT_IN_LANG: Record<SiteLanguage, (label: string) => string> = {
+  'pt-BR': (label) => `Conteúdo em ${label}`,
+  'en-US': (label) => `Content in ${label}`,
+  'es-ES': (label) => `Contenido en ${label}`,
 };
 
 /**
@@ -40,13 +47,14 @@ export const LanguageBadge: React.FC<LanguageBadgeProps> = ({
   className = '',
   showIcon = true,
 }) => {
+  const { siteLanguage } = useTranslation();
   const label = LANG_DISPLAY[language];
   const isEnglish = language === 'en';
 
   return (
     <span
       className={`lang-badge ${isEnglish ? 'lang-badge--en' : ''} ${className}`.trim()}
-      aria-label={ariaLabel ?? `Conteúdo em ${label}`}
+      aria-label={ariaLabel ?? CONTENT_IN_LANG[siteLanguage](label)}
     >
       {showIcon && <GlobeIcon size={13} />}
       <span>{label}</span>

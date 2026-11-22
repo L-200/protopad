@@ -413,10 +413,6 @@ interface ImageInsertModalProps {
   }) => void;
 }
 
-const DEFAULT_IMAGE_CAPTIONS = Object.values(MODAL_EXTRA_STRINGS).map(
-  (s) => s.imageDefaultCaption
-);
-
 /** Modal de seleção de ilustração vetorial e legenda opcional para o capítulo (`R14`). */
 export const ImageInsertModal: React.FC<ImageInsertModalProps> = ({
   isOpen,
@@ -431,10 +427,11 @@ export const ImageInsertModal: React.FC<ImageInsertModalProps> = ({
   const [insertAtTop, setInsertAtTop] = useState<boolean>(true);
 
   useEffect(() => {
-    setCaption((prev) =>
-      DEFAULT_IMAGE_CAPTIONS.includes(prev) ? extra.imageDefaultCaption : prev
-    );
-  }, [extra.imageDefaultCaption]);
+    if (!isOpen) return;
+    setSelectedPreset('escadaria');
+    setCaption(extra.imageDefaultCaption);
+    setInsertAtTop(true);
+  }, [isOpen, extra.imageDefaultCaption]);
 
   const dialogRef = useAccessibleDialog(isOpen, onClose);
 
@@ -592,13 +589,6 @@ interface VideoInsertModalProps {
   onConfirm: (payload: { videoTitle: string; caption: string }) => void;
 }
 
-const DEFAULT_VIDEO_TITLES = Object.values(MODAL_EXTRA_STRINGS).map(
-  (s) => s.videoDefaultTitle
-);
-const DEFAULT_VIDEO_CAPTIONS = Object.values(MODAL_EXTRA_STRINGS).map(
-  (s) => s.videoDefaultCaption
-);
-
 /** Modal de inserção de vídeo ou trilha sonora com validação de título (`R14`). */
 export const VideoInsertModal: React.FC<VideoInsertModalProps> = ({
   isOpen,
@@ -613,14 +603,11 @@ export const VideoInsertModal: React.FC<VideoInsertModalProps> = ({
   const [error, setError] = useState<string>('');
 
   useEffect(() => {
-    setVideoTitle((prev) =>
-      DEFAULT_VIDEO_TITLES.includes(prev) ? extra.videoDefaultTitle : prev
-    );
-    setCaption((prev) =>
-      DEFAULT_VIDEO_CAPTIONS.includes(prev) ? extra.videoDefaultCaption : prev
-    );
+    if (!isOpen) return;
+    setVideoTitle(extra.videoDefaultTitle);
+    setCaption(extra.videoDefaultCaption);
     setError('');
-  }, [extra.videoDefaultTitle, extra.videoDefaultCaption]);
+  }, [isOpen, extra.videoDefaultTitle, extra.videoDefaultCaption]);
 
   const dialogRef = useAccessibleDialog(isOpen, onClose);
 
@@ -739,16 +726,6 @@ interface PollInsertModalProps {
   onConfirm: (payload: { question: string; options: string[] }) => void;
 }
 
-const DEFAULT_POLL_QUESTIONS = Object.values(MODAL_EXTRA_STRINGS).map(
-  (s) => s.pollDefaultQuestion
-);
-const DEFAULT_POLL_OPT_0 = Object.values(MODAL_EXTRA_STRINGS).map(
-  (s) => s.pollDefaultOptions[0]
-);
-const DEFAULT_POLL_OPT_1 = Object.values(MODAL_EXTRA_STRINGS).map(
-  (s) => s.pollDefaultOptions[1]
-);
-
 /** Modal de criação de enquete (2 a 4 opções) para o final do capítulo (`R14`, `R15`). */
 export const PollInsertModal: React.FC<PollInsertModalProps> = ({
   isOpen,
@@ -766,22 +743,11 @@ export const PollInsertModal: React.FC<PollInsertModalProps> = ({
   const [error, setError] = useState<string>('');
 
   useEffect(() => {
-    setQuestion((prev) =>
-      DEFAULT_POLL_QUESTIONS.includes(prev) ? extra.pollDefaultQuestion : prev
-    );
-    setOptions((prev) =>
-      prev.map((opt, idx) => {
-        if (idx === 0 && DEFAULT_POLL_OPT_0.includes(opt)) {
-          return extra.pollDefaultOptions[0];
-        }
-        if (idx === 1 && DEFAULT_POLL_OPT_1.includes(opt)) {
-          return extra.pollDefaultOptions[1];
-        }
-        return opt;
-      })
-    );
+    if (!isOpen) return;
+    setQuestion(extra.pollDefaultQuestion);
+    setOptions([extra.pollDefaultOptions[0], extra.pollDefaultOptions[1]]);
     setError('');
-  }, [extra.pollDefaultQuestion, extra.pollDefaultOptions]);
+  }, [isOpen, extra.pollDefaultQuestion, extra.pollDefaultOptions]);
 
   const dialogRef = useAccessibleDialog(isOpen, onClose);
 

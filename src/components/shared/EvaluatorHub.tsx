@@ -166,6 +166,13 @@ export const EvaluatorHub: React.FC = () => {
     activeScreen === 'tela_5_leitura_mobile' ||
     activeScreen === 'tela_6_editor_mobile';
 
+  const closeHub = () => {
+    setIsOpen(false);
+    if (activeScreen === 'tela_3_leitura_desktop') {
+      document.querySelector<HTMLElement>('.app-shell')?.focus({ preventScroll: true });
+    }
+  };
+
   return (
     <aside
       data-evaluator-hub="true"
@@ -187,7 +194,7 @@ export const EvaluatorHub: React.FC = () => {
               setActiveTab('controles');
               setIsOpen(true);
             } else if (activeTab === 'controles') {
-              setIsOpen(false);
+              closeHub();
             } else {
               setActiveTab('controles');
             }
@@ -219,7 +226,7 @@ export const EvaluatorHub: React.FC = () => {
               setActiveTab('requisitos');
               setIsOpen(true);
             } else if (activeTab === 'requisitos') {
-              setIsOpen(false);
+              closeHub();
             } else {
               setActiveTab('requisitos');
             }
@@ -252,7 +259,7 @@ export const EvaluatorHub: React.FC = () => {
           <button
             type="button"
             aria-label="Recolher painel do avaliador"
-            onClick={() => setIsOpen(false)}
+            onClick={closeHub}
             style={{
               minWidth: '36px',
               minHeight: '36px',
