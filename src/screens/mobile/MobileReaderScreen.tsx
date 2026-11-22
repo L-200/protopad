@@ -181,7 +181,22 @@ export const MobileReaderScreen: React.FC = () => {
                   {paragraphNumber}
                 </span>
               )}
-              <span style={{ display: 'block' }}>{block.text}</span>
+              <span style={{ display: 'block' }}>
+                {block.segments && block.segments.length > 0
+                  ? block.segments.map((seg, segIdx) => (
+                      <span
+                        key={`${block.id}-seg-${segIdx}`}
+                        style={{
+                          fontWeight: seg.bold ? 700 : 400,
+                          fontStyle: seg.italic ? 'italic' : 'normal',
+                          textDecoration: seg.underline ? 'underline' : 'none',
+                        }}
+                      >
+                        {seg.text}
+                      </span>
+                    ))
+                  : block.text}
+              </span>
             </button>
           );
         })}

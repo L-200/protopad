@@ -132,6 +132,14 @@ export interface LeonardoDraft {
   publishedAt: string | null;
 }
 
+/** Segmento de texto com formatação inline independente dentro de uma mesma linha/parágrafo mobile (`R20`). */
+export interface MobileTextSegment {
+  text: string;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+}
+
 /** Bloco textual ou separador do capítulo mobile editável por Sansão (Telas 5 e 6 / R19, R20). */
 export interface MobileBlock {
   id: string;
@@ -141,6 +149,8 @@ export interface MobileBlock {
   underline: boolean;
   align: TextAlign;
   isSeparator?: boolean;
+  /** Segmentos opcionais com estilos inline variados na mesma linha/parágrafo. */
+  segments?: MobileTextSegment[];
 }
 
 /** Estado compartilhado do Capítulo 9 entre leitura mobile (Tela 5) e edição mobile (Tela 6). */
