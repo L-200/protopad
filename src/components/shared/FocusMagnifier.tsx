@@ -1,8 +1,16 @@
 /**
- * @fileoverview Simulador visual de lupa de foco em 200% para avaliação do Cenário 1 (Renata).
- * Acompanha dinamicamente o elemento com foco de teclado sem bloquear cliques (`pointerEvents: 'none'`)
- * e sem interferir na árvore de acessibilidade (`aria-hidden="true"`), evidenciando o atendimento
- * aos requisitos R2 (player sempre na mesma posição), R7 (nomes acessíveis em PT-BR) e R22.
+ * @fileoverview Simulador visual de Lupa 200% para avaliação do Cenário 1 (Renata — Baixa Visão).
+ *
+ * O que a Lupa 200% faz (R2, R7, R22):
+ * 1. **Alvo por Clique ou Mouse sobre o Texto**: Ao clicar ou passar o mouse sobre qualquer
+ *    parágrafo do capítulo, amplia o texto real daquele parágrafo em 200% (`24px/34px`, alto
+ *    contraste), permitindo ler confortavelmente cada trecho.
+ * 2. **Acompanhamento de Foco do Teclado (`Tab`, `"Ir para o player"`, tecla `D`, `Alt+P`)**:
+ *    Ao navegar pelos controles (cabeçalho, sub-header ou barra inferior fixa do player `#audio-player-region`),
+ *    a lente acompanha o controle focado e exibe seu rótulo, atalho e estado (`Reproduzindo · 1,75x`)
+ *    em tamanho 200%, comprovando o requisito R2 (o player fixo na base acompanha o foco e a Lupa).
+ * 3. **Acompanhamento da Leitura em Áudio**: Quando o áudio avança para um novo parágrafo,
+ *    a lupa atualiza automaticamente para exibir o parágrafo ativo ampliado em 200%.
  */
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from '../../i18n/useTranslation';
@@ -10,8 +18,9 @@ import { usePrototype } from '../../state/PrototypeContext';
 import { PlaybackRate, SiteLanguage } from '../../types/prototype';
 import { ZoomInIcon } from './Icons';
 
-/** Instantâneo geométrico e semântico do elemento atualmente focado na página. */
-interface FocusSnapshot {
+/** Instantâneo geométrico e semântico do elemento ou parágrafo atualmente ampliado pela Lupa 200%. */
+interface MagnifierSnapshot {
+  kind: 'paragraph' | 'control';
   context: string;
   label: string;
   stateText: string;
@@ -41,6 +50,7 @@ const MAGNIFIER_LABELS: Record<
     inactive: string;
     switchOn: string;
     badgeText: string;
+    hintText: string;
   }
 > = {
   'pt-BR': {
@@ -57,7 +67,8 @@ const MAGNIFIER_LABELS: Record<
     funbar: 'Sub-header do capítulo',
     inactive: 'Inativo',
     switchOn: 'Ligado',
-    badgeText: 'LUPA 200% · FOCO',
+    badgeText: 'LUPA 200%',
+    hintText: 'Clique ou passe o mouse em um parágrafo ou use Tab nos controles',
   },
   'en-US': {
     selectorFallback: 'Select',
@@ -73,7 +84,8 @@ const MAGNIFIER_LABELS: Record<
     funbar: 'Chapter sub-header',
     inactive: 'Inactive',
     switchOn: 'On',
-    badgeText: '200% MAGNIFIER · FOCUS',
+    badgeText: '200% MAGNIFIER',
+    hintText: 'Click or hover any paragraph or press Tab across controls',
   },
   'es-ES': {
     selectorFallback: 'Selector',
@@ -89,17 +101,11 @@ const MAGNIFIER_LABELS: Record<
     funbar: 'Subencabezado del capítulo',
     inactive: 'Inactivo',
     switchOn: 'Activo',
-    badgeText: 'LUPA 200% · FOCO',
+    badgeText: 'LUPA 200%',
+    hintText: 'Haz clic o pasa el ratón por un párrafo o usa Tab en los controles',
   },
 };
 
-/**
- * Formata a velocidade de reprodução conforme o idioma (`1,75x` em PT/ES, `1.75x` em EN).
- *
- * @param rate Velocidade numérica selecionada.
- * @param siteLanguage Idioma atual da interface.
- * @returns Rótulo formatado com separador decimal localizado.
- */
 function formatPlaybackRate(
   rate: PlaybackRate,
   siteLanguage: SiteLanguage
@@ -108,14 +114,6 @@ function formatPlaybackRate(
   return siteLanguage === 'en-US' ? `${raw}x` : `${raw.replace('.', ',')}x`;
 }
 
-/**
- * Extrai o nome acessível prioritário de um elemento focado seguindo a ordem semântica
- * (`select`, `aria-valuetext`, `aria-label`, `aria-labelledby`, `title`, texto visível, `placeholder`).
- *
- * @param el Elemento HTML atualmente focado.
- * @param selectorFallback Texto padrão para selects sem opção visível.
- * @returns Descrição textual concisa para exibição ampliada na lupa.
- */
 function describeElement(el: HTMLElement, selectorFallback: string): string {
   if (el instanceof HTMLSelectElement) {
     return (
@@ -141,7 +139,7 @@ function describeElement(el: HTMLElement, selectorFallback: string): string {
   if (titleAttr) return titleAttr;
 
   const text = el.textContent?.replace(/\s+/g, ' ').trim();
-  if (text) return text.slice(0, 72);
+  if (text) return text.slice(0, 120);
 
   const placeholder = el.getAttribute('placeholder');
   if (placeholder) return placeholder;
@@ -149,13 +147,6 @@ function describeElement(el: HTMLElement, selectorFallback: string): string {
   return el.tagName.toLowerCase();
 }
 
-/**
- * Traduz o papel ARIA ou tag nativa do elemento focado para exibição legível no idioma ativo.
- *
- * @param el Elemento HTML focado.
- * @param roles Mapa localizado de papéis nativos.
- * @returns Rótulo curto do papel do elemento.
- */
 function describeRole(
   el: HTMLElement,
   roles: (typeof MAGNIFIER_LABELS)['pt-BR']['roles']
@@ -171,8 +162,8 @@ function describeRole(
 }
 
 /**
- * Lente flutuante que amplia em texto de alto contraste o nome acessível, papel e estado
- * do elemento focado, posicionando-se acima ou abaixo do alvo conforme a metade da viewport.
+ * Lente flutuante de ampliação 200% que acompanha tanto parágrafos do texto
+ * (por clique, hover ou leitura ativa) quanto controles focados por teclado (`Tab`).
  */
 export const FocusMagnifier: React.FC = () => {
   const {
@@ -185,15 +176,95 @@ export const FocusMagnifier: React.FC = () => {
   } = usePrototype();
   const { t, siteLanguage } = useTranslation();
   const labels = MAGNIFIER_LABELS[siteLanguage];
-  const [snapshot, setSnapshot] = useState<FocusSnapshot | null>(null);
+  const [snapshot, setSnapshot] = useState<MagnifierSnapshot | null>(null);
 
+  const totalParagraphs = Math.max(1, activeChapter.paragraphs.length);
+
+  const isReaderDesktop = activeScreen === 'tela_3_leitura_desktop';
+  const isActive = magnifierEnabled && isReaderDesktop;
+
+  // Atualiza automaticamente para o parágrafo ativo quando a lupa é ligada ou o parágrafo muda
   useEffect(() => {
-    if (!magnifierEnabled) {
+    if (!isActive) {
       setSnapshot(null);
       return;
     }
 
-    const buildSnapshot = (el: HTMLElement): FocusSnapshot => {
+    const activeParagraphEl = document.querySelector<HTMLElement>(
+      `[data-paragraph-number="${currentParagraph}"]`
+    );
+    const paragraphText = activeChapter.paragraphs[currentParagraph - 1];
+    if (activeParagraphEl && paragraphText) {
+      const rect = activeParagraphEl.getBoundingClientRect();
+      setSnapshot({
+        kind: 'paragraph',
+        context: t.reader.paragraphOf(currentParagraph, totalParagraphs),
+        label: paragraphText,
+        stateText: `${isPlaying ? t.reader.nvdaPlaying : t.reader.nvdaPaused} · ${formatPlaybackRate(
+          playbackRate,
+          siteLanguage
+        )}`,
+        rect: {
+          top: rect.top,
+          left: rect.left,
+          width: rect.width,
+          height: rect.height,
+          bottom: rect.bottom,
+        },
+      });
+    }
+  }, [
+    isActive,
+    currentParagraph,
+    activeChapter.id,
+    activeChapter.paragraphs,
+    totalParagraphs,
+    isPlaying,
+    playbackRate,
+    siteLanguage,
+    t,
+  ]);
+
+  useEffect(() => {
+    if (!isActive) {
+      return;
+    }
+
+    const buildParagraphSnapshot = (
+      paragraphEl: HTMLElement
+    ): MagnifierSnapshot | null => {
+      const numAttr = paragraphEl.getAttribute('data-paragraph-number');
+      const pNum = numAttr ? parseInt(numAttr, 10) : currentParagraph;
+      const rawText =
+        activeChapter.paragraphs[pNum - 1] ||
+        paragraphEl.querySelector('.reader-paragraph__text')?.textContent?.trim() ||
+        paragraphEl.textContent?.trim() ||
+        '';
+      if (!rawText) return null;
+
+      const rect = paragraphEl.getBoundingClientRect();
+      return {
+        kind: 'paragraph',
+        context: t.reader.paragraphOf(pNum, totalParagraphs),
+        label: rawText,
+        stateText: `${
+          pNum === currentParagraph
+            ? isPlaying
+              ? t.reader.nvdaPlaying
+              : t.reader.nvdaPaused
+            : labels.hintText
+        } · ${formatPlaybackRate(playbackRate, siteLanguage)}`,
+        rect: {
+          top: rect.top,
+          left: rect.left,
+          width: rect.width,
+          height: rect.height,
+          bottom: rect.bottom,
+        },
+      };
+    };
+
+    const buildControlSnapshot = (el: HTMLElement): MagnifierSnapshot => {
       const rect = el.getBoundingClientRect();
       const inPlayer =
         el.id === 'audio-player-region' ||
@@ -223,6 +294,7 @@ export const FocusMagnifier: React.FC = () => {
       }
 
       return {
+        kind: 'control',
         context,
         label: describeElement(el, labels.selectorFallback),
         stateText: stateParts.join(' · '),
@@ -236,65 +308,91 @@ export const FocusMagnifier: React.FC = () => {
       };
     };
 
-    const updateFromActive = () => {
-      const active = document.activeElement;
-      if (
-        active instanceof HTMLElement &&
-        active !== document.body &&
-        active !== document.documentElement
-      ) {
-        setSnapshot(buildSnapshot(active));
-      } else {
-        setSnapshot(null);
+    const inspectTarget = (target: EventTarget | null) => {
+      if (!(target instanceof HTMLElement)) return;
+      if (target.closest('[data-evaluator-hub="true"]')) return;
+
+      const paragraphEl = target.closest<HTMLElement>('[data-paragraph-number]');
+      if (paragraphEl) {
+        const snap = buildParagraphSnapshot(paragraphEl);
+        if (snap) setSnapshot(snap);
+        return;
+      }
+
+      const controlEl = target.closest<HTMLElement>(
+        'button, a, input, select, [role="region"], [role="button"], [role="switch"], [contenteditable="true"]'
+      );
+      if (controlEl) {
+        // Ignora o próprio botão que acabou de ligar a lupa para mostrar o parágrafo atual logo de início
+        if (controlEl.getAttribute('data-magnifier-toggle') === 'true') {
+          return;
+        }
+        setSnapshot(buildControlSnapshot(controlEl));
       }
     };
 
     const handleFocusIn = (e: FocusEvent) => {
+      inspectTarget(e.target);
+    };
+
+    const handleClick = (e: MouseEvent) => {
+      inspectTarget(e.target);
+    };
+
+    const handleMouseOver = (e: MouseEvent) => {
       const target = e.target;
-      if (target instanceof HTMLElement) {
-        setSnapshot(buildSnapshot(target));
+      if (!(target instanceof HTMLElement)) return;
+      const paragraphEl = target.closest<HTMLElement>('[data-paragraph-number]');
+      if (paragraphEl) {
+        const snap = buildParagraphSnapshot(paragraphEl);
+        if (snap) setSnapshot(snap);
+        return;
+      }
+      const inPlayerControl = target.closest<HTMLElement>(
+        '#audio-player-region button, #audio-player-region input'
+      );
+      if (inPlayerControl) {
+        setSnapshot(buildControlSnapshot(inPlayerControl));
       }
     };
 
-    updateFromActive();
     document.addEventListener('focusin', handleFocusIn, true);
-    document.addEventListener('input', updateFromActive, true);
-    document.addEventListener('change', updateFromActive, true);
-    window.addEventListener('scroll', updateFromActive, true);
-    window.addEventListener('resize', updateFromActive);
+    document.addEventListener('click', handleClick, true);
+    document.addEventListener('mouseover', handleMouseOver, true);
 
     return () => {
       document.removeEventListener('focusin', handleFocusIn, true);
-      document.removeEventListener('input', updateFromActive, true);
-      document.removeEventListener('change', updateFromActive, true);
-      window.removeEventListener('scroll', updateFromActive, true);
-      window.removeEventListener('resize', updateFromActive);
+      document.removeEventListener('click', handleClick, true);
+      document.removeEventListener('mouseover', handleMouseOver, true);
     };
   }, [
-    magnifierEnabled,
+    isActive,
     isPlaying,
     playbackRate,
     currentParagraph,
     activeChapter.id,
-    activeScreen,
+    activeChapter.paragraphs,
+    totalParagraphs,
     siteLanguage,
     t,
     labels,
   ]);
 
-  if (!magnifierEnabled) return null;
+  if (!isActive) return null;
 
-  const lensWidth = 380;
+  const isParagraphLens = snapshot?.kind === 'paragraph';
+  const lensWidth = isParagraphLens ? 460 : 380;
   const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1280;
   const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
 
-  const totalParagraphs = Math.max(1, activeChapter.paragraphs.length);
   const positionStyle: React.CSSProperties = {
-    left: '16px',
-    top: '78px',
+    right: '20px',
+    bottom: '88px',
   };
 
-  if (snapshot) {
+  if (snapshot && snapshot.kind === 'control') {
+    delete positionStyle.right;
+    delete positionStyle.bottom;
     const lensLeft = Math.max(
       16,
       Math.min(
@@ -305,20 +403,14 @@ export const FocusMagnifier: React.FC = () => {
     const isBottomHalf = snapshot.rect.top > viewportHeight * 0.52;
 
     if (isBottomHalf) {
-      delete positionStyle.top;
-      positionStyle.bottom = `${Math.max(16, viewportHeight - snapshot.rect.top + 12)}px`;
+      positionStyle.bottom = `${Math.max(82, viewportHeight - snapshot.rect.top + 12)}px`;
     } else {
       positionStyle.top = `${Math.min(
-        viewportHeight - 150,
+        viewportHeight - 160,
         Math.max(76, snapshot.rect.bottom + 12)
       )}px`;
     }
     positionStyle.left = `${lensLeft}px`;
-  } else if (activeScreen === 'tela_3_leitura_desktop') {
-    delete positionStyle.top;
-    delete positionStyle.left;
-    positionStyle.right = '16px';
-    positionStyle.bottom = '150px';
   }
 
   return (
@@ -332,7 +424,7 @@ export const FocusMagnifier: React.FC = () => {
         maxWidth: 'calc(100vw - 32px)',
         zIndex: 1500,
         pointerEvents: 'none',
-        padding: '12px 16px',
+        padding: '14px 18px',
         borderRadius: 'var(--radius-lg)',
         backgroundColor: 'var(--bg-elevated)',
         color: 'var(--text-primary)',
@@ -346,7 +438,7 @@ export const FocusMagnifier: React.FC = () => {
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '8px',
-          marginBottom: '6px',
+          marginBottom: '8px',
         }}
       >
         <span
@@ -375,35 +467,36 @@ export const FocusMagnifier: React.FC = () => {
         >
           {snapshot
             ? snapshot.context
-            : activeScreen === 'tela_3_leitura_desktop'
-              ? t.reader.paragraphOf(currentParagraph, totalParagraphs)
-              : t.common.onFem}
+            : t.reader.paragraphOf(currentParagraph, totalParagraphs)}
         </span>
       </div>
 
       <div
         style={{
-          fontSize: '20px',
-          fontWeight: 700,
-          lineHeight: 1.25,
+          fontSize: isParagraphLens ? '24px' : '20px',
+          fontWeight: isParagraphLens ? 600 : 700,
+          lineHeight: isParagraphLens ? 1.42 : 1.25,
           wordBreak: 'break-word',
+          maxHeight: '220px',
+          overflow: 'hidden',
         }}
       >
-        {snapshot ? snapshot.label : t.shared.magnifierWaiting}
+        {snapshot
+          ? snapshot.label
+          : activeChapter.paragraphs[currentParagraph - 1] ||
+            t.shared.magnifierWaiting}
       </div>
 
-      {snapshot?.stateText && (
-        <div
-          style={{
-            marginTop: '6px',
-            fontSize: '14px',
-            fontWeight: 700,
-            color: 'var(--text-secondary)',
-          }}
-        >
-          {snapshot.stateText}
-        </div>
-      )}
+      <div
+        style={{
+          marginTop: '8px',
+          fontSize: '13px',
+          fontWeight: 700,
+          color: 'var(--text-secondary)',
+        }}
+      >
+        {snapshot?.stateText || labels.hintText}
+      </div>
     </div>
   );
 };

@@ -93,12 +93,14 @@ No canto inferior direito da interface, o botão recolhível **Hub de Avaliaçã
 
 ---
 
-## Acessibilidade (WCAG 2.1 AA/AAA)
+## Acessibilidade (WCAG 2.1 AA/AAA) e Síntese de Voz Neural
 
 - **Contraste verificado:** tokens CSS em `src/styles/tokens.css` garantem `≥ 4,5:1` em textos normais (`#121212`, `#676767`, `#CD4008`, `#006E3F`, `#007070` sobre claro) e `≥ 3:1` em bordas/elementos gráficos (`#767676`, `#00838A`), evitando uso de `#FF6122` como texto sobre branco (`R22`).
 - **Alto Contraste Escuro (`[data-theme="high-contrast"]`):** fundo `#121212`, texto `#FFFFFF` (`18,73:1`), foco reforçado `3px solid #FFC922` e estados sempre comunicados por ícone + rótulo/borda (nunca apenas por cor).
+- **Motor TTS Neural Offline (`Piper TTS` + `src/audio/ttsEngine.ts`):** sintetiza parágrafos localmente via `/api/tts` com vozes neurais `pt_BR-faber-medium` e `en_US-lessac-medium`, cache em disco (`.tts/cache/`), pré-carregamento do próximo parágrafo e elemento `<audio>` singleton persistente (evitando expiração de ativação de áudio no Firefox entre parágrafos, capítulos e livros).
+- **Internacionalização completa (`src/i18n/`):** alterar **"Idioma do site (menus e botões)"** entre `Português (Brasil)`, `English (US)` e `Español` atualiza em tempo real cabeçalhos, carrosséis, leitor, barra e modais do editor (`R15`), telas mobile e confirmações com `Desfazer` (`R18`).
 - **Convivência silenciosa com NVDA (`R21`):** a região `<div aria-live="polite">` (`NvdaAnnouncer.tsx`) emite anúncios curtos apenas em interações explícitas do usuário ou foco no controle de progresso — nunca gera spam a cada avanço automático de parágrafo.
-- **Lupa 200% (`FocusMagnifier.tsx`):** lente visual opcional que acompanha `document.activeElement` em toda a página, inclusive na barra inferior fixa `#audio-player-region`.
+- **Lupa 200% (`FocusMagnifier.tsx`):** exclusiva da Tela 3 (desativa-se automaticamente ao navegar para Explorar ou outras telas); amplia em 200% o texto completo de qualquer parágrafo clicado, focado ou sob o mouse, acompanha a leitura ativa e segue o foco de teclado (`Tab`) pelos controles da barra inferior fixa `#audio-player-region`.
 - **Modais acessíveis:** todos os diálogos (Configurações de Idioma e os 5 modais do Editor) implementam `role="dialog"`, `aria-modal="true"`, foco inicial, aprisionamento de `Tab`/`Shift+Tab`, fechamento por `Esc` e restauração de foco.
 
 ---
@@ -112,15 +114,24 @@ prototipo/
 │   ├── rastreabilidade.json       # Matriz canônica R1–R22 <-> Telas <-> Cenários
 │   └── qa_report.md               # Relatório de auditoria QA/WCAG e verificação pós-correção
 └── app/
-    ├── .gitignore
+    ├── .gitignore                 # Ignora node_modules/, dist/ e .tts/ (binário e modelos)
     ├── README.md
     ├── index.html                 # Documento raiz com <html lang="pt-BR">
     ├── package.json
     ├── tsconfig.json
-    ├── vite.config.ts
+    ├── vite.config.ts             # Configura React + middleware local Piper TTS (/api/tts)
+    ├── scripts/
+    │   ├── setup-piper.sh         # Instalador offline do Piper TTS e vozes PT-BR / EN-US
+    │   ├── piper-tts-plugin.mjs   # Plugin Vite (/api/tts e /api/tts/status com cache WAV)
+    │   └── piper-tts-plugin.d.mts
     └── src/
         ├── main.tsx               # Bootstrap React
         ├── App.tsx                # Shell global, skip link R4, roteamento das 6 telas e Hub
+        ├── audio/
+        │   └── ttsEngine.ts       # Motor TTS unificado (Piper neural local + singleton Audio + fallback)
+        ├── i18n/
+        │   ├── translations.ts    # Dicionário completo pt-BR, en-US e es-ES
+        │   └── useTranslation.ts  # Hook reativo de tradução da interface
         ├── styles/
         │   ├── tokens.css         # Tokens de design Wattpad + overrides WCAG + Alto Contraste
         │   └── global.css         # Reset acessível, .skip-link, :focus-visible, botões pill, tooltips
@@ -137,13 +148,13 @@ prototipo/
         │   ├── LanguageBadge.tsx  # Selo curto de idioma (R17)
         │   ├── WattpadHeader.tsx  # Header global com busca AA e dropdown de idioma dual
         │   ├── NvdaAnnouncer.tsx  # Região aria-live="polite" + monitor visual de anúncios (R21)
-        │   ├── FocusMagnifier.tsx # Simulador de Lupa 200% seguindo foco (R2, R22)
+        │   ├── FocusMagnifier.tsx # Simulador de Lupa 200% para parágrafos e controles (R2, R22)
         │   └── EvaluatorHub.tsx   # Controle recolhível de presets e rastreabilidade R1–R22
         └── screens/
             ├── home/              # Tela 1 — Home / Exploração Desktop
             ├── language/          # Tela 2 — Configurações de Idioma (Modal + Rota Dedicada)
             ├── reader-desktop/    # Tela 3 — Leitura Desktop + Player Acessível W10
-            ├── editor-desktop/    # Tela 4 — Editor de Capítulos Desktop W22
+            ├── editor-desktop/    # Tela 4 — Editor de Capítulos Desktop W22 (layout compacto)
             └── mobile/            # Telas 5 e 6 — Frame 390×844 Leitura e Editor Mobile
 ```
 
