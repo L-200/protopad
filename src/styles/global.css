@@ -289,6 +289,56 @@ a {
   border-color: var(--badge-lang-en-border);
 }
 
+/* Painel flutuante do avaliador (TP2) */
+.evaluator-hub {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 1150;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: calc(100vw - 32px);
+}
+
+.evaluator-hub--reader-desktop {
+  bottom: 88px;
+}
+
+.evaluator-hub-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  background-color: var(--bg-elevated);
+  border: 2px solid var(--border-input-aa);
+  box-shadow: var(--shadow-elevated);
+}
+
+/* Em telas mobile (Telas 5 e 6), quando não há margem lateral suficiente
+   ao lado da moldura 390×844 (incluindo emulação 390×844 no DevTools),
+   posiciona a barra do avaliador no fluxo normal abaixo do celular para
+   nunca sobrepor os botões do player ou o teclado virtual. */
+@media (max-width: 1279px) {
+  .evaluator-hub--mobile-screen {
+    position: static;
+    width: 100%;
+    max-width: 100%;
+    padding: 12px 12px 20px;
+    flex-direction: column;
+    align-items: center;
+    background-color: var(--bg-surface);
+    border-top: 1px solid var(--divider);
+  }
+
+  .evaluator-hub--mobile-screen .evaluator-hub-pill {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
 /* Garante respeito a preferências de movimento reduzido */
 @media (prefers-reduced-motion: reduce) {
   html {
@@ -299,5 +349,6 @@ a {
   *::after {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }

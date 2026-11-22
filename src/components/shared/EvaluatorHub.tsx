@@ -162,36 +162,24 @@ export const EvaluatorHub: React.FC = () => {
     PRESET_OPTIONS.find((p) => p.id === activePreset)?.label ?? 'Cenário';
 
   const isReaderDesktop = activeScreen === 'tela_3_leitura_desktop';
+  const isMobileScreen =
+    activeScreen === 'tela_5_leitura_mobile' ||
+    activeScreen === 'tela_6_editor_mobile';
 
   return (
     <aside
       data-evaluator-hub="true"
       aria-label="Painel do avaliador do protótipo TP2"
-      style={{
-        position: 'fixed',
-        bottom: isReaderDesktop ? '88px' : '16px',
-        right: '16px',
-        zIndex: 1150,
-        display: 'flex',
-        flexDirection: 'column-reverse',
-        alignItems: 'flex-end',
-        gap: '8px',
-        maxWidth: 'calc(100vw - 32px)',
-      }}
+      className={[
+        'evaluator-hub',
+        isReaderDesktop ? 'evaluator-hub--reader-desktop' : '',
+        isMobileScreen ? 'evaluator-hub--mobile-screen' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
     >
       {/* Barra compacta flutuante sempre acessível sem roubar o 1.º Tab (R4) */}
-      <div
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px',
-          padding: '4px',
-          borderRadius: 'var(--radius-pill)',
-          backgroundColor: 'var(--bg-elevated)',
-          border: '2px solid var(--border-input-aa)',
-          boxShadow: 'var(--shadow-elevated)',
-        }}
-      >
+      <div className="evaluator-hub-pill">
         <button
           type="button"
           onClick={() => {

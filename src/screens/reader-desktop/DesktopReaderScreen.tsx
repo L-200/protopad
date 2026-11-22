@@ -16,8 +16,10 @@ import {
 } from '../../audio/ttsEngine';
 import {
   CheckIcon,
+  ContrastIcon,
   PlusIcon,
   StarIcon,
+  ZoomInIcon,
 } from '../../components/shared/Icons';
 import { HEADSET_MEDIA_KEY_EVENT } from '../../components/shared/evaluatorEvents';
 import { LanguageBadge } from '../../components/shared/LanguageBadge';
@@ -211,10 +213,15 @@ export const DesktopReaderScreen: React.FC = () => {
     setPlaybackRate,
     setActiveStory,
     setActiveChapter,
+    theme,
+    toggleHighContrast,
+    magnifierEnabled,
+    setMagnifierEnabled,
     announceNvda,
   } = usePrototype();
   const { t } = useTranslation();
   const extra = READER_EXTRA[siteLanguage];
+  const isHighContrast = theme === 'high-contrast';
 
   const [votedStories, setVotedStories] = useState<Record<string, boolean>>({});
   const [listedStories, setListedStories] = useState<Record<string, boolean>>({});
@@ -601,6 +608,35 @@ export const DesktopReaderScreen: React.FC = () => {
           </div>
 
           <div className="reader-funbar__actions">
+            <button
+              type="button"
+              className={`funbar-btn ${isHighContrast ? 'funbar-btn--active' : ''}`}
+              aria-pressed={isHighContrast}
+              title={t.reader.highContrastTooltip}
+              onClick={toggleHighContrast}
+            >
+              <ContrastIcon size={16} />
+              <span>{t.reader.highContrastBtn}</span>
+              <span className="funbar-btn__state" aria-hidden="true">
+                {isHighContrast ? t.common.on : t.common.off}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              data-magnifier-toggle="true"
+              className={`funbar-btn ${magnifierEnabled ? 'funbar-btn--active' : ''}`}
+              aria-pressed={magnifierEnabled}
+              title={t.reader.magnifierTooltip}
+              onClick={() => setMagnifierEnabled(!magnifierEnabled)}
+            >
+              <ZoomInIcon size={16} />
+              <span>{t.reader.magnifierBtn}</span>
+              <span className="funbar-btn__state" aria-hidden="true">
+                {magnifierEnabled ? t.common.onFem : t.common.offFem}
+              </span>
+            </button>
+
             <button
               type="button"
               className={`funbar-btn ${addedToList ? 'funbar-btn--active' : ''}`}

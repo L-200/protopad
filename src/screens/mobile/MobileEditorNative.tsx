@@ -334,10 +334,20 @@ export const MobileEditorNative: React.FC = () => {
       setActive(INITIAL_STATE);
       return;
     }
+    const querySelectedStyle = (key: StyleKey): boolean => {
+      if (!range.collapsed) {
+        try {
+          if (document.queryCommandState(key)) return true;
+        } catch {
+          /* fallback para inspeção do ancestral */
+        }
+      }
+      return Boolean(styleAncestor(range.startContainer, key, para));
+    };
     setActive({
-      bold: Boolean(styleAncestor(range.startContainer, 'bold', para)),
-      italic: Boolean(styleAncestor(range.startContainer, 'italic', para)),
-      underline: Boolean(styleAncestor(range.startContainer, 'underline', para)),
+      bold: querySelectedStyle('bold'),
+      italic: querySelectedStyle('italic'),
+      underline: querySelectedStyle('underline'),
       align: readAlign(para),
     });
   }, []);
