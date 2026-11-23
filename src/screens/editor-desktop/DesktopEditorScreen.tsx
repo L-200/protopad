@@ -17,6 +17,7 @@ import {
   PlayIcon,
   PollIcon,
   UndoIcon,
+  UploadIcon,
   VideoIcon,
   ImageIcon,
 } from '../../components/shared/Icons';
@@ -1103,7 +1104,7 @@ export const DesktopEditorScreen: React.FC = () => {
                   placeholder={t.editor.chapterTitleAria}
                 />
 
-                <div className="editor-status-line" aria-live="polite">
+                <div className="editor-status-line">
                   <span
                     className={`editor-status-dot ${
                       leonardoDraft.saveStatus === 'Salvando...'
@@ -1153,6 +1154,7 @@ export const DesktopEditorScreen: React.FC = () => {
                 title={t.editor.saveTooltip}
                 onClick={handleManualSave}
               >
+                <CheckIcon size={16} />
                 <span>{t.editor.saveBtn}</span>
               </button>
 
@@ -1162,6 +1164,7 @@ export const DesktopEditorScreen: React.FC = () => {
                 title={t.editor.publishTooltip}
                 onClick={() => setPublishModalOpen(true)}
               >
+                <UploadIcon size={16} />
                 <span>{t.editor.publishBtn}</span>
               </button>
             </div>

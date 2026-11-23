@@ -394,7 +394,6 @@ export const DesktopReaderScreen: React.FC = () => {
       ) {
         event.preventDefault();
         playerRegionRef.current?.focus({ preventScroll: true });
-        announceNvda(t.reader.nvdaRegionFocus, 'system');
         return;
       }
 
@@ -789,7 +788,6 @@ export const DesktopReaderScreen: React.FC = () => {
                   ref={(el) => {
                     paragraphRefs.current[idx] = el;
                   }}
-                  tabIndex={0}
                   data-paragraph={paragraphNumber}
                   data-paragraph-number={paragraphNumber}
                   className={`reader-paragraph ${

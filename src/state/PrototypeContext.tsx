@@ -340,10 +340,8 @@ export const PrototypeProvider: React.FC<{ children: React.ReactNode }> = ({
         previousStories: prevStories,
         canUndo: siteChanged || storiesChanged,
       });
-
-      announceNvda(message, 'system');
     },
-    [siteLanguage, storiesLanguage, announceNvda]
+    [siteLanguage, storiesLanguage]
   );
 
   /** Reverte a última alteração de idioma usando o snapshot armazenado em `languageConfirmation` (R18). */
@@ -363,8 +361,7 @@ export const PrototypeProvider: React.FC<{ children: React.ReactNode }> = ({
       previousStories,
       canUndo: false,
     });
-    announceNvda(conf.undoneShort, 'system');
-  }, [languageConfirmation, announceNvda]);
+  }, [languageConfirmation]);
 
   /** Dispensa o banner de confirmação de idioma após leitura pelo usuário. */
   const dismissLanguageConfirmation = useCallback(() => {

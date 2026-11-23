@@ -78,8 +78,8 @@ No computador, adicione `?celular` ao final da URL para forçar o modo celular n
 | **2** | **Configurações de Idioma (Modal + Rota Dedicada)** | `src/screens/language/LanguageSettingsModal.tsx`<br>`src/screens/language/LanguageSettingsScreen.tsx` | **W01** · `R10`, `R15`, `R16`, `R18` |
 | **3** | **Leitura de Capítulo Desktop (Cap. 1, Cap. 2 e English)** | `src/screens/reader-desktop/DesktopReaderScreen.tsx`<br>`src/screens/reader-desktop/DesktopAudioPlayer.tsx` | **W10, W01** · `R1`–`R8`, `R16`, `R17`, `R21`, `R22` |
 | **4** | **Editor de Capítulos Desktop (Rascunho Cap. 3)** | `src/screens/editor-desktop/DesktopEditorScreen.tsx`<br>`src/screens/editor-desktop/EditorToolbar.tsx` | **W22, W01** · `R11`–`R16` |
-| **5** | **Leitura de Capítulo Mobile (simulador `390 × 844 px` ou celular real — Cap. 9, Cap. 7 e Cap. 1 PT/EN)** | `src/screens/mobile/MobileReaderScreen.tsx` | **W10, W01** · `R1`–`R3`, `R6`, `R8`, `R17`, `R19` |
-| **6** | **Editor de Capítulos Mobile (simulador `390 × 844 px` ou celular real — Cap. 9 e Cap. 7)** | `src/screens/mobile/MobileEditorScreen.tsx` (simulador)<br>`src/screens/mobile/MobileEditorNative.tsx` (celular real)<br>`src/screens/mobile/MobileCompactPlayer.tsx` | **W22, W10** · `R6`, `R13`, `R19`, `R20` |
+| **5** | **Leitura de Capítulo Mobile (simulador `390 × 844 px` ou celular real — Cap. 9, Cap. 7 e Cap. 1 PT/EN)** | `src/screens/mobile/MobileReaderScreen.tsx` | **W10** · `R1`–`R3`, `R6`, `R16`, `R19` |
+| **6** | **Editor de Capítulos Mobile (simulador `390 × 844 px` ou celular real — Cap. 9 e Cap. 7)** | `src/screens/mobile/MobileEditorScreen.tsx` (simulador)<br>`src/screens/mobile/MobileEditorNative.tsx` (celular real)<br>`src/screens/mobile/MobileCompactPlayer.tsx` | **W22, W10** · `R6`, `R13`, `R16`, `R19`, `R20` |
 
 ---
 

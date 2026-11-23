@@ -303,6 +303,7 @@ export const HomeScreen: React.FC = () => {
     siteLanguage,
     storiesLanguage,
     languageConfirmation,
+    isLanguageModalOpen,
     undoLanguageChange,
     dismissLanguageConfirmation,
     openLanguageModal,
@@ -354,11 +355,10 @@ export const HomeScreen: React.FC = () => {
   return (
     <div className="home-container">
       {/* Banner de confirmação de idioma (R18) */}
-      {languageConfirmation && (
+      {languageConfirmation && !isLanguageModalOpen && (
         <div
           className="home-lang-confirmation"
           role="status"
-          aria-live="polite"
         >
           <div className="home-lang-confirmation-msg">
             <CheckIcon size={18} className="home-lang-confirmation-icon" />

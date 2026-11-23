@@ -15,7 +15,7 @@
       "funcionalidades": ["W01"],
       "cenarios": ["Cenario 3", "Cenario 2"],
       "hta_nos": [
-        "Cenario 3: 1 (1.1, 1.2)",
+        "Cenario 3: 1 (1.1, 1.2), 3 (3.1)",
         "Cenario 2: 5 (5.1)"
       ],
       "requisitos_ids": ["R9", "R16", "R17"],
@@ -49,7 +49,7 @@
       "cenarios": ["Cenario 1", "Cenario 3"],
       "hta_nos": [
         "Cenario 1: 1 (1.1, 1.2, 1.3), 2 (2.1-2.4), 3 (3.1, 3.2), 4 (4.1-4.3), 5 (5.1-5.4)",
-        "Cenario 3: 3 (3.1-3.6), 4 (4.1, 4.2), 5 (5.1-5.3)"
+        "Cenario 3: 3 (3.2-3.6), 4 (4.1, 4.2), 5 (5.1-5.3)"
       ],
       "requisitos_ids": ["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R16", "R17", "R21", "R22"],
       "criterios_aceite": [
@@ -84,18 +84,18 @@
     },
     "tela_5_leitura_mobile": {
       "titulo": "Leitura de Capítulo com Player Mobile (390×844)",
-      "funcionalidades": ["W10", "W01"],
+      "funcionalidades": ["W10"],
       "cenarios": ["Cenario 4"],
       "hta_nos": [
         "Cenario 4: 1 (1.1-1.6), 6 (6.1-6.3)"
       ],
-      "requisitos_ids": ["R1", "R2", "R3", "R6", "R8", "R17", "R19"],
+      "requisitos_ids": ["R1", "R2", "R3", "R6", "R16", "R19"],
       "criterios_aceite": [
         "Simulador 390×844 no computador e tela inteira no celular real, sem sobreposição do player sobre o texto dos capítulos.",
         "Barra inferior fixa ao alcance do polegar com alvos >= 48×48px (48×48dp), gap >= 8px e retorno visual imediato ao toque.",
         "Linha fina de progresso apenas indicativa no topo da barra.",
         "Ordem fixa: Reproduzir/Pausar, Voltar parágrafo, Avançar parágrafo, Velocidade (exibindo '1,25x' mantida).",
-        "Cap. 9 (padrão do Cenário 4 / Tarefa C) inicia com cena na taverna colada à cena na floresta; seletor mobile também permite abrir Cap. 1 de história nova (Tarefa A), Cap. 7 próprio (Tarefa B) e capítulo em inglês (R8/R17), preservando velocidade e derivando selo de idioma e voz TTS do capítulo ativo."
+        "Cap. 9 (padrão do Cenário 4 / Tarefa C) inicia com cena na taverna colada à cena na floresta; seletor mobile também permite abrir Cap. 1 de história nova (Tarefa A) e Cap. 7 próprio (Tarefa B), preservando velocidade."
       ]
     },
     "tela_6_editor_mobile": {
@@ -105,7 +105,7 @@
       "hta_nos": [
         "Cenario 4: 2 (2.1-2.3), 3 (3.1-3.5), 4 (4.1-4.3), 5 (5.1, 5.2)"
       ],
-      "requisitos_ids": ["R19", "R20"],
+      "requisitos_ids": ["R6", "R13", "R16", "R19", "R20"],
       "criterios_aceite": [
         "No celular real, o texto é editável com o teclado do aparelho e o ditado por voz dele; no simulador, um teclado desenhado faz o mesmo papel. Nos dois, o texto entra com a formatação ativa (ex.: Itálico).",
         "Barra de formatação ancorada logo acima do teclado com Negrito, Itálico, Sublinhado e Alinhamento (alvos >= 48×48px, rótulos curtos PT-BR, destaque de estado ativo e rolagem horizontal quando exceder largura).",
@@ -183,7 +183,7 @@
       "reforcado_por": ["Adriana", "Sansão"],
       "prioridade": "Essencial",
       "resumo": "Velocidade de reprodução guardada como preferência da conta, mostrada diretamente no botão (ex.: '1,75x', '1,25x') e mantida entre capítulos.",
-      "telas": ["tela_3_leitura_desktop", "tela_5_leitura_mobile"],
+      "telas": ["tela_3_leitura_desktop", "tela_5_leitura_mobile", "tela_6_editor_mobile"],
       "cenarios": ["Cenario 1", "Cenario 3", "Cenario 4"],
       "criterio_aceite": "O botão de velocidade exibe o valor formatado com vírgula ('1,75x'/'1,25x') e mantém a escolha ao trocar de capítulo ou retornar da edição."
     },
@@ -207,8 +207,8 @@
       "reforcado_por": ["Adriana"],
       "prioridade": "Essencial",
       "resumo": "Mesmo nome do recurso em todas as telas ('Ouvir', dica 'Ouvir com leitura em voz alta (voz automática)'), idioma marcado no código (lang) e voz TTS no idioma da história.",
-      "telas": ["tela_3_leitura_desktop", "tela_5_leitura_mobile"],
-      "cenarios": ["Cenario 1", "Cenario 3", "Cenario 4"],
+      "telas": ["tela_3_leitura_desktop"],
+      "cenarios": ["Cenario 1", "Cenario 3"],
       "criterio_aceite": "Substitui 'Listen with text to speech'; atributo lang='pt-BR' no documento e voz selecionada corresponde ao idioma da história."
     },
     "R9": {
@@ -267,8 +267,8 @@
       "reforcado_por": ["Sansão"],
       "prioridade": "Essencial",
       "resumo": "Botão da formatação ativa destacado visualmente (fundo e borda) e anunciado ao leitor de tela via aria-pressed; funciona sem seleção e em estilos combinados.",
-      "telas": ["tela_4_editor_desktop"],
-      "cenarios": ["Cenario 2"],
+      "telas": ["tela_4_editor_desktop", "tela_6_editor_mobile"],
+      "cenarios": ["Cenario 2", "Cenario 4"],
       "criterio_aceite": "Ativar sem seleção formata a próxima palavra digitada; cursor em trecho com Negrito+Itálico destaca ambos; aria-pressed reflete o estado real."
     },
     "R14": {
@@ -303,7 +303,7 @@
       "reforcado_por": ["Leonardo"],
       "prioridade": "Essencial",
       "resumo": "Rótulos curtos em linguagem simples sempre acompanhados de ícone, com explicação completa na dica/tooltip.",
-      "telas": ["tela_1_home", "tela_2_idioma", "tela_3_leitura_desktop", "tela_4_editor_desktop"],
+      "telas": ["tela_1_home", "tela_2_idioma", "tela_3_leitura_desktop", "tela_4_editor_desktop", "tela_5_leitura_mobile", "tela_6_editor_mobile"],
       "cenarios": ["Cenario 2", "Cenario 3", "Cenario 4"],
       "criterio_aceite": "Controles de player, barra de editor e configurações exibem ícone + rótulo curto em PT-BR e tooltip explicativa."
     },
@@ -315,8 +315,8 @@
       "reforcado_por": [],
       "prioridade": "Simular",
       "resumo": "Selo curto indicando o idioma em cada história e lista da Home, e na tela de leitura antes do botão/player Ouvir para informar o idioma da voz.",
-      "telas": ["tela_1_home", "tela_3_leitura_desktop", "tela_5_leitura_mobile"],
-      "cenarios": ["Cenario 3", "Cenario 4"],
+      "telas": ["tela_1_home", "tela_3_leitura_desktop"],
+      "cenarios": ["Cenario 3"],
       "criterio_aceite": "Usuário identifica listas/histórias em 'English' ou 'Português' antes de abrir e visualiza o selo do idioma da voz antes de reproduzir."
     },
     "R18": {

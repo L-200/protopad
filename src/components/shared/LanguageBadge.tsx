@@ -4,8 +4,7 @@
  * (contraste >= 4,5:1 e distinção não dependente apenas de cor, com ícone + texto).
  */
 import React from 'react';
-import { useTranslation } from '../../i18n/useTranslation';
-import { SiteLanguage, StoryLanguage } from '../../types/prototype';
+import { StoryLanguage } from '../../types/prototype';
 import { GlobeIcon } from './Icons';
 
 /**
@@ -28,10 +27,10 @@ const LANG_DISPLAY: Record<StoryLanguage, string> = {
   es: 'Español',
 };
 
-const CONTENT_IN_LANG: Record<SiteLanguage, (label: string) => string> = {
-  'pt-BR': (label) => `Conteúdo em ${label}`,
-  'en-US': (label) => `Content in ${label}`,
-  'es-ES': (label) => `Contenido en ${label}`,
+const LANG_HTML_CODE: Record<StoryLanguage, string> = {
+  pt: 'pt-BR',
+  en: 'en',
+  es: 'es',
 };
 
 /**
@@ -47,17 +46,18 @@ export const LanguageBadge: React.FC<LanguageBadgeProps> = ({
   className = '',
   showIcon = true,
 }) => {
-  const { siteLanguage } = useTranslation();
   const label = LANG_DISPLAY[language];
+  const htmlLang = LANG_HTML_CODE[language];
   const isEnglish = language === 'en';
 
   return (
     <span
       className={`lang-badge ${isEnglish ? 'lang-badge--en' : ''} ${className}`.trim()}
-      aria-label={ariaLabel ?? CONTENT_IN_LANG[siteLanguage](label)}
+      lang={htmlLang}
+      aria-label={ariaLabel}
     >
       {showIcon && <GlobeIcon size={13} />}
-      <span>{label}</span>
+      <span lang={htmlLang}>{label}</span>
     </span>
   );
 };

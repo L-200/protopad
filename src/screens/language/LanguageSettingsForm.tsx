@@ -111,7 +111,7 @@ export const LanguageSettingsForm: React.FC<LanguageSettingsFormProps> = ({
       noValidate
     >
       {/* R18: Frase curta de estado atual sempre visível no topo */}
-      <div className="lang-status-summary" aria-live="polite">
+      <div className="lang-status-summary">
         <span>
           {t.siteWord}: {formatSiteLanguageLabel(siteLanguage)} · {t.storiesWord}:{' '}
           {formatStoryLanguageLabel(storiesLanguage)}
@@ -123,7 +123,6 @@ export const LanguageSettingsForm: React.FC<LanguageSettingsFormProps> = ({
         <div
           className="lang-confirmation-banner"
           role="status"
-          aria-live="polite"
         >
           <div className="lang-confirmation-text">
             <CheckIcon size={18} className="lang-confirmation-icon" />
