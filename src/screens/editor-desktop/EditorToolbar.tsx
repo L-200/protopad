@@ -111,7 +111,6 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   onOpenVideoModal,
   onInsertSeparator,
   onOpenPollModal,
-  onToolbarFocusAnnounce,
 }) => {
   const { t, siteLanguage } = useTranslation();
   const extra = TOOLBAR_EXTRA_STRINGS[siteLanguage];
@@ -304,11 +303,6 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
             const fromKeyboard = e.detail === 0;
             pointerDownRef.current = false;
             item.onActivate(fromKeyboard);
-          }}
-          onFocus={() => {
-            if (!pointerDownRef.current) {
-              onToolbarFocusAnnounce(item.focusAnnouncement);
-            }
           }}
           onKeyDown={(e) => handleKeyDown(e, globalIndex)}
         >

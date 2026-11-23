@@ -96,7 +96,6 @@ export const MobileCompactPlayer: React.FC<MobileCompactPlayerProps> = ({
         <button
           type="button"
           className="mobile-audio-btn mobile-audio-btn--primary"
-          aria-pressed={audio.isPlaying}
           aria-label={audio.isPlaying ? extra.pause : extra.play}
           onMouseDown={preventBlur}
           onClick={audio.togglePlay}

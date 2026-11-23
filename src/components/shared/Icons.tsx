@@ -418,3 +418,13 @@ export const InfoIcon: React.FC<IconProps> = ({ size = 18, className }) => (
     <circle cx="12" cy="8.5" r="0.8" fill="currentColor" stroke="none" />
   </svg>
 );
+
+/** Ícone de envio/publicação utilizado no botão "Publicar" do editor (R16). */
+export const UploadIcon: React.FC<IconProps> = ({ size = 18, className }) => (
+  <svg {...defaultSvgProps(size, className)}>
+    <path d="M12 15V4" />
+    <path d="M7 9l5-5 5 5" />
+    <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+  </svg>
+);
+

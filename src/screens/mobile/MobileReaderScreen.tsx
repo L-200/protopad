@@ -477,7 +477,6 @@ export const MobileReaderScreen: React.FC = () => {
           <button
             type="button"
             className="mobile-audio-btn mobile-audio-btn--primary"
-            aria-pressed={isPlaying}
             aria-label={
               isPlaying ? extra.pauseNarrationAria : extra.playNarrationAria
             }

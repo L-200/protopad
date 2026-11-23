@@ -242,10 +242,7 @@ export const DesktopAudioPlayer: React.FC<DesktopAudioPlayerProps> = ({
       <div className="desktop-player-bar__inner">
         {/* Identificação consistente "Ouvir"/"Listen"/"Escuchar" + selo de idioma antes dos controles (R8, R16, R17) */}
         <div className="desktop-player-identity">
-          <LanguageBadge
-            language={storyLanguage}
-            ariaLabel={extra.audioLangAria(STORY_LANG_NAME[storyLanguage])}
-          />
+          <LanguageBadge language={storyLanguage} />
 
           {languageDiffersFromSite && (
             <span
@@ -286,7 +283,6 @@ export const DesktopAudioPlayer: React.FC<DesktopAudioPlayerProps> = ({
               className={`player-btn player-btn--play ${
                 isPlaying ? 'player-btn--playing' : ''
               }`}
-              aria-pressed={isPlaying}
               aria-describedby="tooltip-play-pause"
               onClick={onTogglePlay}
             >
