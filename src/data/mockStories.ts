@@ -550,10 +550,24 @@ export function buildCarousels(storiesLanguage: 'pt' | 'en' | 'es'): CarouselDat
       ],
     },
     {
-      id: 'sem-traducao-demo',
-      titlePt: 'Seleção editorial internacional (sem tradução oficial)',
-      titleEn: 'International Spotlight Picks (Untranslated)',
-      titleEs: 'Selección internacional (sin traducción)',
+      id: 'classicos-comunidade-pt',
+      titlePt: 'Clássicos Brasileiros da Comunidade',
+      titleEn: undefined,
+      titleEs: undefined,
+      hasPtTranslation: true,
+      kind: 'stories',
+      items: [
+        MOCK_STORIES.find((s) => s.id === 'cronicas-do-silencio')!,
+        MOCK_STORIES.find((s) => s.id === 'cartas-de-outono')!,
+        MOCK_STORIES.find((s) => s.id === 'jardim-das-cinzas')!,
+        MOCK_STORIES.find((s) => s.id === 'laminas-da-fronteira')!,
+      ],
+    },
+    {
+      id: 'editors-picks-en',
+      titlePt: undefined,
+      titleEn: "Editor's Picks: Cozy Autumn Reads",
+      titleEs: undefined,
       hasPtTranslation: false,
       kind: 'stories',
       items: [

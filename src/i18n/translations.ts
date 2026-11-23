@@ -304,18 +304,42 @@ export function formatStoryLanguageName(lang: StoryLanguage): string {
   }
 }
 
-/** Retorna o título traduzido de um carrossel conforme `siteLanguage`. */
+/**
+ * Verifica se o carrossel possui título traduzido para o idioma de exibição ativo do site (`R9`).
+ */
+export function hasCarouselTranslationForSiteLanguage(
+  carousel: CarouselData,
+  siteLanguage: SiteLanguage
+): boolean {
+  let rawTitle: string | undefined;
+  if (siteLanguage === 'en-US') {
+    rawTitle = carousel.titleEn;
+  } else if (siteLanguage === 'es-ES') {
+    rawTitle = carousel.titleEs;
+  } else {
+    rawTitle = carousel.titlePt;
+  }
+  if (!rawTitle || rawTitle.trim().length === 0) {
+    return false;
+  }
+  if (siteLanguage === 'pt-BR' && carousel.hasPtTranslation === false) {
+    return false;
+  }
+  return true;
+}
+
+/** Retorna o título traduzido de um carrossel conforme `siteLanguage` (com fallback apenas quando exibido em modo de demonstração). */
 export function getCarouselTitle(
   carousel: CarouselData,
   siteLanguage: SiteLanguage
 ): string {
   if (siteLanguage === 'en-US') {
-    return carousel.titleEn || carousel.titlePt;
+    return (carousel.titleEn ?? '').trim() || (carousel.titlePt ?? '').trim() || (carousel.titleEs ?? '').trim();
   }
   if (siteLanguage === 'es-ES') {
-    return carousel.titleEs || carousel.titlePt;
+    return (carousel.titleEs ?? '').trim() || (carousel.titlePt ?? '').trim() || (carousel.titleEn ?? '').trim();
   }
-  return carousel.titlePt;
+  return (carousel.titlePt ?? '').trim() || (carousel.titleEn ?? '').trim() || (carousel.titleEs ?? '').trim();
 }
 
 /** Dicionário completo de traduções indexado por `SiteLanguage`. */
