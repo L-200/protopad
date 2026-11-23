@@ -1097,6 +1097,7 @@ export const DesktopEditorScreen: React.FC = () => {
                   type="text"
                   className="editor-chapter-input"
                   aria-label={t.editor.chapterTitleAria}
+                  size={Math.min(40, Math.max(20, leonardoDraft.chapterTitle.length + 2))}
                   value={leonardoDraft.chapterTitle}
                   onChange={(e) =>
                     updateLeonardoDraft({ chapterTitle: e.target.value })
@@ -1114,7 +1115,10 @@ export const DesktopEditorScreen: React.FC = () => {
                     aria-hidden="true"
                   />
                   <span>
-                    {t.editor.draftWord} • {t.editor.wordsCount(wordCountText)} •{' '}
+                    {leonardoDraft.published
+                      ? t.editor.publishedBadge
+                      : t.editor.draftWord}{' '}
+                    • {t.editor.wordsCount(wordCountText)} •{' '}
                     {displaySaveStatus}
                   </span>
                   {saveToastVisible && (

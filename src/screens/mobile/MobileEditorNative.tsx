@@ -794,7 +794,7 @@ export const MobileEditorNative: React.FC = () => {
     setIsPlayerOpen((open) => !open);
   };
 
-  /** Salva o capítulo e volta à leitura com a mesma velocidade (`R6`, HTA 6). */
+  /** Salva o capítulo e volta à leitura com a mesma velocidade (`R6`, HTA 5). */
   const handleSave = () => {
     const root = docRef.current;
     if (!root) return;

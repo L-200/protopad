@@ -122,7 +122,7 @@
       "origem": "Renata",
       "reforcado_por": ["Adriana", "Sansão"],
       "prioridade": "Essencial",
-      "resumo": "Player completo (Play/Pausa, Voltar e Avançar parágrafo, Velocidade, Progresso) disponível desde o início de todo capítulo, inclusive o capítulo 1.",
+      "resumo": "Player completo (Reproduzir/Pausar, Voltar e Avançar parágrafo, Velocidade, Progresso) disponível desde o início de todo capítulo, inclusive o capítulo 1.",
       "telas": ["tela_3_leitura_desktop", "tela_5_leitura_mobile"],
       "cenarios": ["Cenario 1", "Cenario 3", "Cenario 4"],
       "criterio_aceite": "Ao abrir o Cap. 1 (ou Cap. 9 mobile), todos os controles obrigatórios já estão renderizados no primeiro scroll (scrollY = 0)."

@@ -78,6 +78,17 @@ const PRESET_OPTIONS: Array<{
   },
 ];
 
+/**
+ * Telas percorridas em cada cenário. Fora delas, o botão recolhido do painel não
+ * sugere um cenário que não está em uso (ex.: abrir o editor com o preset da Adriana).
+ */
+const PRESET_SCREENS: Record<PersonaPresetId, ScreenId[]> = {
+  renata: ['tela_3_leitura_desktop'],
+  leonardo: ['tela_4_editor_desktop', 'tela_1_home', 'tela_2_idioma'],
+  adriana: ['tela_1_home', 'tela_2_idioma', 'tela_3_leitura_desktop'],
+  sansao: ['tela_5_leitura_mobile', 'tela_6_editor_mobile'],
+};
+
 const SCREEN_LINKS: Array<{ id: ScreenId; shortLabel: string }> = [
   { id: 'tela_1_home', shortLabel: 'Tela 1 · Home' },
   { id: 'tela_2_idioma', shortLabel: 'Tela 2 · Idioma' },
@@ -160,6 +171,8 @@ export const EvaluatorHub: React.FC = () => {
 
   const activePresetLabel =
     PRESET_OPTIONS.find((p) => p.id === activePreset)?.label ?? 'Cenário';
+  const presetMatchesScreen =
+    PRESET_SCREENS[activePreset]?.includes(activeScreen) ?? false;
 
   const isReaderDesktop = activeScreen === 'tela_3_leitura_desktop';
   const isMobileScreen =
@@ -216,7 +229,11 @@ export const EvaluatorHub: React.FC = () => {
             fontWeight: 700,
           }}
         >
-          {isOpen ? 'Painel TP2' : `TP2 · ${activePresetLabel}`}
+          {isOpen
+            ? 'Painel TP2'
+            : presetMatchesScreen
+              ? `TP2 · ${activePresetLabel}`
+              : 'TP2 · Painel do avaliador'}
         </button>
 
         <button

@@ -110,7 +110,8 @@ export const PrototypeProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Idioma (W01)
   const [siteLanguage, setSiteLanguage] = useState<SiteLanguage>('pt-BR');
-  const [storiesLanguage, setStoriesLanguage] = useState<StoryLanguage>('pt');
+  // Começa igual ao preset do Cenário 3 (Adriana), que o painel do avaliador mostra como ativo.
+  const [storiesLanguage, setStoriesLanguage] = useState<StoryLanguage>('en');
   const [languageConfirmation, setLanguageConfirmation] =
     useState<LanguageConfirmation | null>(null);
   const [hideUntranslatedCarousels, setHideUntranslatedCarousels] =
