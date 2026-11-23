@@ -5,7 +5,7 @@
  *   a barra de formatação fique logo acima do teclado do aparelho (`R19`, `R20`).
  * Os controles de demonstração (como restaurar o Cap. 9) ficam no painel do avaliador.
  */
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from '../../i18n/useTranslation';
 import { PlaybackRate, SiteLanguage } from '../../types/prototype';
 import { IS_PHONE_DEVICE, useVisualViewport } from './deviceMode';
@@ -90,16 +90,47 @@ export const MobileFrame: React.FC<MobileFrameProps> = ({
   return <SimulatedFrame screenLabel={screenLabel}>{children}</SimulatedFrame>;
 };
 
+/** Altura externa do simulador: tela de 844 px + 12 px de moldura em cima e embaixo. */
+const SIMULATOR_OUTER_HEIGHT = 868;
+/** Espaço vertical em volta do simulador (padding superior do palco + folga inferior). */
+const SIMULATOR_VERTICAL_MARGIN = 44;
+
+/**
+ * Escala do simulador para que o celular inteiro, com o player e o teclado na base,
+ * caiba na janela de notebooks (ex.: 1366 × 768). Os 390 × 844 px internos não mudam,
+ * só a apresentação. Em janelas estreitas (layout de celular), não há escala.
+ */
+function computeSimulatorScale(): number {
+  if (typeof window === 'undefined' || window.innerWidth <= 480) return 1;
+  const available = window.innerHeight - SIMULATOR_VERTICAL_MARGIN;
+  return Math.max(0.6, Math.min(1, available / SIMULATOR_OUTER_HEIGHT));
+}
+
+function useSimulatorScale(): number {
+  const [scale, setScale] = useState(computeSimulatorScale);
+  useEffect(() => {
+    const handleResize = () => setScale(computeSimulatorScale());
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  return scale;
+}
+
 const SimulatedFrame: React.FC<MobileFrameProps> = ({
   screenLabel,
   children,
 }) => {
   const { siteLanguage } = useTranslation();
   const bezelAria = BEZEL_ARIA[siteLanguage](screenLabel);
+  const scale = useSimulatorScale();
 
   return (
     <div className="mobile-stage">
-      <div className="mobile-device-bezel" aria-label={bezelAria}>
+      <div
+        className="mobile-device-bezel"
+        aria-label={bezelAria}
+        style={scale < 1 ? { zoom: scale } : undefined}
+      >
         <div className="mobile-frame">
           <div className="mobile-status-bar" aria-hidden="true">
             <span>08:14</span>

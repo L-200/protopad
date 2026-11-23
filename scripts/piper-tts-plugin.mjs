@@ -17,7 +17,8 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TTS_ROOT = path.resolve(__dirname, '..', '.tts');
-const PIPER_BIN = path.join(TTS_ROOT, 'piper', 'piper');
+// No Windows o binário é `piper.exe` (instalado por `npm run setup:tts`).
+const PIPER_BIN = path.join(TTS_ROOT, 'piper', process.platform === 'win32' ? 'piper.exe' : 'piper');
 const MODELS_DIR = path.join(TTS_ROOT, 'models');
 const CACHE_DIR = path.join(TTS_ROOT, 'cache');
 

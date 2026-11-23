@@ -316,15 +316,15 @@ export const MOCK_STORIES: StoryItem[] = [
   {
     id: 'laminas-da-fronteira',
     title: 'Lâminas da Fronteira',
-    author: 'Sansão Mendes',
-    genre: 'Aventura',
+    author: 'Sansão Torres Menezes',
+    genre: 'Fantasia',
     language: 'pt',
     reads: '67 mil',
     votes: '5,4 mil',
     parts: 11,
     synopsis:
       'Caio percorre rotas de fronteira entre vilarejos antigos e florestas fechadas após firmar um acordo perigoso na taverna.',
-    tags: ['Aventura', 'Ação', 'Fantasia'],
+    tags: ['Fantasia', 'Aventura', 'Ação'],
     coverPalette: {
       bgPrimary: '#1E3A2F',
       bgSecondary: '#0F1F19',
@@ -760,7 +760,7 @@ export function buildCarousels(storiesLanguage: 'pt' | 'en' | 'es'): CarouselDat
     },
     {
       id: 'classicos-comunidade-pt',
-      titlePt: 'Clássicos Brasileiros da Comunidade',
+      titlePt: 'Destaques da comunidade',
       titleEn: undefined,
       titleEs: undefined,
       hasPtTranslation: true,
@@ -780,7 +780,7 @@ export function buildCarousels(storiesLanguage: 'pt' | 'en' | 'es'): CarouselDat
       id: 'voces-latinoamericanas-es',
       titlePt: undefined,
       titleEn: undefined,
-      titleEs: 'Voces Hispanoamericanas Destacadas',
+      titleEs: 'Destacados de la comunidad',
       hasPtTranslation: false,
       kind: 'stories',
       items: exclusiveEsSystemItems[storiesLanguage],
@@ -794,7 +794,7 @@ export function buildCarousels(storiesLanguage: 'pt' | 'en' | 'es'): CarouselDat
  * - 1.240 palavras calibradas dinamicamente
  * - 2 pensamentos sem itálico (parágrafos 3 e 7)
  * - 2 trocas de cena com '***' alinhadas à esquerda
- * - 1 troca de ponto de vista sem marcação (parágrafos 8 e 9)
+ * - 1 troca de ponto de vista sem marcação (entre os parágrafos 9 e 10)
  *
  * @returns Rascunho inicial pronto para edição na Tela 4.
  */

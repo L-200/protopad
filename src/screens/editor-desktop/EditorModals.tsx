@@ -1197,7 +1197,11 @@ export const PublishChapterModal: React.FC<PublishChapterModalProps> = ({
 
   if (!isOpen) return null;
 
-  const separatorCount = draft.blocks.filter((b) => b.type === 'separator').length;
+  const separatorCount = draft.blocks.filter(
+    (b) =>
+      b.type === 'separator' ||
+      (b.type === 'paragraph' && b.html.replace(/<[^>]*>/g, '').trim() === '***')
+  ).length;
   const pollCount = draft.blocks.filter((b) => b.type === 'poll').length;
   const mediaCount = draft.blocks.filter(
     (b) => b.type === 'image' || b.type === 'video'
