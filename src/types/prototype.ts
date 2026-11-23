@@ -81,11 +81,11 @@ export interface StoryItem {
 /** Configuração de um carrossel da Home (Tela 1), com flag de tradução para o requisito R9. */
 export interface CarouselData {
   id: string;
-  titlePt: string;
+  titlePt?: string;
   titleEn?: string;
   titleEs?: string;
   /** Indica se o carrossel possui título traduzido para PT-BR; quando `false`, pode ser ocultado (R9). */
-  hasPtTranslation: boolean;
+  hasPtTranslation?: boolean;
   kind: 'stories' | 'reading-lists';
   items: StoryItem[];
 }

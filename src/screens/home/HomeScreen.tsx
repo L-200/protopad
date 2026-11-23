@@ -25,6 +25,7 @@ import {
   formatSiteLanguageName,
   formatStoryLanguageName,
   getCarouselTitle,
+  hasCarouselTranslationForSiteLanguage,
 } from '../../i18n/translations';
 import { useTranslation } from '../../i18n/useTranslation';
 import { usePrototype } from '../../state/PrototypeContext';
@@ -73,7 +74,7 @@ const HOME_EXTRA: Record<
     listCount: (count) => `${count} stories`,
     readsTitle: 'Reads',
     votesTitle: 'Votes',
-    untranslatedTag: 'No PT-BR translation (shown for demo only)',
+    untranslatedTag: 'No English translation (shown for demo only)',
     scrollLeftTooltip: 'Scroll left',
     scrollRightTooltip: 'Scroll right',
     byAuthor: (author) => `By ${author}`,
@@ -91,7 +92,7 @@ const HOME_EXTRA: Record<
     listCount: (count) => `${count} historias`,
     readsTitle: 'Lecturas',
     votesTitle: 'Votos',
-    untranslatedTag: 'Sin traducción al PT-BR (visible solo en la demostración)',
+    untranslatedTag: 'Sin traducción al español (visible solo en la demostración)',
     scrollLeftTooltip: 'Desplazar a la izquierda',
     scrollRightTooltip: 'Desplazar a la derecha',
     byAuthor: (author) => `Por ${author}`,
@@ -220,6 +221,10 @@ const CarouselRow: React.FC<CarouselRowProps> = ({ carousel, onOpenStory }) => {
   const extra = HOME_EXTRA[siteLanguage];
   const trackRef = useRef<HTMLDivElement | null>(null);
   const headingTitle = getCarouselTitle(carousel, siteLanguage);
+  const isTranslatedForSite = hasCarouselTranslationForSiteLanguage(
+    carousel,
+    siteLanguage
+  );
 
   const scrollTrack = (direction: 'left' | 'right') => {
     const el = trackRef.current;
@@ -232,13 +237,13 @@ const CarouselRow: React.FC<CarouselRowProps> = ({ carousel, onOpenStory }) => {
     <section
       aria-label={headingTitle}
       className={`home-carousel-section ${
-        !carousel.hasPtTranslation ? 'home-carousel-section--untranslated' : ''
+        !isTranslatedForSite ? 'home-carousel-section--untranslated' : ''
       }`}
     >
       <div className="home-carousel-header">
         <div className="home-carousel-title-wrap">
           <h2 className="home-carousel-title">{headingTitle}</h2>
-          {!carousel.hasPtTranslation && (
+          {!isTranslatedForSite && (
             <span className="home-untranslated-tag">
               {extra.untranslatedTag}
             </span>
@@ -327,9 +332,11 @@ export const HomeScreen: React.FC = () => {
   const visibleCarousels = useMemo(
     () =>
       hideUntranslatedCarousels
-        ? carousels.filter((c) => c.hasPtTranslation)
+        ? carousels.filter((c) =>
+            hasCarouselTranslationForSiteLanguage(c, siteLanguage)
+          )
         : carousels,
-    [carousels, hideUntranslatedCarousels]
+    [carousels, hideUntranslatedCarousels, siteLanguage]
   );
 
   const trimmedQuery = searchQuery.trim();
