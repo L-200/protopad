@@ -40,14 +40,25 @@ npm run dev
 
 O repositório inclui uma suíte E2E isolada em **Playwright + Google Chrome** (`prototipo/e2e/`) que valida todos os **22 requisitos (`R1`–`R22`)** e cenários (Tiers 1 a 5) nos **3 ambientes**:
 1. **`desktop-pc`**: Navegador Desktop (`1366×860` e simulação de Zoom 200% `640×480`) — Telas 1 a 4 (Renata, Adriana e Leonardo).
-2. **`mobile-emulated-390x844`**: Simulador mobile `390 × 844 px` embutido no próprio protótipo no PC (`SimulatedFrame` + `MobileReaderScreen` + `MobileEditorSimulated` com teclado QWERTY virtual, tanto na moldura centralizada em `1366×860` quanto em viewport `390×844`, com e sem `prefers-reduced-motion: reduce`).
+2. **`mobile-emulated-390x844`**: Simulador mobile `390 × 844 px` embutido no próprio protótipo no PC (`MobileFrame` + `MobileReaderScreen` + `MobileEditorScreen` com teclado QWERTY virtual, tanto na moldura centralizada em `1366×860` quanto em viewport `390×844`, com e sem `prefers-reduced-motion: reduce`).
 3. **`mobile-real-lan`**: Navegador mobile real acessado via IP da rede local (`http://<IP_LAN>:4173/?celular`, `isMobile: true`, `hasTouch: true` e simulação de `visualViewport` do teclado nativo) — cobrindo as Tarefas A, B e C do Sansão.
 
 ```bash
 cd prototipo/e2e
+npm install
+npx playwright install chrome   # se o Google Chrome/Chromium ainda não estiver instalado
 npm run typecheck
 npx playwright test
 ```
+
+| Comando (`prototipo/e2e`) | Descrição |
+| :--- | :--- |
+| `npm test` | Executa todos os projetos. |
+| `npm run test:desktop` | Apenas o projeto `desktop-pc`. |
+| `npm run test:mobile-emulated` | Apenas o projeto `mobile-emulated-390x844`. |
+| `npm run test:mobile-lan` | Apenas o projeto `mobile-real-lan`. |
+| `npm run test:list` | Lista os testes sem executá-los. |
+| `npm run typecheck` | Verificação de tipos (`tsc --noEmit`). |
 
 O relatório completo da auditoria com a matriz `R1–R22 × 3 ambientes` encontra-se em `prototipo/specs/auditoria_requisitos_3_ambientes.md`.
 
@@ -113,11 +124,11 @@ prototipo/
 │   ├── briefing_telas.md                   # Especificação consolidada das 6 telas e variações HTA
 │   ├── rastreabilidade.json                # Matriz canônica R1–R22 <-> Telas <-> Cenários
 │   └── qa_report.md                        # Relatório de auditoria QA/WCAG inicial
-├── e2e/                                    # Suíte automatizada Playwright (37 testes ativos, Tiers 1–5)
+├── e2e/                                    # Suíte automatizada Playwright (Tiers 1–5; `npm run test:list` lista os testes)
 │   ├── playwright.config.ts                # Projetos desktop-pc, mobile-emulated-390x844 e mobile-real-lan
 │   ├── helpers/                            # Monitores de console/rede, contraste WCAG, geometria e visualViewport
-│   ├── tests/                              # 7 arquivos .spec.ts cobrindo R1–R22, 4 personas e casos adversariais
-│   └── results/                            # playwright-results.json e audit-evidence.json (49/49 PASS)
+│   ├── tests/                              # 9 arquivos .spec.ts (tier1-smoke, tier2 Renata/Adriana/Leonardo, tier3 mobile, tier4 cenários, tier5 adversariais)
+│   └── results/                            # playwright-results.json e audit-evidence.json (gerados a cada execução)
 └── app/
     ├── README.md
     ├── index.html                          # Documento raiz com <html lang="pt-BR"> e favicon SVG inline
@@ -126,7 +137,8 @@ prototipo/
     ├── vite.config.ts                      # React + host LAN + middleware local Piper TTS (/api/tts)
     ├── scripts/
     │   ├── setup-piper.sh                  # Instalador offline do Piper TTS e vozes PT-BR / EN-US
-    │   └── piper-tts-plugin.mjs            # Plugin Vite (/api/tts e /api/tts/status com cache WAV)
+    │   ├── piper-tts-plugin.mjs            # Plugin Vite (/api/tts e /api/tts/status com cache WAV)
+     │   └── piper-tts-plugin.d.mts          # Tipos do plugin Piper
     └── src/
         ├── main.tsx                        # Bootstrap React
         ├── App.tsx                         # Shell global, skip link R4, roteamento das 6 telas e Hub
@@ -152,11 +164,15 @@ prototipo/
         │   ├── WattpadHeader.tsx           # Header global responsivo com busca AA e menu de idioma dual
         │   ├── NvdaAnnouncer.tsx           # Região aria-live="polite" + monitor visual de anúncios (R21)
         │   ├── FocusMagnifier.tsx          # Simulador de Lupa 200% sem colisão para parágrafos e controles (R2, R22)
-        │   └── EvaluatorHub.tsx            # Controle recolhível de presets e rastreabilidade R1–R22
+        │   ├── EvaluatorHub.tsx            # Controle recolhível de presets e rastreabilidade R1–R22
+         │   └── evaluatorEvents.ts          # Eventos compartilhados entre o Hub e as telas
         └── screens/
             ├── home/                       # Tela 1 — Home / Exploração Desktop
             ├── language/                   # Tela 2 — Configurações de Idioma (Modal + Rota Dedicada)
             ├── reader-desktop/             # Tela 3 — Leitura Desktop (#funbar Alto Contraste + Lupa 200%) + Player W10
-            ├── editor-desktop/             # Tela 4 — Editor de Capítulos Desktop W22
+            ├── editor-desktop/             # Tela 4 — Editor Desktop W22 (EditorToolbar + EditorModals: imagem, vídeo, enquete)
             └── mobile/                     # Telas 5 e 6 — Leitura e Editor Mobile (simulador 390×844 e celular real LAN)
+                 ├── deviceMode.ts           # Detecção de celular real / simulador (?celular, ?simulador)
+                 ├── MobileFrame.tsx         # Moldura simulada 390×844
+                 └── useSansaoAudio.ts       # Hook de áudio das Telas 5 e 6
 ```
