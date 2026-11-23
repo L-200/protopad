@@ -176,6 +176,28 @@ const EN_CAP_1: ChapterData = {
   paragraphs: EN_CAP_1_PARAGRAPHS,
 };
 
+const ES_CAP_1_PARAGRAPHS: string[] = [
+  'La niebla matinal cubría el muelle de madera mucho antes de que la primera sirena del transbordador resonara sobre la bahía silenciosa.',
+  'Lucía ajustó la correa de su bolso de lona y caminó sobre los tablones húmedos, contando los barcos amarrados junto al dique oriental.',
+  'Faltaban tres embarcaciones en sus puestos habituales, dejando solo cuerdas enrolladas y agua oscura golpeando contra los pilotes.',
+  'Al final de la pasarela, la oficina del puerto brillaba con una única lámpara ámbar detrás del vidrio salpicado de sal.',
+  'Adentro, una tetera silbaba suavemente mientras un cuaderno de bitácora abierto descansaba junto a una taza de café intacta.',
+  'Lucía llamó dos veces al marco de la puerta antes de empujarla y encontrar la sala inesperadamente vacía.',
+  'Una brújula de bronce descansaba sobre el registro de la noche anterior, con la aguja temblando hacia el canal del faro.',
+  'Afuera, las gaviotas volaban bajo sobre el rompeolas, lanzando graznidos agudos entre la bruma plateada.',
+  'Subió el cuello de su abrigo de lana contra el viento frío y notó huellas frescas que bajaban por los escalones de piedra.',
+  'Alguien había salido con prisa hacía menos de diez minutos, dejando caer una carta de mareas doblada junto al bolardo de hierro.',
+  'Cuando Lucía desplegó el papel, una nota escrita a mano en el margen advertía que la baliza del canal se había apagado antes del alba.',
+  'A lo lejos, el murmullo de un motor fuera de borda se elevó sobre el oleaje y desapareció detrás de las rocas exteriores.',
+];
+
+const ES_CAP_1: ChapterData = {
+  id: 'es-cap-1',
+  number: 1,
+  title: 'Capítulo 1 — Niebla en el muelle',
+  paragraphs: ES_CAP_1_PARAGRAPHS,
+};
+
 /**
  * Catálogo estático de histórias e listas de leitura em português e inglês exibido na Home (Tela 1)
  * e consumido pelo leitor desktop (Tela 3) com selos de idioma (R17) e capítulos completos.
@@ -467,12 +489,101 @@ export const MOCK_STORIES: StoryItem[] = [
     listStoryCount: 18,
     chapters: [EN_CAP_1],
   },
+  {
+    id: 'cronicas-del-puerto',
+    title: 'Crónicas del Puerto Olvidado',
+    author: 'Mateo Valdés',
+    genre: 'Misterio',
+    language: 'es',
+    reads: '112 mil',
+    votes: '9,4 mil',
+    parts: 16,
+    synopsis:
+      'Una inspectora portuaria descubre embarcaciones desaparecidas y una carta de mareas cifrada que apunta hacia el faro del canal.',
+    tags: ['Misterio', 'Puerto', 'Suspense', 'Español'],
+    coverPalette: {
+      bgPrimary: '#1E293B',
+      bgSecondary: '#0F172A',
+      accent: '#38BDF8',
+      textColor: '#FFFFFF',
+      motif: 'waves',
+    },
+    chapters: [ES_CAP_1],
+    isCompleted: true,
+  },
+  {
+    id: 'cartas-bajo-la-lluvia',
+    title: 'Cartas Bajo la Lluvia de Otoño',
+    author: 'Sofía Mendoza',
+    genre: 'Romance',
+    language: 'es',
+    reads: '164 mil',
+    votes: '14,1 mil',
+    parts: 20,
+    synopsis:
+      'Dos estudiantes intercambian notas escondidas en libros antiguos de una biblioteca universitaria durante un otoño lluvioso.',
+    tags: ['Romance', 'Drama', 'Libros', 'Español'],
+    coverPalette: {
+      bgPrimary: '#7C2D12',
+      bgSecondary: '#431407',
+      accent: '#FBBF24',
+      textColor: '#FFFFFF',
+      motif: 'arcs',
+    },
+    chapters: [ES_CAP_1],
+    isCompleted: true,
+  },
+  {
+    id: 'relojes-de-arena',
+    title: 'El Jardín de los Relojes de Arena',
+    author: 'Valeria Rojas',
+    genre: 'Fantasía',
+    language: 'es',
+    reads: '198 mil',
+    votes: '17,3 mil',
+    parts: 25,
+    synopsis:
+      'En una ciudad gobernada por relojes solares y de arena, una joven aprendiz descubre cómo restaurar las estaciones perdidas.',
+    tags: ['Fantasía', 'Magia', 'Aventura', 'Español'],
+    coverPalette: {
+      bgPrimary: '#3B19A9',
+      bgSecondary: '#1E0D59',
+      accent: '#C4B5FD',
+      textColor: '#FFFFFF',
+      motif: 'prism',
+    },
+    chapters: [ES_CAP_1],
+    isWattys: true,
+  },
+  {
+    id: 'lista-lecturas-espanol',
+    title: 'Misterios y Fantasía en Español',
+    author: 'Comunidad Hispana',
+    genre: 'Lista de Lectura',
+    language: 'es',
+    reads: '53 mil',
+    votes: '4,4 mil',
+    parts: 16,
+    synopsis:
+      'Colección curada por lectores hispanohablantes con novelas de misterio costero, romance y fantasía.',
+    tags: ['Lista ES', 'Misterio', 'Fantasía'],
+    coverPalette: {
+      bgPrimary: '#14532D',
+      bgSecondary: '#052E16',
+      accent: '#4ADE80',
+      textColor: '#FFFFFF',
+      motif: 'constellation',
+    },
+    isReadingList: true,
+    listStoryCount: 16,
+    chapters: [ES_CAP_1],
+  },
 ];
 
 /**
  * Monta os carrosséis da página inicial priorizando histórias e listas conforme `storiesLanguage`,
- * incluindo um carrossel de demonstração com `hasPtTranslation: false` para evidenciar a ocultação
- * de carrosséis sem tradução para o português (R9).
+ * e mantendo 1 carrossel exclusivo por idioma de interface (`pt-BR`, `en-US`, `es-ES`) para demonstrar `R9`,
+ * cujas histórias internas respeitam `storiesLanguage` (`'pt'`, `'en'` ou `'es'`) conforme `R10`.
  *
  * @param storiesLanguage Idioma selecionado para recomendação de histórias (`'pt'`, `'en'` ou `'es'`).
  * @returns Lista ordenada de carrosséis exibidos na Home (Tela 1).
@@ -480,14 +591,18 @@ export const MOCK_STORIES: StoryItem[] = [
 export function buildCarousels(storiesLanguage: 'pt' | 'en' | 'es'): CarouselData[] {
   const ptStories = MOCK_STORIES.filter((s) => s.language === 'pt' && !s.isReadingList);
   const enStories = MOCK_STORIES.filter((s) => s.language === 'en' && !s.isReadingList);
+  const esStories = MOCK_STORIES.filter((s) => s.language === 'es' && !s.isReadingList);
 
   const primaryPool =
     storiesLanguage === 'en'
       ? [...enStories, ...ptStories.slice(0, 2)]
-      : [...ptStories, MOCK_STORIES.find((s) => s.id === 'echoes-beyond-the-harbor')!];
+      : storiesLanguage === 'es'
+        ? [...esStories, ...ptStories.slice(0, 2)]
+        : [...ptStories, MOCK_STORIES.find((s) => s.id === 'echoes-beyond-the-harbor')!];
 
   const readingListsPt = MOCK_STORIES.filter((s) => s.isReadingList && s.language === 'pt');
   const readingListsEn = MOCK_STORIES.filter((s) => s.isReadingList && s.language === 'en');
+  const readingListsEs = MOCK_STORIES.filter((s) => s.isReadingList && s.language === 'es');
 
   const communityListItems: StoryItem[] =
     storiesLanguage === 'en'
@@ -496,11 +611,75 @@ export function buildCarousels(storiesLanguage: 'pt' | 'en' | 'es'): CarouselDat
           MOCK_STORIES.find((s) => s.id === 'echoes-beyond-the-harbor')!,
           ...readingListsPt.slice(0, 1),
         ]
-      : [
-          ...readingListsPt,
-          MOCK_STORIES.find((s) => s.id === 'cronicas-do-silencio')!,
-          MOCK_STORIES.find((s) => s.id === 'echoes-beyond-the-harbor')!,
-        ];
+      : storiesLanguage === 'es'
+        ? [
+            ...readingListsEs,
+            ...esStories.slice(0, 2),
+            ...readingListsPt.slice(0, 1),
+          ]
+        : [
+            ...readingListsPt,
+            MOCK_STORIES.find((s) => s.id === 'cronicas-do-silencio')!,
+            MOCK_STORIES.find((s) => s.id === 'echoes-beyond-the-harbor')!,
+          ];
+
+  // Cada carrossel exclusivo de sistema possui versões nas 3 línguas (pt, en, es)
+  // para que o idioma do sistema (siteLanguage) determine QUAL carrossel exclusivo aparece (R9)
+  // e o idioma das histórias (storiesLanguage) determine EM QUAL LÍNGUA as histórias desse carrossel aparecem (R10).
+  const exclusivePtSystemItems: Record<'pt' | 'en' | 'es', StoryItem[]> = {
+    pt: [
+      MOCK_STORIES.find((s) => s.id === 'cronicas-do-silencio')!,
+      MOCK_STORIES.find((s) => s.id === 'cartas-de-outono')!,
+      MOCK_STORIES.find((s) => s.id === 'jardim-das-cinzas')!,
+      MOCK_STORIES.find((s) => s.id === 'laminas-da-fronteira')!,
+    ],
+    en: [
+      MOCK_STORIES.find((s) => s.id === 'echoes-beyond-the-harbor')!,
+      MOCK_STORIES.find((s) => s.id === 'clockwork-seasons')!,
+      MOCK_STORIES.find((s) => s.id === 'letters-across-winter')!,
+    ],
+    es: [
+      MOCK_STORIES.find((s) => s.id === 'cronicas-del-puerto')!,
+      MOCK_STORIES.find((s) => s.id === 'cartas-bajo-la-lluvia')!,
+      MOCK_STORIES.find((s) => s.id === 'relojes-de-arena')!,
+    ],
+  };
+
+  const exclusiveEnSystemItems: Record<'pt' | 'en' | 'es', StoryItem[]> = {
+    pt: [
+      MOCK_STORIES.find((s) => s.id === 'cartas-de-outono')!,
+      MOCK_STORIES.find((s) => s.id === 'sob-luz-de-nevoeiro')!,
+      MOCK_STORIES.find((s) => s.id === 'jardim-das-cinzas')!,
+    ],
+    en: [
+      MOCK_STORIES.find((s) => s.id === 'letters-across-winter')!,
+      MOCK_STORIES.find((s) => s.id === 'clockwork-seasons')!,
+      MOCK_STORIES.find((s) => s.id === 'echoes-beyond-the-harbor')!,
+    ],
+    es: [
+      MOCK_STORIES.find((s) => s.id === 'cartas-bajo-la-lluvia')!,
+      MOCK_STORIES.find((s) => s.id === 'relojes-de-arena')!,
+      MOCK_STORIES.find((s) => s.id === 'cronicas-del-puerto')!,
+    ],
+  };
+
+  const exclusiveEsSystemItems: Record<'pt' | 'en' | 'es', StoryItem[]> = {
+    pt: [
+      MOCK_STORIES.find((s) => s.id === 'estrela-de-vidro')!,
+      MOCK_STORIES.find((s) => s.id === 'sob-luz-de-nevoeiro')!,
+      MOCK_STORIES.find((s) => s.id === 'cronicas-do-silencio')!,
+    ],
+    en: [
+      MOCK_STORIES.find((s) => s.id === 'clockwork-seasons')!,
+      MOCK_STORIES.find((s) => s.id === 'echoes-beyond-the-harbor')!,
+      MOCK_STORIES.find((s) => s.id === 'letters-across-winter')!,
+    ],
+    es: [
+      MOCK_STORIES.find((s) => s.id === 'relojes-de-arena')!,
+      MOCK_STORIES.find((s) => s.id === 'cronicas-del-puerto')!,
+      MOCK_STORIES.find((s) => s.id === 'cartas-bajo-la-lluvia')!,
+    ],
+  };
 
   return [
     {
@@ -519,12 +698,27 @@ export function buildCarousels(storiesLanguage: 'pt' | 'en' | 'es'): CarouselDat
       titleEs: 'Escapa de la realidad',
       hasPtTranslation: true,
       kind: 'stories',
-      items: [
-        MOCK_STORIES.find((s) => s.id === 'jardim-das-cinzas')!,
-        MOCK_STORIES.find((s) => s.id === 'estrela-de-vidro')!,
-        MOCK_STORIES.find((s) => s.id === 'laminas-da-fronteira')!,
-        MOCK_STORIES.find((s) => s.id === 'clockwork-seasons')!,
-      ],
+      items:
+        storiesLanguage === 'en'
+          ? [
+              MOCK_STORIES.find((s) => s.id === 'clockwork-seasons')!,
+              MOCK_STORIES.find((s) => s.id === 'echoes-beyond-the-harbor')!,
+              MOCK_STORIES.find((s) => s.id === 'letters-across-winter')!,
+              MOCK_STORIES.find((s) => s.id === 'jardim-das-cinzas')!,
+            ]
+          : storiesLanguage === 'es'
+            ? [
+                MOCK_STORIES.find((s) => s.id === 'relojes-de-arena')!,
+                MOCK_STORIES.find((s) => s.id === 'cronicas-del-puerto')!,
+                MOCK_STORIES.find((s) => s.id === 'cartas-bajo-la-lluvia')!,
+                MOCK_STORIES.find((s) => s.id === 'jardim-das-cinzas')!,
+              ]
+            : [
+                MOCK_STORIES.find((s) => s.id === 'jardim-das-cinzas')!,
+                MOCK_STORIES.find((s) => s.id === 'estrela-de-vidro')!,
+                MOCK_STORIES.find((s) => s.id === 'laminas-da-fronteira')!,
+                MOCK_STORIES.find((s) => s.id === 'clockwork-seasons')!,
+              ],
     },
     {
       id: 'listas-comunidade',
@@ -542,12 +736,27 @@ export function buildCarousels(storiesLanguage: 'pt' | 'en' | 'es'): CarouselDat
       titleEs: 'En tendencia',
       hasPtTranslation: true,
       kind: 'stories',
-      items: [
-        MOCK_STORIES.find((s) => s.id === 'cronicas-do-silencio')!,
-        MOCK_STORIES.find((s) => s.id === 'cartas-de-outono')!,
-        MOCK_STORIES.find((s) => s.id === 'sob-luz-de-nevoeiro')!,
-        MOCK_STORIES.find((s) => s.id === 'letters-across-winter')!,
-      ],
+      items:
+        storiesLanguage === 'en'
+          ? [
+              MOCK_STORIES.find((s) => s.id === 'letters-across-winter')!,
+              MOCK_STORIES.find((s) => s.id === 'echoes-beyond-the-harbor')!,
+              MOCK_STORIES.find((s) => s.id === 'clockwork-seasons')!,
+              MOCK_STORIES.find((s) => s.id === 'cronicas-do-silencio')!,
+            ]
+          : storiesLanguage === 'es'
+            ? [
+                MOCK_STORIES.find((s) => s.id === 'cartas-bajo-la-lluvia')!,
+                MOCK_STORIES.find((s) => s.id === 'relojes-de-arena')!,
+                MOCK_STORIES.find((s) => s.id === 'cronicas-del-puerto')!,
+                MOCK_STORIES.find((s) => s.id === 'cronicas-do-silencio')!,
+              ]
+            : [
+                MOCK_STORIES.find((s) => s.id === 'cronicas-do-silencio')!,
+                MOCK_STORIES.find((s) => s.id === 'cartas-de-outono')!,
+                MOCK_STORIES.find((s) => s.id === 'sob-luz-de-nevoeiro')!,
+                MOCK_STORIES.find((s) => s.id === 'letters-across-winter')!,
+              ],
     },
     {
       id: 'classicos-comunidade-pt',
@@ -556,12 +765,7 @@ export function buildCarousels(storiesLanguage: 'pt' | 'en' | 'es'): CarouselDat
       titleEs: undefined,
       hasPtTranslation: true,
       kind: 'stories',
-      items: [
-        MOCK_STORIES.find((s) => s.id === 'cronicas-do-silencio')!,
-        MOCK_STORIES.find((s) => s.id === 'cartas-de-outono')!,
-        MOCK_STORIES.find((s) => s.id === 'jardim-das-cinzas')!,
-        MOCK_STORIES.find((s) => s.id === 'laminas-da-fronteira')!,
-      ],
+      items: exclusivePtSystemItems[storiesLanguage],
     },
     {
       id: 'editors-picks-en',
@@ -570,11 +774,16 @@ export function buildCarousels(storiesLanguage: 'pt' | 'en' | 'es'): CarouselDat
       titleEs: undefined,
       hasPtTranslation: false,
       kind: 'stories',
-      items: [
-        MOCK_STORIES.find((s) => s.id === 'clockwork-seasons')!,
-        MOCK_STORIES.find((s) => s.id === 'letters-across-winter')!,
-        MOCK_STORIES.find((s) => s.id === 'echoes-beyond-the-harbor')!,
-      ],
+      items: exclusiveEnSystemItems[storiesLanguage],
+    },
+    {
+      id: 'voces-latinoamericanas-es',
+      titlePt: undefined,
+      titleEn: undefined,
+      titleEs: 'Voces Hispanoamericanas Destacadas',
+      hasPtTranslation: false,
+      kind: 'stories',
+      items: exclusiveEsSystemItems[storiesLanguage],
     },
   ];
 }
