@@ -1084,7 +1084,7 @@ export function createInitialMobileChapters(): MobileStoryChapter[] {
     {
       id: 'task-a-cap-1',
       storyId: 'estrada-sinuosa',
-      storyTitle: 'Estrada Sinuosa (Bumpy Road)',
+      storyTitle: 'Estrada Sinuosa',
       chapterNumber: 1,
       chapterTitle: 'Capítulo 1 — Quilômetro zero',
       language: 'pt',
